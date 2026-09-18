@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>案件詳細 - Cross-Campus Task Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>body { background-color: #f4f6f9; }</style>
+</head>
+<body>
+
+<div class="container py-4" style="max-width: 960px;">
+    <!-- ナビゲーションボタンとステータス表示 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+            <!-- 記憶された遷移元URLへ確実に戻るリンク -->
+            <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-chevron-left"></i> 戻る
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-house-door"></i> ダッシュボードに戻る
+            </a>
+        </div>
+        <span class="badge {% if task.status == 'closed' %}bg-success{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %} fs-6">
+            {{ task.get_status_display }}
+        </span>
+    </div>
+
+    <!-- フラッシュメッセージ -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 案件概要カード -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex align-items-center gap-1 mb-2">
+                <span class="badge bg-secondary">{{ task.target_group.name }}宛て</span>
+                <span class="badge {% if task.priority == 'high' %}bg-danger{% elif task.priority == 'mid' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                    {{ task.get_priority_display }}優先度
+                </span>
+                {% if task.privacy == 'sensitive' %}
+                    <span class="badge bg-danger"><i class="bi bi-lock-fill"></i> 機密</span>
+                {% endif %}
+            </div>
+            <h4 class="fw-bold mb-0">{{ task.title }}</h4>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3 text-muted small border-bottom pb-3">
+                <div class="col-sm-4">
+                    <strong>宛先:</strong>
+                    <div class="mt-1 text-dark fw-bold">
+                        {% if task.target_type == 'student' %}
+                            学生案件（計 {{ task.students.count }} 名）
+                        {% elif task.target_type == 'staff' and task.target_user %}
+                            {{ task.target_user.last_name }} {{ task.target_user.first_name }} <span class="badge bg-secondary">教職員</span>
+                        {% else %}
+                            {{ task.target_group.name }}（部署宛て）
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <strong>対応期日:</strong>
+                    <div class="mt-1 fw-bold text-dark">{{ task.due_date|date:"Y/m/d" }}</div>
+                </div>
+                <div class="col-sm-4">
+                    <strong>起票者:</strong>
+                    <div class="mt-1 text-dark">
+                        {% if task.created_by.last_name or task.created_by.first_name %}
+                            {{ task.created_by.last_name|default:"" }} {{ task.created_by.first_name|default:"" }}
+                        {% else %}
+                            {{ task.created_by.username }}
+                        {% endif %}
+                        <small class="text-muted">({{ task.created_at|date:"m/d H:i" }})</small>
+                    </div>
+                </div>
+            </div>
+            <p class="card-text" style="white-space: pre-wrap;">{{ task.description }}</p>
+        </div>
+    </div>
+    
+    <!-- 学生個別対応進捗テーブル（学生案件のみ表示） -->
+    {% if task.target_type == 'student' and student_progresses %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <div class="fw-bold text-primary">
+                <i class="bi bi-people-fill"></i> 対象学生ごとの個別対応進捗（{{ student_progresses.count }}名）
+            </div>
+            <div class="text-muted small">
+                学生ごとに面談状況や個別メモを更新できます <span class="badge bg-secondary ms-1">任意</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="update_student_progress" value="1">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th style="width: 25%;">学生情報</th>
+                                <th style="width: 18%;">個別進捗</th>
+                                <th style="width: 47%;">個別対応メモ（面談記録・備考など）</th>
+                                <th style="width: 10%;">最終更新</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in student_progresses %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-dark">{{ p.student.name }}</div>
+                                    <div class="text-muted small">
+                                        {{ p.student.student_id }} | {{ p.student.department|default:"" }} {{ p.student.class_name|default:"" }}
+                                    </div>
+                                    {% if p.student.nickname %}
+                                        <span class="badge rounded-pill bg-light text-secondary border mt-1" style="font-size: 10px;">🏷️ {{ p.student.nickname }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <select name="student_status_{{ p.student.id }}" class="form-select form-select-sm">
+                                        <option value="open" {% if p.status == 'open' %}selected{% endif %}>未対応</option>
+                                        <option value="in_progress" {% if p.status == 'in_progress' %}selected{% endif %}>対応中</option>
+                                        <option value="closed" {% if p.status == 'closed' %}selected{% endif %}>完了</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" name="student_memo_{{ p.student.id }}" value="{{ p.memo|default:'' }}" 
+                                           class="form-control form-control-sm" placeholder="例: 9/12 面談済、書類受領">
+                                </td>
+                                <td class="small text-muted">
+                                    {{ p.updated_at|date:"m/d H:i" }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 bg-light text-end border-top">
+                    <button type="submit" class="btn btn-sm btn-primary fw-bold">
+                        <i class="bi bi-check2-circle"></i> 学生ごとの進捗・メモを一括保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 申し送り・対応タイムライン（タスク全体） -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-bold py-3">
+            <i class="bi bi-chat-left-text text-primary"></i> 全体申し送り・対応履歴ログ（{{ comments.count }}件）
+        </div>
+        <div class="card-body">
+            {% for comment in comments %}
+            <div class="border-start border-3 border-primary ps-3 mb-3">
+                <div class="d-flex justify-content-between small text-muted">
+                    <strong>
+                        {% if comment.author.last_name or comment.author.first_name %}
+                            {{ comment.author.last_name|default:"" }} {{ comment.author.first_name|default:"" }}
+                        {% else %}
+                            {{ comment.author.username }}
+                        {% endif %}
+                    </strong>
+                    <span>{{ comment.created_at|date:"Y/m/d H:i" }}</span>
+                </div>
+                <div class="mt-1" style="white-space: pre-wrap;">{{ comment.content }}</div>
+            </div>
+            {% empty %}
+            <p class="text-muted small mb-0">履歴はまだありません。</p>
+            {% endfor %}
+
+            <!-- 全体メモ追加フォーム（ポップアップ連携） -->
+            <form id="overallLogForm" method="post" class="mt-4 border-top pt-3">
+                {% csrf_token %}
+                <input type="hidden" name="status" id="hiddenStatus" value="">
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">新しい申し送り・全体連絡を記録</label>
+                    <textarea name="comment" class="form-control" rows="3" placeholder="タスク全体に関する申し送り事項を入力" required></textarea>
+                </div>
+                <div class="text-end">
+                    <button type="button" class="btn btn-outline-primary fw-bold px-4" onclick="openStatusModal()">
+                        <i class="bi bi-pencil-square"></i> 全体ログを保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<!-- ステータス選択ポップアップ（モーダル） -->
+<div class="modal fade" id="statusSelectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light py-2">
+                <h6 class="modal-title fw-bold">タスク状態の選択</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <p class="small text-muted mb-3">
+                    ログを保存すると同時に、<br>このタスクのステータスを更新します。
+                    <br><span class="badge bg-secondary mt-1">現在の状態: {{ task.get_status_display }}</span>
+                </p>
+                <div class="d-flex flex-column gap-2">
+                    <button type="button" class="btn btn-outline-warning text-dark fw-bold" onclick="submitLogWithStatus('open')">「未対応」にする</button>
+                    <button type="button" class="btn btn-outline-info text-dark fw-bold" onclick="submitLogWithStatus('in_progress')">「対応中」にする</button>
+                    <button type="button" class="btn btn-outline-success fw-bold" onclick="submitLogWithStatus('closed')">「完了」にする</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function openStatusModal() {
+    const form = document.getElementById('overallLogForm');
+    // HTML5のrequiredバリデーションをチェック（未入力ならブラウザ標準の警告を出す）
+    if (form.reportValidity()) {
+        const modal = new bootstrap.Modal(document.getElementById('statusSelectModal'));
+        modal.show();
+    }
+}
+
+function submitLogWithStatus(statusValue) {
+    // 選択されたステータスを隠しフィールドにセットしてフォーム送信
+    document.getElementById('hiddenStatus').value = statusValue;
+    document.getElementById('overallLogForm').submit();
+}
+</script>
+</body>
+</html>

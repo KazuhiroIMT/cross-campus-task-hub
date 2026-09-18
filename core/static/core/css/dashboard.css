@@ -1,0 +1,411 @@
+/* ==========================================================================
+   Cross-Campus Task Hub — Dashboard Theme
+   「毎日見ても飽きない、気持ちが上向く」デザイン
+   HTML変更不要・このCSSファイルの差し替えのみで適用されます
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+
+:root {
+  /* --- ベースカラー --- */
+  --color-bg: #f6f4ec;
+  --color-bg-soft: #efece0;
+  --color-surface: #ffffff;
+  --color-border: #e3ddc9;
+
+  /* --- テキスト --- */
+  --color-ink: #2b2a26;
+  --color-ink-soft: #6b6656;
+  --color-ink-faint: #9a947d;
+
+  /* --- ブランドカラー --- */
+  --color-pine: #2f4a3e;
+  --color-pine-dark: #223629;
+  --color-pine-soft: #e3ebe3;
+
+  --color-slate: #45648c;
+  --color-slate-soft: #e4ebf3;
+
+  --color-amber: #e2a33b;
+  --color-amber-dark: #a9711b;
+  --color-amber-soft: #fbecd3;
+
+  --color-rust: #be5036;
+  --color-rust-dark: #8f3823;
+  --color-rust-soft: #f5ded6;
+
+  --color-sage: #3f6e52;
+  --color-sage-soft: #dceadf;
+
+  --shadow-soft: 0 6px 20px rgba(47, 74, 62, 0.08);
+  --shadow-lift: 0 12px 28px rgba(47, 74, 62, 0.16);
+  --radius-card: 16px;
+  --radius-pill: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* --- ベース --- */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-family: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+h1, h2, h3, h4, h5, h6, .navbar-brand {
+  font-family: "Kaisei Decol", "Hiragino Mincho ProN", serif;
+  letter-spacing: 0.01em;
+}
+
+/* --- ナビゲーションバー --- */
+.navbar.bg-dark {
+  background: linear-gradient(135deg, var(--color-pine) 0%, var(--color-pine-dark) 100%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.navbar-brand {
+  color: #f6f4ec !important;
+  font-weight: 700;
+}
+.navbar-brand i { color: var(--color-amber) !important; }
+
+.navbar .text-white { color: #f2efe4 !important; }
+.navbar .text-secondary { color: #cfd6c9 !important; }
+
+.navbar .btn-outline-light {
+  color: #f2efe4;
+  border-color: rgba(242, 239, 228, 0.45);
+  border-radius: var(--radius-pill);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.navbar .btn-outline-light:hover,
+.navbar .btn-outline-light:focus {
+  background-color: var(--color-amber);
+  border-color: var(--color-amber);
+  color: var(--color-pine-dark);
+}
+
+/* --- 検索・見出しエリア --- */
+h4.text-secondary { color: var(--color-pine) !important; }
+h4 .bi { color: var(--color-amber); }
+
+.form-control, .form-select {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
+  border-radius: 10px;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--color-amber);
+  box-shadow: 0 0 0 0.2rem rgba(226, 163, 59, 0.25);
+}
+.input-group-text {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-soft);
+}
+
+/* --- ボタン全般 --- */
+.btn { border-radius: var(--radius-pill); font-weight: 600; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-pine) 0%, var(--color-pine-dark) 100%);
+  border: none;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background: linear-gradient(135deg, #375a4b 0%, var(--color-pine-dark) 100%);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* CTA(タスク依頼・起票)だけ、少し華やかに --- 大胆さはここに集中 */
+button[data-bs-target="#createTaskModal"] {
+  position: relative;
+  overflow: hidden;
+}
+button[data-bs-target="#createTaskModal"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(226, 163, 59, 0.35) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(100%); }
+
+.btn-secondary {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink-soft);
+}
+.btn-secondary:hover {
+  background-color: var(--color-bg-soft);
+  color: var(--color-ink);
+}
+
+.btn-outline-primary {
+  color: var(--color-pine);
+  border-color: var(--color-pine);
+}
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+  background-color: var(--color-pine);
+  border-color: var(--color-pine);
+  color: #fff;
+}
+
+.btn-outline-success {
+  color: var(--color-sage);
+  border-color: var(--color-sage);
+}
+.btn-outline-success:hover, .btn-outline-success:focus {
+  background-color: var(--color-sage);
+  border-color: var(--color-sage);
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  color: var(--color-ink-soft);
+  border-color: var(--color-border);
+}
+.btn-outline-secondary:hover {
+  background-color: var(--color-bg-soft);
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+
+/* トグルボタン(対象種別・依頼タイプ) */
+.btn-check + .btn-outline-primary,
+.btn-check + .btn-outline-secondary {
+  border-radius: 0;
+}
+.btn-group .btn-check:first-child + label { border-radius: var(--radius-pill) 0 0 var(--radius-pill); }
+.btn-group .btn-check:last-child + label { border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
+.btn-check:checked + .btn-outline-primary,
+.btn-check:checked + .btn-outline-secondary {
+  background-color: var(--color-pine);
+  border-color: var(--color-pine);
+  color: #fff;
+}
+
+/* --- アラート --- */
+.alert { border: none; border-radius: 12px; }
+.alert-success { background-color: var(--color-sage-soft); color: var(--color-pine-dark); }
+.alert-warning { background-color: var(--color-amber-soft); color: var(--color-amber-dark); }
+.alert-danger, .alert-error { background-color: var(--color-rust-soft); color: var(--color-rust-dark); }
+.alert-info { background-color: var(--color-slate-soft); color: var(--color-slate); }
+
+/* --- カード --- */
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+/* 至急カード:塗りつぶし赤ではなく、紙に滲んだようなトーンに */
+.card.border-danger { border-color: var(--color-rust-soft) !important; }
+.card-header.bg-danger {
+  background: linear-gradient(135deg, var(--color-rust) 0%, var(--color-rust-dark) 100%) !important;
+  border: none;
+}
+
+/* 通常カードヘッダー:下線アクセントで区別 */
+.card-header.bg-white {
+  background-color: var(--color-surface) !important;
+  border-bottom: 2px solid var(--color-pine-soft);
+  color: var(--color-pine);
+}
+
+.card-header.collapse-toggle {
+  transition: background-color 0.2s ease;
+}
+.card-header.collapse-toggle:hover { background-color: rgba(0, 0, 0, 0.02); }
+
+.card-footer.bg-white { background-color: var(--color-surface) !important; border-top: 1px solid var(--color-border); }
+
+/* --- テーブル --- */
+.table { color: var(--color-ink); margin-bottom: 0; }
+.table thead.table-light th {
+  background-color: var(--color-pine-soft);
+  color: var(--color-pine-dark);
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-pine-soft);
+  font-size: 0.85rem;
+}
+.table-hover > tbody > tr:hover {
+  background-color: var(--color-amber-soft);
+}
+.table > :not(caption) > * > * { border-bottom-color: var(--color-border); }
+
+/* 至急行:赤ベタ塗りから、和紙に滲んだ赤茶のウォッシュ+左バーへ */
+.table-urgent {
+  background-color: var(--color-rust-soft) !important;
+  border-left: 4px solid var(--color-rust);
+}
+.table-urgent:hover { background-color: #f0d0c6 !important; }
+.table-urgent td:first-child { padding-left: calc(0.5rem - 4px); }
+
+.text-danger { color: var(--color-rust) !important; }
+.text-secondary { color: var(--color-ink-soft) !important; }
+.text-muted { color: var(--color-ink-faint) !important; }
+
+/* --- 優先度バッジ --- */
+.badge-high { background-color: var(--color-rust); color: #fff; }
+.badge-mid { background-color: var(--color-amber); color: var(--color-ink); }
+.badge-low { background-color: var(--color-bg-soft); color: var(--color-ink-soft); border: 1px solid var(--color-border); }
+
+/* --- 状態バッジ(Bootstrapユーティリティを .badge スコープ限定で上書き) --- */
+.badge { font-weight: 600; border-radius: var(--radius-pill); padding: 0.4em 0.75em; }
+.badge.bg-warning { background-color: var(--color-amber-soft) !important; color: var(--color-amber-dark) !important; }
+.badge.bg-info { background-color: var(--color-slate-soft) !important; color: var(--color-slate) !important; }
+.badge.bg-success { background-color: var(--color-sage-soft) !important; color: var(--color-sage) !important; }
+.badge.bg-danger { background-color: var(--color-rust) !important; color: #fff !important; }
+.badge.bg-secondary { background-color: var(--color-bg-soft) !important; color: var(--color-ink-soft) !important; border: 1px solid var(--color-border); }
+
+/* --- モーダル --- */
+.modal-content {
+  border: none;
+  border-radius: 18px;
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+}
+.modal-header.bg-primary {
+  background: linear-gradient(135deg, var(--color-pine) 0%, var(--color-pine-dark) 100%) !important;
+  border: none;
+}
+.modal-footer.bg-light { background-color: var(--color-bg) !important; border-top: 1px solid var(--color-border); }
+
+.bg-light { background-color: var(--color-bg-soft) !important; }
+
+/* --- 学生/教職員検索リスト --- */
+.target-list-box {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+.target-item {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.15s ease;
+}
+.target-item:hover { background-color: var(--color-pine-soft); }
+.target-item input[type="checkbox"]:checked + label,
+.target-item input[type="radio"]:checked + label {
+  color: var(--color-pine);
+  font-weight: 700;
+}
+
+/* --- ページネーション --- */
+.pagination .page-link {
+  color: var(--color-pine);
+  border-color: var(--color-border);
+}
+.pagination .page-item.active .page-link {
+  background-color: var(--color-pine);
+  border-color: var(--color-pine);
+}
+.pagination .page-item.disabled .page-link {
+  color: var(--color-ink-faint);
+  background-color: var(--color-bg-soft);
+}
+
+/* --- ツールチップ(機密ラベル) --- */
+.badge.bg-danger[data-bs-toggle="tooltip"] i { margin-right: 2px; }
+
+/* --- アコーディオン開閉トグルの文字色 --- */
+.collapse-toggle .toggle-text-closed,
+.collapse-toggle .toggle-text-open {
+  color: var(--color-ink-soft);
+}
+.card-header.bg-danger .toggle-text-closed,
+.card-header.bg-danger .toggle-text-open {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* --- スクロールバー(装飾:主要ブラウザのみ) --- */
+.target-list-box::-webkit-scrollbar { width: 8px; }
+.target-list-box::-webkit-scrollbar-track { background: var(--color-bg-soft); border-radius: 8px; }
+.target-list-box::-webkit-scrollbar-thumb { background: var(--color-pine-soft); border-radius: 8px; }
+.target-list-box::-webkit-scrollbar-thumb:hover { background: var(--color-pine); }
+
+/* --- 空状態(現在対応が必要なタスクはありません) --- */
+td.text-center.text-muted {
+  font-family: "Kaisei Decol", serif;
+  font-size: 1.05rem;
+  color: var(--color-ink-soft) !important;
+}
+
+/* ==========================================================================
+   追加ページ共通(完了済み・自分の依頼・他部署の案件・案件詳細)
+   ========================================================================== */
+
+/* どのページでも背景色を確実に統一(各テンプレートのインラインstyleより後に効かせる) */
+body { background-color: var(--color-bg) !important; }
+
+/* 行クリック時のホバー(各テンプレートの .clickable-row を上書き) */
+.clickable-row:hover {
+  background-color: var(--color-amber-soft) !important;
+}
+
+/* テキスト系ユーティリティ */
+.text-primary { color: var(--color-pine) !important; }
+.text-success { color: var(--color-sage) !important; }
+
+/* サブトルバッジ(「他 N 名」のツールチップ付きバッジなど) */
+.badge.bg-primary-subtle {
+  background-color: var(--color-pine-soft) !important;
+  color: var(--color-pine) !important;
+  border-color: var(--color-pine-soft) !important;
+}
+
+/* 罫線色の統一(担当バッジの border や区切り線) */
+.border, .border-top, .border-bottom, .border-start, .border-end {
+  border-color: var(--color-border) !important;
+}
+.border-primary { border-color: var(--color-pine) !important; }
+
+/* 案件詳細:申し送り・対応履歴タイムライン */
+.border-start.border-3.border-primary {
+  border-color: var(--color-pine-soft) !important;
+  background-color: var(--color-surface);
+  border-radius: 0 10px 10px 0;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+/* 案件詳細:ステータス切替クイックボタン */
+.btn-outline-warning {
+  color: var(--color-amber-dark);
+  border-color: var(--color-amber);
+}
+.btn-outline-warning:hover, .btn-outline-warning:focus {
+  background-color: var(--color-amber);
+  border-color: var(--color-amber);
+  color: var(--color-ink);
+}
+.btn-outline-info {
+  color: var(--color-slate);
+  border-color: var(--color-slate);
+}
+.btn-outline-info:hover, .btn-outline-info:focus {
+  background-color: var(--color-slate);
+  border-color: var(--color-slate);
+  color: #fff;
+}
+
+/* 学生別進捗テーブルの担当・タグバッジ(nickname, duty表示) */
+.badge.bg-light {
+  background-color: var(--color-bg-soft) !important;
+  color: var(--color-ink-soft) !important;
+}
+
+/* 案件詳細ヘッダーの優先度・機密バッジは fs-6 で少し大きめ表示されるため余白を調整 */
+.badge.fs-6 { padding: 0.5em 0.9em; }

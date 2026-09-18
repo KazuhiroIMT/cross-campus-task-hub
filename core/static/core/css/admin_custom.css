@@ -1,0 +1,390 @@
+/* ==================================================
+   Cross-Campus Task Hub — 管理画面デザイン
+   「静かで精度の高い管理室」という人格。
+   レイアウト(sticky header/sidebar/filter, Flexbox3分割)は
+   元の構造を維持し、配色・タイポグラフィ・意匠のみ刷新。
+   ================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+:root {
+  --admin-bg: #f1f2f5;
+  --admin-surface: #ffffff;
+  --admin-border: #e1e4ea;
+
+  --admin-ink: #1f2430;
+  --admin-ink-soft: #5b6472;
+  --admin-ink-faint: #8b93a3;
+
+  --admin-navy: #1d3557;
+  --admin-navy-dark: #13253c;
+  --admin-navy-soft: #e7ecf2;
+
+  --admin-teal: #2f8f7b;
+  --admin-teal-dark: #226a5a;
+  --admin-teal-soft: #e2f2ee;
+
+  --admin-rust: #c1443a;
+  --admin-rust-soft: #f7e2df;
+
+  --admin-shadow: 0 4px 16px rgba(29, 53, 87, 0.08);
+  --admin-shadow-lift: 0 8px 24px rgba(29, 53, 87, 0.14);
+  --admin-radius: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+
+/* 1. ベース・フォント設定 ＆ sticky制約解除(構造は維持) */
+html, body, #container, #main, .content {
+    overflow: visible !important;
+    height: auto !important;
+    font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif !important;
+    background-color: var(--admin-bg) !important;
+    color: var(--admin-ink) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* パンくずリストの sticky が効くよう、body〜.breadcrumbs までの
+   祖先要素(nav ラッパーや #content を含む)を漏れなく overflow: visible にする */
+#content-start,
+#content,
+.content > nav,
+nav[aria-label] {
+    overflow: visible !important;
+    height: auto !important;
+    contain: none !important;
+    transform: none !important;
+}
+
+a { color: var(--admin-teal-dark) !important; text-decoration: none !important; }
+a:hover { color: var(--admin-navy) !important; text-decoration: underline !important; }
+
+:focus-visible { outline: 2px solid var(--admin-teal); outline-offset: 2px; }
+
+/* 技術的な値(ID・コード類)は等幅で引き締める */
+#result_list td:first-child,
+.field-id, code, kbd {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85em;
+}
+
+/* 2. ヘッダー */
+#header {
+    position: sticky !important;
+    top: 0 !important;
+    height: 55px !important;
+    padding: 0 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    z-index: 1050 !important;
+    background: linear-gradient(120deg, var(--admin-navy) 0%, var(--admin-navy-dark) 100%) !important;
+    border-bottom: 2px solid var(--admin-teal) !important;
+    box-shadow: var(--admin-shadow) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+#site-name a {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: #f4f6f9 !important;
+    letter-spacing: 0.03em;
+    text-transform: none !important;
+}
+
+/* 3. パンくずリスト */
+.breadcrumbs, nav.breadcrumbs, div.breadcrumbs {
+    position: sticky !important;
+    top: 55px !important;
+    height: 45px !important;
+    line-height: 45px !important;
+    padding: 0 32px !important;
+    z-index: 1040 !important;
+    background: var(--admin-surface) !important;
+    color: var(--admin-ink-soft) !important;
+    border-bottom: 1px solid var(--admin-border) !important;
+    box-shadow: 0 2px 8px rgba(29, 53, 87, 0.04) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 0.85rem !important;
+}
+.breadcrumbs a { color: var(--admin-teal-dark) !important; }
+
+/* 画面幅に関わらず常に表示させる(Django側のレスポンシブ非表示対策) */
+nav[aria-label] .breadcrumbs,
+nav[aria-label] ol.breadcrumbs,
+.breadcrumbs {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+nav[aria-label] {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* 4. 左サイドバー */
+#nav-sidebar {
+    position: sticky !important;
+    top: 100px !important;
+    height: calc(100vh - 100px) !important;
+    overflow-y: auto !important;
+    z-index: 1030 !important;
+    border-right: 1px solid var(--admin-border) !important;
+    background: var(--admin-surface) !important;
+}
+
+/* 5. コンテンツ内部 */
+#content {
+    padding: 24px 32px !important;
+}
+#content h1 {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    color: var(--admin-navy) !important;
+    margin-bottom: 20px !important;
+    border-bottom: 2px solid var(--admin-navy-soft) !important;
+    padding-bottom: 12px !important;
+}
+#content h2 { color: var(--admin-navy) !important; font-weight: 700 !important; }
+
+/* 6. Flexboxによる3分割(構造維持) */
+#changelist {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 24px !important;
+    width: 100% !important;
+}
+
+.change-list #changelist-form {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+}
+
+/* 中央:結果テーブル */
+#result_list {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    background: var(--admin-surface) !important;
+    border: 1px solid var(--admin-border) !important;
+    border-radius: var(--admin-radius) !important;
+    overflow: hidden !important;
+    box-shadow: var(--admin-shadow) !important;
+}
+#result_list th, #result_list td {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid var(--admin-border) !important;
+}
+#result_list thead th {
+    background: var(--admin-navy-soft) !important;
+    color: var(--admin-navy) !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid var(--admin-navy-soft) !important;
+}
+#result_list thead th a { color: var(--admin-navy) !important; }
+#result_list tbody tr:hover {
+    background: var(--admin-teal-soft) !important;
+}
+#result_list tbody tr:nth-child(even) {
+    background: rgba(29, 53, 87, 0.015) !important;
+}
+
+/* 右:フィルターパネル */
+#changelist-filter {
+    flex: 0 0 280px !important;
+    width: 280px !important;
+    position: sticky !important;
+    top: 124px !important;
+    height: calc(100vh - 140px) !important;
+    overflow-y: auto !important;
+    background: var(--admin-surface) !important;
+    border: 1px solid var(--admin-border) !important;
+    border-radius: var(--admin-radius) !important;
+    margin: 0 !important;
+    right: auto !important;
+}
+#changelist-filter h2 {
+    background: var(--admin-navy-soft) !important;
+    color: var(--admin-navy) !important;
+    padding: 10px 16px !important;
+    font-size: 0.9rem !important;
+}
+#changelist-filter li.selected a {
+    color: var(--admin-teal-dark) !important;
+    font-weight: 700 !important;
+}
+
+/* 7. サイドバー開閉ボタン */
+#toggle-nav-sidebar {
+    width: 48px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-right: 1px solid var(--admin-border) !important;
+}
+#toggle-nav-sidebar::before {
+    content: "開く\A >>" !important;
+    white-space: pre !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    color: var(--admin-ink-faint) !important;
+}
+#nav-sidebar[aria-expanded="true"] ~ #toggle-nav-sidebar::before,
+.shifted #toggle-nav-sidebar::before {
+    content: "<< \A閉じる" !important;
+}
+
+/* 8. パーミッション解説ツールチップ(JSのインラインstyleを上書き) */
+#custom-permission-tooltip {
+    background-color: var(--admin-navy-dark) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: var(--admin-shadow-lift) !important;
+}
+#custom-permission-tooltip::-webkit-scrollbar { width: 8px !important; }
+#custom-permission-tooltip::-webkit-scrollbar-thumb { background-color: var(--admin-teal) !important; border-radius: 4px !important; }
+
+/* ==================================================
+   ボタン類(追加・履歴・インポート)
+   ================================================== */
+.object-tools a.addlink {
+    background-color: var(--admin-teal) !important;
+    color: #ffffff !important;
+    border-radius: var(--admin-radius) !important;
+    padding: 8px 16px 8px 36px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    transition: background-color 0.2s ease, transform 0.2s ease !important;
+    background-position: 12px center !important;
+    background-repeat: no-repeat !important;
+    box-shadow: var(--admin-shadow) !important;
+}
+.object-tools a.addlink:hover {
+    background-color: var(--admin-teal-dark) !important;
+    transform: translateY(-1px);
+}
+
+.object-tools a.historylink,
+.object-tools a.import-link,
+.object-tools a.button {
+    background-color: var(--admin-navy) !important;
+    color: #ffffff !important;
+    border-radius: var(--admin-radius) !important;
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+    display: inline-block !important;
+    transition: background-color 0.2s ease !important;
+    background-position: 12px center !important;
+    background-repeat: no-repeat !important;
+}
+.object-tools a.historylink:hover,
+.object-tools a.import-link:hover,
+.object-tools a.button:hover {
+    background-color: var(--admin-navy-dark) !important;
+}
+
+/* 標準の送信/削除ボタン類もトーンを合わせる */
+input[type="submit"].default, .submit-row input.default {
+    background: var(--admin-teal) !important;
+    border-color: var(--admin-teal-dark) !important;
+    border-radius: var(--admin-radius) !important;
+    font-weight: 700 !important;
+}
+input[type="submit"].default:hover, .submit-row input.default:hover {
+    background: var(--admin-teal-dark) !important;
+}
+.deletelink {
+    background: var(--admin-rust) !important;
+    border-radius: var(--admin-radius) !important;
+}
+.deletelink:hover { background: #9c342c !important; }
+
+/* ==================================================
+   レスポンシブ対応(構造は維持)
+   ================================================== */
+@media screen and (max-width: 920px) {
+    #changelist { display: block !important; }
+    .change-list #changelist-form { margin-right: 0 !important; width: 100% !important; }
+    #changelist-filter {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        margin-top: 24px !important;
+        box-shadow: none !important;
+    }
+    #nav-sidebar { position: relative !important; height: auto !important; top: 0 !important; }
+}
+
+@media screen and (max-width: 1024px) {
+    #nav-sidebar {
+        position: fixed !important;
+        left: -280px !important;
+        transition: left 0.3s ease !important;
+        z-index: 1060 !important;
+    }
+    body.shifted #nav-sidebar,
+    #nav-sidebar[aria-expanded="true"] { left: 0 !important; }
+    #main { padding-left: 0 !important; }
+    #changelist { display: block !important; }
+    .change-list #changelist-form { margin-right: 0 !important; width: 100% !important; }
+    #changelist-filter { position: static !important; width: 100% !important; height: auto !important; margin-top: 24px !important; }
+}
+
+/* ==================================================
+   ヘッダー右上のユーザー情報
+   ================================================== */
+#header #user-tools {
+    color: #d6dce5 !important;
+    font-size: 0.85rem !important;
+}
+#header #user-tools a {
+    color: var(--admin-teal) !important;
+    text-decoration: underline !important;
+}
+#header #user-tools a:hover { color: #6fc4b3 !important; }
+
+/* ==================================================
+   セクション見出し(サイドバー＆ホーム画面共通)
+   ================================================== */
+a.section,
+#nav-sidebar a.section,
+.module caption a.section {
+    color: var(--admin-ink) !important;
+    font-weight: 700 !important;
+}
+a.section:hover,
+#nav-sidebar a.section:hover,
+.module caption a.section:hover {
+    color: var(--admin-teal-dark) !important;
+}
+.module caption, .module h2 {
+    background: var(--admin-navy-soft) !important;
+    color: var(--admin-navy) !important;
+}
+
+/* ==================================================
+   国籍等の複数選択フィルター(details/summary、インラインstyleを上書き)
+   ================================================== */
+.nationality-filter-details {
+    border-color: var(--admin-border) !important;
+    background: var(--admin-surface) !important;
+    border-radius: var(--admin-radius) !important;
+}
+.nationality-filter-details summary {
+    background-color: var(--admin-navy-soft) !important;
+    color: var(--admin-navy) !important;
+    border-radius: var(--admin-radius) var(--admin-radius) 0 0 !important;
+}
+.nationality-filter-details summary span:last-child {
+    color: var(--admin-teal-dark) !important;
+}
+
+/* ユーザー名バリデーションのエラー表示色は既存(rust系)のまま統一感あり、変更不要 */

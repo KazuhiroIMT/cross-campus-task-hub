@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ダッシュボード - Cross-Campus Task Hub</title>
+    <!-- staticタグの有効化 -->
+    {% load static %}
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- 外部化したダッシュボード用カスタムCSSを読み込み -->
+    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm px-4 py-2">
+    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+        <i class="bi bi-grid-fill text-primary"></i> Cross-Campus Task Hub
+    </a>
+    <div class="ms-auto d-flex align-items-center text-white small gap-3">
+        <a href="{% url 'other_department_tasks' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-building"></i> 他部署の案件</a>
+        <a href="{% url 'my_created_tasks' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-send"></i> 自分が依頼した案件</a>
+        <a href="{% url 'closed_tasks' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-archive"></i> 完了済み案件</a>
+        <div>
+            <i class="bi bi-person-circle"></i> {{ user.username }}
+            <span class="text-secondary">（{% for g in user.groups.all %}{{ g.name }}{% if not forloop.last %}, {% endif %}{% empty %}所属なし{% endfor %}）</span>
+        </div>
+        <form method="post" action="{% url 'logout' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-light btn-sm">ログアウト</button>
+        </form>
+    </div>
+</nav>
+
+<div class="container-fluid px-4 py-4">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row align-items-center mb-3 g-2">
+        <div class="col-lg-4 col-md-12">
+            <h4 class="fw-bold mb-0 text-secondary">
+                <i class="bi bi-card-checklist text-primary"></i> 要対応タスク一覧
+            </h4>
+        </div>
+        <div class="col-lg-5 col-md-7">
+            <form method="get" action="{% url 'dashboard' %}" class="d-flex gap-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="対象者名・件名・内容・日付(9/22)等で検索">
+                    {% if search_query %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">クリア</a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-secondary">検索</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-lg-3 col-md-5 text-end">
+            <button type="button" class="btn btn-primary btn-sm fw-bold w-100" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                <i class="bi bi-plus-circle"></i> タスク依頼・起票
+            </button>
+        </div>
+    </div>
+
+    <!-- ① 【至急対応・期日超過案件】（初期状態：閉じる） -->
+    {% if urgent_tasks %}
+    <div class="card border-danger shadow-sm mb-4">
+        <div id="urgentHeader" class="card-header bg-danger text-white fw-bold d-flex justify-content-between align-items-center collapse-toggle collapsed" 
+             data-bs-toggle="collapse" data-bs-target="#urgentTasksBody" aria-expanded="false">
+            <span>
+                <i class="bi bi-exclamation-triangle-fill"></i> 【至急】期日超過・本日中の対応案件（{{ urgent_tasks|length }}件）
+            </span>
+            <div class="small fw-normal d-flex align-items-center gap-2">
+                <span class="toggle-text-closed">▼ クリックして開く</span>
+                <span class="toggle-text-open">▲ クリックして閉じる</span>
+            </div>
+        </div>
+        <div id="urgentTasksBody" class="collapse">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 8%;">期日</th>
+                            <th style="width: 6%;">優先度</th>
+                            <th style="width: 8%;">状態</th>
+                            <th style="width: 22%;">対象者</th>
+                            <th style="width: 32%;">依頼内容 / 部署</th>
+                            <th style="width: 10%;">起票者</th>
+                            <th style="width: 14%;">アクション</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in urgent_tasks %}
+                        <tr class="table-urgent" style="cursor: pointer;" onclick="location.href='{% url 'task_detail' task.pk %}'">
+                            <td class="fw-bold text-danger">{{ task.due_date|date:"m/d" }}</td>
+                            <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
+                            <td>
+                                <span class="badge {% if task.status == 'open' %}bg-warning text-dark{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-success{% endif %}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ task.target_display }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-1 mb-1">
+                                    <span class="badge bg-secondary">宛先: {{ task.target_group.name }}</span>
+                                    {% if task.privacy == 'sensitive' %}
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger" 
+                                                data-bs-toggle="tooltip" 
+                                                data-bs-placement="top" 
+                                                data-bs-title="{% if task.target_user %}起票者・宛先担当者のみ閲覧可能{% else %}起票者・宛先部署（担当者）のみ閲覧可能{% endif %}"
+                                                style="font-size: 10px; cursor: help;"
+                                                onclick="event.stopPropagation()">
+                                                <i class="bi bi-lock-fill"></i> 機密
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="fw-bold text-dark">{{ task.title }}</div>
+                                <small class="text-secondary">{{ task.description|truncatechars:40 }}</small>
+                            </td>
+                            <td class="small text-muted">
+                                {% if task.created_by.last_name or task.created_by.first_name %}
+                                    {{ task.created_by.last_name|default:"" }} {{ task.created_by.first_name|default:"" }}
+                                {% else %}
+                                    {{ task.created_by.username }}
+                                {% endif %}
+                            </td>
+                            <td onclick="event.stopPropagation()">
+                                <form method="post" action="{% url 'update_task_status' task.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    {% if task.status == 'open' %}
+                                        <input type="hidden" name="status" value="in_progress">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 12px;">着手する</button>
+                                    {% elif task.status == 'in_progress' %}
+                                        <input type="hidden" name="status" value="closed">
+                                        <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2" style="font-size: 12px;">完了にする</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ② 【今後の対応予定タスク】（初期状態：閉じる） -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div id="normalHeader" class="card-header bg-white fw-bold text-dark py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed" 
+             data-bs-toggle="collapse" data-bs-target="#normalTasksBody" aria-expanded="false">
+            <div>
+                <i class="bi bi-list-task text-primary"></i> 今後の対応予定タスク（{{ normal_tasks_count }}件）
+            </div>
+            <div class="small fw-normal text-muted d-flex align-items-center gap-2">
+                <span class="toggle-text-closed">▼ クリックして開く</span>
+                <span class="toggle-text-open">▲ クリックして閉じる</span>
+            </div>
+        </div>
+        <div id="normalTasksBody" class="collapse">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 8%;">期日</th>
+                            <th style="width: 6%;">優先度</th>
+                            <th style="width: 8%;">状態</th>
+                            <th style="width: 22%;">対象者</th>
+                            <th style="width: 32%;">依頼内容 / 部署</th>
+                            <th style="width: 10%;">起票者</th>
+                            <th style="width: 14%;">アクション</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in normal_tasks %}
+                        <tr style="cursor: pointer;" onclick="location.href='{% url 'task_detail' task.pk %}'">
+                            <td>{{ task.due_date|date:"m/d" }}</td>
+                            <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
+                            <td>
+                                <span class="badge {% if task.status == 'open' %}bg-warning text-dark{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-success{% endif %}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ task.target_display }}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-1 mb-1">
+                                    <span class="badge bg-secondary">宛先: {{ task.target_group.name }}</span>
+                                    {% if task.privacy == 'sensitive' %}
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger" 
+                                                data-bs-toggle="tooltip" 
+                                                data-bs-placement="top" 
+                                                data-bs-title="{% if task.target_user %}起票者・宛先担当者のみ閲覧可能{% else %}起票者・宛先部署（担当者）のみ閲覧可能{% endif %}"
+                                                style="font-size: 10px; cursor: help;"
+                                                onclick="event.stopPropagation()">
+                                                <i class="bi bi-lock-fill"></i> 機密
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="fw-bold text-dark">{{ task.title }}</div>
+                                <small class="text-muted">{{ task.description|truncatechars:40 }}</small>
+                            </td>
+                            <td class="small text-muted">
+                                {% if task.created_by.last_name or task.created_by.first_name %}
+                                    {{ task.created_by.last_name|default:"" }} {{ task.created_by.first_name|default:"" }}
+                                {% else %}
+                                    {{ task.created_by.username }}
+                                {% endif %}
+                            </td>
+                            <td onclick="event.stopPropagation()">
+                                <form method="post" action="{% url 'update_task_status' task.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    {% if task.status == 'open' %}
+                                        <input type="hidden" name="status" value="in_progress">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 12px;">着手する</button>
+                                    {% elif task.status == 'in_progress' %}
+                                        <input type="hidden" name="status" value="closed">
+                                        <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2" style="font-size: 12px;">完了にする</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">現在対応が必要なタスクはありません。</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if normal_tasks.has_other_pages %}
+            <div class="card-footer bg-white d-flex justify-content-center py-3 border-top">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if normal_tasks.has_previous %}
+                            <li class="page-item"><a class="page-link" href="?page={{ normal_tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">前へ</a></li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">前へ</span></li>
+                        {% endif %}
+
+                        {% for num in normal_tasks.paginator.page_range %}
+                            {% if normal_tasks.number == num %}
+                                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                            {% elif num > normal_tasks.number|add:'-3' and num < normal_tasks.number|add:'3' %}
+                                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if normal_tasks.has_next %}
+                            <li class="page-item"><a class="page-link" href="?page={{ normal_tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">次へ</a></li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">次へ</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<!-- 新規タスク起票モーダル -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square"></i> タスク依頼・起票</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="create_task" value="1">
+                <div class="modal-body">
+
+                    <!-- 対象種別切り替え -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">対象種別</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="target_type" id="typeStudent" value="student" checked onchange="toggleTargetType()">
+                            <label class="btn btn-outline-primary fw-bold" for="typeStudent"><i class="bi bi-mortarboard"></i> 学生を対象にする（複数選択可）</label>
+
+                            <input type="radio" class="btn-check" name="target_type" id="typeStaff" value="staff" onchange="toggleTargetType()">
+                            <label class="btn btn-outline-primary fw-bold" for="typeStaff"><i class="bi bi-person-badge"></i> 教職員個人を対象にする</label>
+                        </div>
+                    </div>
+
+                    <!-- 学生選択セクション -->
+                    <div id="studentSection" class="p-3 bg-light rounded mb-3 border">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1">学科絞り込み</label>
+                                <select id="filterDept" class="form-select form-select-sm" onchange="onDepartmentChange()">
+                                    <option value="">すべての学科</option>
+                                    {% for dept in departments %}
+                                        <option value="{{ dept }}">{{ dept }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold mb-1">クラス絞り込み</label>
+                                <select id="filterClass" class="form-select form-select-sm" onchange="debouncedFetchStudents()">
+                                    <option value="">すべてのクラス</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" id="searchStudentInput" class="form-control form-control-sm" placeholder="学生名・フリガナ・学籍番号で検索（入力後即座に絞り込み）" oninput="debouncedFetchStudents()">
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold text-muted">対象学生を選択（チェックボックス）:</span>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 11px;" onclick="selectAllStudents(true)">全選択</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 11px;" onclick="selectAllStudents(false)">全解除</button>
+                            </div>
+                        </div>
+                        <!-- 非同期検索された学生リスト一覧表示ボックス -->
+                        <div class="target-list-box" id="studentListBox">
+                            <div class="p-3 text-center text-muted small" id="studentSearchPlaceholder">
+                                学科・クラスを選択するか、キーワードを入力してください。
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="form-label small fw-bold text-danger">宛先部署（依頼先） *</label>
+                            <select name="student_target_group" class="form-select form-select-sm" required>
+                                <option value="">選択してください</option>
+                                {% for g in groups %}
+                                    <option value="{{ g.pk }}">{{ g.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 教職員選択セクション（個人宛・部署宛の切り替えUIを復元） -->
+                    <div id="staffSection" class="p-3 bg-light rounded mb-3 border" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">依頼タイプ</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="staff_mode" id="modeIndividual" value="individual" checked onchange="toggleStaffMode()">
+                                <label class="btn btn-outline-secondary" for="modeIndividual">個人宛て</label>
+
+                                <input type="radio" class="btn-check" name="staff_mode" id="modeDept" value="dept" onchange="toggleStaffMode()">
+                                <label class="btn btn-outline-secondary" for="modeDept">部署宛て</label>
+                            </div>
+                        </div>
+
+                        <!-- 教職員個人宛て選択セクション -->
+                    <div id="staffIndividualSection">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold mb-1">所属部署で絞り込み</label>
+                            <select id="searchStaffDept" class="form-select form-select-sm" onchange="filterStaffs()">
+                                <option value="">すべての部署（全員表示）</option>
+                                {% for g in groups %}
+                                    <option value="{{ g.id }}">{{ g.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold mb-1">対象教職員 <span class="text-danger">*</span></label>
+                            <select name="target_user_id" id="targetUserId" class="form-select form-select-sm">
+                                <option value="">選択してください</option>
+                                {% for staff in staffs %}
+                                    <option value="{{ staff.id }}" 
+                                            class="staff-option" 
+                                            data-dept-id="{{ staff.staff_profile.department_group.id|default:'' }}"
+                                            data-dept-name="{{ staff.staff_profile.department_group.name|default:'' }}">
+                                        {{ staff.last_name }} {{ staff.first_name }}（{{ staff.username }}）{% if staff.staff_profile.department_group %} - {{ staff.staff_profile.department_group.name }}{% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text text-muted small mt-1">※宛先部署は自動的に該当教職員の所属部署に設定されます。</div>
+                        </div>
+                    </div>
+
+                        <!-- 部署宛て -->
+                        <div id="staffDeptSection" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">宛先部署</label>
+                                <select name="dept_target_group" class="form-select form-select-sm">
+                                    <option value="">-- 宛先部署を選択 --</option>
+                                    {% for g in groups %}
+                                        <option value="{{ g.pk }}">{{ g.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 共通タスク項目 -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">依頼件名 *</label>
+                        <input type="text" name="title" class="form-control form-control-sm" placeholder="例: 在留期間更新許可申請書の作成依頼" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">依頼内容・詳細 *</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="依頼の背景や指示事項を詳細に入力してください" required></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">優先度</label>
+                            <select name="priority" class="form-select form-select-sm">
+                                <option value="high">高</option>
+                                <option value="mid" selected>中</option>
+                                <option value="low">低</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">対応期日 *</label>
+                            <input type="date" name="due_date" class="form-control form-control-sm" required onclick="this.showPicker()" style="cursor: pointer;">
+                        </div>
+                        <div class="col-md-4" id="privacySelectGroup">
+                            <label class="form-label small fw-bold">プライバシー区分</label>
+                            <select name="privacy" class="form-select form-select-sm">
+                                <option value="general" selected>一般（学内共有可）</option>
+                                <option value="sensitive">機密（関係部署のみ）</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">起票して送信</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// --- 教職員マスターデータをDjangoテンプレートから直接安全に受け取る ---
+const ALL_STAFFS = [
+    {% for staff in staffs %}
+    {
+        id: "{{ staff.id }}",
+        name: "{{ staff.last_name }} {{ staff.first_name }}（{{ staff.username }}）{% if staff.staff_profile.department_group %} - {{ staff.staff_profile.department_group.name }}{% endif %}",
+        deptId: "{{ staff.staff_profile.department_group.id|default:'' }}",
+        deptName: "{{ staff.staff_profile.department_group.name|default:'' }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+// --- 画面読み込み時の初期化 ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Bootstrapツールチップ
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    // アコーディオン開閉状態の復元
+    restoreAccordionState('urgentTasksBody', 'urgentHeader', 'accordion_urgent_open');
+    restoreAccordionState('normalTasksBody', 'normalHeader', 'accordion_normal_open');
+    setupAccordionStorage('urgentTasksBody', 'urgentHeader', 'accordion_urgent_open');
+    setupAccordionStorage('normalTasksBody', 'normalHeader', 'accordion_normal_open');
+
+    // 教職員プルダウンの初期展開（全員表示）
+    filterStaffs();
+    // 起票モーダルを開くたびに毎回完全初期化 ▼▼▼
+    const createTaskModal = document.getElementById('createTaskModal');
+    if (createTaskModal) {
+        createTaskModal.addEventListener('show.bs.modal', resetCreateTaskModal);
+    }
+});
+
+// --- 起票モーダルの完全リセット関数 ---
+function resetCreateTaskModal() {
+    const modal = document.getElementById('createTaskModal');
+    if (!modal) return;
+
+    // 1. フォームの標準入力値（件名・依頼内容・期日など）を全クリア
+    const form = modal.querySelector('form');
+    if (form) form.reset();
+
+    // 2. 対象種別を初期状態の「学生」に戻す
+    const typeStudent = document.getElementById('typeStudent');
+    if (typeStudent) {
+        typeStudent.checked = true;
+        toggleTargetType();
+    }
+
+    // 3. 学生の絞り込みプルダウン・検索窓・リストを初期化
+    const deptSelect = document.getElementById('filterDept');
+    if (deptSelect) deptSelect.value = '';
+
+    const classSelect = document.getElementById('filterClass');
+    if (classSelect) {
+        classSelect.innerHTML = '<option value="">すべてのクラス</option>';
+    }
+
+    const searchStudentInput = document.getElementById('searchStudentInput');
+    if (searchStudentInput) searchStudentInput.value = '';
+
+    const studentListBox = document.getElementById('studentListBox');
+    if (studentListBox) {
+        studentListBox.innerHTML = '<div class="p-3 text-center text-muted small">学科・クラスを選択するか、キーワードを入力してください。</div>';
+    }
+
+    // 4. 教職員選択側も初期状態（個人宛て・部署未選択）にリセット
+    const modeIndividual = document.getElementById('modeIndividual');
+    if (modeIndividual) {
+        modeIndividual.checked = true;
+        toggleStaffMode();
+    }
+
+    const searchStaffDept = document.getElementById('searchStaffDept');
+    if (searchStaffDept) searchStaffDept.value = '';
+    filterStaffs();
+}
+
+function restoreAccordionState(bodyId, headerId, storageKey) {
+    const bodyEl = document.getElementById(bodyId);
+    const headerEl = document.getElementById(headerId);
+    if (!bodyEl || !headerEl) return;
+    if (sessionStorage.getItem(storageKey) === 'true') {
+        bodyEl.classList.add('show');
+        headerEl.classList.remove('collapsed');
+        headerEl.setAttribute('aria-expanded', 'true');
+    }
+}
+
+function setupAccordionStorage(bodyId, headerId, storageKey) {
+    const bodyEl = document.getElementById(bodyId);
+    const headerEl = document.getElementById(headerId);
+    if (!bodyEl) return;
+    bodyEl.addEventListener('shown.bs.collapse', () => {
+        sessionStorage.setItem(storageKey, 'true');
+        if (headerEl) headerEl.setAttribute('aria-expanded', 'true');
+    });
+    bodyEl.addEventListener('hidden.bs.collapse', () => {
+        sessionStorage.setItem(storageKey, 'false');
+        if (headerEl) headerEl.setAttribute('aria-expanded', 'false');
+    });
+}
+
+// --- モーダル内制御（UI切り替え・機密固定） ---
+function toggleTargetType() {
+    const isStudent = document.getElementById('typeStudent').checked;
+    document.getElementById('studentSection').style.display = isStudent ? 'block' : 'none';
+    document.getElementById('staffSection').style.display = isStudent ? 'none' : 'block';
+
+    const studentTarget = document.querySelector('select[name="student_target_group"]');
+    if (studentTarget) studentTarget.required = isStudent;
+
+    const privacySelect = document.querySelector('select[name="privacy"]');
+    if (privacySelect) {
+        if (!isStudent) {
+            privacySelect.value = 'sensitive';
+            privacySelect.setAttribute('disabled', 'disabled');
+            let hiddenPrivacy = document.getElementById('hiddenPrivacy');
+            if (!hiddenPrivacy) {
+                hiddenPrivacy = document.createElement('input');
+                hiddenPrivacy.type = 'hidden';
+                hiddenPrivacy.name = 'privacy';
+                hiddenPrivacy.id = 'hiddenPrivacy';
+                privacySelect.parentNode.appendChild(hiddenPrivacy);
+            }
+            hiddenPrivacy.value = 'sensitive';
+        } else {
+            privacySelect.value = 'general';
+            privacySelect.removeAttribute('disabled');
+            const hiddenPrivacy = document.getElementById('hiddenPrivacy');
+            if (hiddenPrivacy) hiddenPrivacy.remove();
+        }
+    }
+}
+
+function toggleStaffMode() {
+    const isIndividual = document.getElementById('modeIndividual').checked;
+    document.getElementById('staffIndividualSection').style.display = isIndividual ? 'block' : 'none';
+    document.getElementById('staffDeptSection').style.display = isIndividual ? 'none' : 'block';
+}
+
+// --- 教職員の連動絞り込み（所属部署プルダウン ➔ 対象教職員） ---
+function filterStaffs() {
+    const deptSelect = document.getElementById('searchStaffDept');
+    const targetSelect = document.getElementById('targetUserId');
+    if (!targetSelect) return;
+
+    const selectedVal = deptSelect ? deptSelect.value.trim() : '';
+    const selectedText = deptSelect && deptSelect.selectedIndex >= 0 ? deptSelect.options[deptSelect.selectedIndex].text.trim() : '';
+
+    targetSelect.innerHTML = '<option value="">選択してください</option>';
+
+    const filtered = ALL_STAFFS.filter(s => {
+        if (!selectedVal) return true; // 未選択時は全員表示
+        return s.deptId === selectedVal || s.deptName === selectedVal || s.deptName === selectedText;
+    });
+
+    if (filtered.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = "";
+        opt.disabled = true;
+        opt.textContent = "（該当する教職員がいません）";
+        targetSelect.appendChild(opt);
+    } else {
+        filtered.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            targetSelect.appendChild(opt);
+        });
+    }
+}
+
+// --- 学生非同期検索 ---
+const deptClassMap = JSON.parse('{{ dept_class_map_json|escapejs|default:"{}" }}');
+
+function onDepartmentChange() {
+    const deptSelect = document.getElementById('filterDept');
+    const classSelect = document.getElementById('filterClass');
+    const selectedDept = deptSelect.value;
+    classSelect.innerHTML = '<option value="">すべてのクラス</option>';
+    if (selectedDept && deptClassMap[selectedDept]) {
+        deptClassMap[selectedDept].forEach(cls => {
+            const opt = document.createElement('option');
+            opt.value = cls;
+            opt.textContent = cls;
+            classSelect.appendChild(opt);
+        });
+    }
+    debouncedFetchStudents();
+}
+
+let debounceTimer = null;
+function debouncedFetchStudents() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(fetchStudents, 300);
+}
+
+async function fetchStudents() {
+    const dept = document.getElementById('filterDept')?.value || '';
+    const cls = document.getElementById('filterClass')?.value || '';
+    const query = document.getElementById('searchStudentInput')?.value.trim() || '';
+    const box = document.getElementById('studentListBox');
+
+    if (!box) return;
+
+    if (!dept && !cls && !query) {
+        box.innerHTML = '<div class="p-3 text-center text-muted small">学科・クラスを選択するか、キーワードを入力してください。</div>';
+        return;
+    }
+
+    box.innerHTML = '<div class="p-3 text-center text-muted small"><span class="spinner-border spinner-border-sm me-2"></span>検索中...</div>';
+
+    const params = new URLSearchParams({
+        dept: dept,
+        class_name: cls,
+        q: query
+    });
+
+    try {
+        const response = await fetch(`/api/students/search/?${params.toString()}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+
+        if (!data.students || data.students.length === 0) {
+            box.innerHTML = '<div class="p-3 text-center text-muted small">該当する学生が見つかりません。</div>';
+            return;
+        }
+
+        box.innerHTML = '';
+        data.students.forEach(st => {
+            const div = document.createElement('div');
+            div.className = 'target-item student-item p-2 border-bottom';
+            // Flexboxでチェックボックスとテキスト・国旗を1本の水平ラインに完全固定
+            div.innerHTML = `
+                <div class="form-check d-flex align-items-center m-0" style="min-height: 1.5rem;">
+                    <input class="form-check-input me-2 student-checkbox" type="checkbox" name="student_ids" id="st_${st.id}" value="${st.id}" style="cursor: pointer; flex-shrink: 0; margin-top: 0;">
+                    <label class="form-check-label w-100 d-flex align-items-center flex-wrap gap-2 mb-0" for="st_${st.id}" style="cursor: pointer; line-height: 1.5;">
+                        ${st.display || st.name}
+                    </label>
+                </div>
+            `;
+            box.appendChild(div);
+        });
+    } catch (error) {
+        console.error('Fetch error:', error);
+        box.innerHTML = `<div class="p-3 text-center text-danger small">学生データの取得に失敗しました（${error.message}）</div>`;
+    }
+}
+
+function selectAllStudents(select) {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => cb.checked = select);
+}
+</script>
+</body>
+</html>

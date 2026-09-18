@@ -1,0 +1,59 @@
+{% extends "admin/change_form.html" %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. ユーザー名入力時の IME無効化 ＆ フォーカス外れ時のエラー表示
+    const usernameInput = document.getElementById('id_username');
+    if (usernameInput) {
+        // IMEを無効化（対応ブラウザのみ。非対応でも下の処理で弾きます）
+        usernameInput.setAttribute('style', 'ime-mode: disabled;');
+        
+        // エラー表示用の要素を作成して入力欄の直下に配置
+        const errorMsg = document.createElement('div');
+        errorMsg.style.color = '#dc3545';
+        errorMsg.style.fontWeight = 'bold';
+        errorMsg.style.marginTop = '4px';
+        errorMsg.style.display = 'none';
+        usernameInput.parentNode.insertBefore(errorMsg, usernameInput.nextSibling);
+
+        // 入力欄からフォーカスが外れた時（blur）にチェックを実行
+        usernameInput.addEventListener('blur', function() {
+            const val = this.value;
+            // 半角英数字と特定記号(@ . + - _)以外が含まれていないか判定
+            const isValid = /^[a-zA-Z0-9@.\+\-_]*$/.test(val);
+            
+            if (val && !isValid) {
+                errorMsg.innerHTML = '⚠️ ユーザー名は半角英数字、記号（@/./+/-/_）のみで入力してください。ひらがなや漢字は使用できません。';
+                errorMsg.style.display = 'block';
+                this.style.backgroundColor = '#f8d7da'; // 背景色を薄い赤に
+            } else {
+                errorMsg.style.display = 'none';
+                this.style.backgroundColor = ''; 
+            }
+        });
+    }
+
+    // 2. ユーザーの「追加」画面でのみ、パスワード欄に初期パスワードの案内を表示
+    if (window.location.href.indexOf('/add/') !== -1) {
+        const elements = document.querySelectorAll('li, ul, .helptext');
+        
+        for (let el of elements) {
+            if (el.textContent.includes('数字だけのパスワードにはできません。')) {
+                const notice = document.createElement('div');
+                notice.style.color = '#dc3545';
+                notice.style.fontWeight = 'bold';
+                notice.style.marginTop = '8px';
+                notice.style.marginBottom = '8px';
+                notice.innerHTML = '※初期パスワードは「aiwa1234」です。';
+                
+                const targetList = el.closest('ul') || el;
+                targetList.parentNode.insertBefore(notice, targetList.nextSibling);
+                break;
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

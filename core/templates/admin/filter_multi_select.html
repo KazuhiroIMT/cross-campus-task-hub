@@ -1,0 +1,46 @@
+{% load i18n %}
+<details class="nationality-filter-details" style="margin: 10px 0; border: 1px solid #ced4da; border-radius: 4px; background: #fff;">
+    <summary style="padding: 8px 12px; cursor: pointer; font-weight: bold; background-color: #f8f9fa; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+        <span>↓ {{ title }}</span>
+        <span style="font-size: 11px; color: #0d6efd;">クリックで開閉</span>
+    </summary>
+    <div style="padding: 10px; max-height: 220px; overflow-y: auto;">
+        <form method="get" id="multi-filter-form-{{ title }}">
+            {% for k, v in choices.0.query_params.items %}
+                <input type="hidden" name="{{ k }}" value="{{ v }}">
+            {% endfor %}
+
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                {% for choice in choices %}
+                    {% if not forloop.first %}
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" name="nationality_multi" value="{{ choice.value }}" {% if choice.selected %}checked{% endif %}>
+                        {{ choice.display }}
+                    </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #eee; display: flex; gap: 5px;">
+                <button type="button" onclick="submitMultiFilter(this)" style="background: #0d6efd; color: #fff; border: none; padding: 4px 10px; border-radius: 3px; font-size: 11px; cursor: pointer;">絞り込み適用</button>
+                <a href="{{ choices.0.query_string }}" style="padding: 4px 8px; font-size: 11px; color: #6c757d; text-decoration: none;">クリア</a>
+            </div>
+        </form>
+    </div>
+</details>
+
+<script>
+function submitMultiFilter(btn) {
+    const form = btn.closest('form');
+    const checkedBoxes = form.querySelectorAll('input[name="nationality_multi"]:checked');
+    const selectedValues = Array.from(checkedBoxes).map(cb => cb.value);
+    
+    const currentUrl = new URL(window.location.href);
+    if (selectedValues.length > 0) {
+        currentUrl.searchParams.set('nationality_in', selectedValues.join(','));
+    } else {
+        currentUrl.searchParams.delete('nationality_in');
+    }
+    window.location.href = currentUrl.toString();
+}
+</script>

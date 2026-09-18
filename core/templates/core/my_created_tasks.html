@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自分が依頼した案件 - Cross-Campus Task Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f4f6f9; }
+        .clickable-row {
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+        }
+        .clickable-row:hover {
+            background-color: #f1f4f9 !important;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container-fluid px-4 py-4">
+    <div class="row align-items-center mb-3 g-2">
+        <div class="col-md-4">
+            <h4 class="fw-bold mb-0 text-secondary">
+                <i class="bi bi-send-fill text-primary"></i> 自分が依頼した案件一覧
+            </h4>
+        </div>
+        <!-- 検索バー -->
+        <div class="col-md-5">
+            <form method="get" action="{% url 'my_created_tasks' %}" class="d-flex gap-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="宛先部署・対象者名・学籍番号・件名で検索">
+                    {% if search_query %}
+                        <a href="{% url 'my_created_tasks' %}" class="btn btn-outline-secondary">クリア</a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-secondary">検索</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-3 text-end">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">ダッシュボードへ戻る</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 10%;">起票日時</th>
+                        <th style="width: 12%;">宛先部署</th>
+                        <th style="width: 18%;">学科・クラス・担当</th>
+                        <th style="width: 18%;">対象者</th>
+                        <th style="width: 30%;">件名</th>
+                        <th style="width: 12%;">現在のステータス</th>
+                        <th style="width: 10%;">期日</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr class="clickable-row" onclick="location.href='{% url 'task_detail' task.pk %}'">
+                        <td class="small text-muted">{{ task.created_at|date:"m/d H:i" }}</td>
+                        
+                        <!-- 宛先部署 -->
+                        <td>
+                            <span class="badge bg-secondary">{{ task.target_group.name }}</span>
+                            {% if task.privacy == 'sensitive' %}
+                                <div class="mt-1">
+                                    <span class="badge bg-danger" 
+                                          data-bs-toggle="tooltip" 
+                                          data-bs-placement="top" 
+                                          data-bs-title="起票者・宛先部署（担当者）・管理者のみ閲覧可能な案件です"
+                                          style="font-size: 10px; cursor: help;"
+                                          onclick="event.stopPropagation()">
+                                        <i class="bi bi-lock-fill"></i> 機密
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- 学科・クラス・担当 -->
+                        <td>
+                            {% if task.target_type == 'student' %}
+                                {% with first_student=task.students.all|first %}
+                                    {% if first_student %}
+                                        <div class="fw-bold small">{{ first_student.department|default:"学科未設定" }}</div>
+                                        <div class="text-muted small">{{ first_student.class_name|default:"クラス未設定" }}</div>
+                                    {% else %}
+                                        <span class="text-muted small">指定なし</span>
+                                    {% endif %}
+                                {% endwith %}
+                            {% elif task.target_user and task.target_user.staff_profile %}
+                                <div class="small">
+                                    {% for duty in task.target_user.staff_profile.duties.all %}
+                                        <span class="badge bg-light text-dark border">{{ duty.name }}</span>
+                                    {% empty %}
+                                        <span class="text-muted">担当未設定</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 対象者 -->
+                        <td>
+                            {% if task.target_type == 'student' %}
+                                {% with student_count=task.students.count first_student=task.students.all|first %}
+                                    {% if first_student %}
+                                        <div>
+                                            <strong>{{ first_student.name }}</strong>
+                                            <span class="text-muted small">({{ first_student.student_id }})</span>
+                                        </div>
+                                        {% if student_count > 1 %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-primary-subtle text-primary border" 
+                                                      data-bs-toggle="tooltip" 
+                                                      data-bs-placement="top" 
+                                                      title="{% for s in task.students.all %}{{ s.name }} ({{ s.student_id }}){% if not forloop.last %} / {% endif %}{% endfor %}"
+                                                      style="cursor: help;"
+                                                      onclick="event.stopPropagation()">
+                                                    他 {{ student_count|add:"-1" }} 名
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted small">学生指定なし</span>
+                                    {% endif %}
+                                {% endwith %}
+                            {% elif task.target_type == 'staff' and task.target_user %}
+                                <strong>{{ task.target_user.last_name }} {{ task.target_user.first_name }}</strong>
+                                <br><small class="text-muted">（{{ task.target_user.username }}）</small>
+                            {% else %}
+                                <span class="badge bg-info text-dark">（部署宛て）</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 件名 -->
+                        <td class="fw-bold text-dark">
+                            {{ task.title }}
+                        </td>
+
+                        <!-- 現在のステータス -->
+                        <td>
+                            <span class="badge {% if task.status == 'closed' %}bg-success{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+
+                        <!-- 期日 -->
+                        <td class="small">{{ task.due_date|date:"m/d" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">該当する依頼案件はありません。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ページネーション -->
+        {% if tasks.has_other_pages %}
+        <div class="card-footer bg-white d-flex justify-content-center py-3">
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if tasks.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">前へ</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">前へ</span></li>
+                    {% endif %}
+
+                    {% for num in tasks.paginator.page_range %}
+                        {% if tasks.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > tasks.number|add:'-3' and num < tasks.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if tasks.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">次へ</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">次へ</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    });
+</script>
+</body>
+</html>

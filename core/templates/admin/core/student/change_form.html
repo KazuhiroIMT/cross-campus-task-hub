@@ -1,0 +1,91 @@
+{% extends "admin/change_form.html" %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // admin.pyから渡されたマスタの階層データを受け取る
+    const masterMap = JSON.parse('{{ master_map_json|escapejs }}');
+    const courseMap = masterMap.courses;
+    const classMap = masterMap.classes;
+
+    // プルダウンの要素を取得
+    const deptSelect = document.getElementById('id_department');
+    const courseSelect = document.getElementById('id_course');
+    const classSelect = document.getElementById('id_school_class');
+
+    if (!deptSelect || !courseSelect || !classSelect) return;
+
+    // 編集画面を開いた時の「現在の選択値」を保持しておく
+    let initialCourse = courseSelect.value;
+    let initialClass = classSelect.value;
+
+    // --- 1. 学科に紐づくコースのみに絞り込む処理 ---
+    function updateCourseOptions() {
+        const deptId = deptSelect.value;
+        const currentCourse = courseSelect.value || initialCourse;
+        
+        // 一度すべての選択肢をリセット
+        courseSelect.innerHTML = '<option value="">---------</option>';
+        
+        if (deptId && courseMap[deptId]) {
+            courseMap[deptId].forEach(function(course) {
+                const opt = document.createElement('option');
+                opt.value = course.id;
+                opt.textContent = course.name;
+                if (course.id === currentCourse) {
+                    opt.selected = true;
+                }
+                courseSelect.appendChild(opt);
+            });
+        }
+        initialCourse = null; // 初回適用後はリセット
+        updateClassOptions(); // コースが変わったのでクラスも更新
+    }
+
+    // --- 2. 学科とコースに紐づくクラスのみに絞り込む処理 ---
+    function updateClassOptions() {
+        const deptId = deptSelect.value;
+        const courseId = courseSelect.value;
+        const currentClass = classSelect.value || initialClass;
+        
+        classSelect.innerHTML = '<option value="">---------</option>';
+
+        if (deptId && classMap[deptId]) {
+            classMap[deptId].forEach(function(cls) {
+                // コースが選ばれていれば一致するものを、選ばれていなければコース未設定のクラスを抽出
+                const isMatch = courseId ? (cls.course_id === courseId) : (cls.course_id === '');
+                
+                if (isMatch) {
+                    const opt = document.createElement('option');
+                    opt.value = cls.id;
+                    opt.textContent = cls.name;
+                    if (cls.id === currentClass) {
+                        opt.selected = true;
+                    }
+                    classSelect.appendChild(opt);
+                }
+            });
+        }
+        initialClass = null;
+    }
+
+    // --- 3. ユーザーが操作した時のイベント設定 ---
+    deptSelect.addEventListener('change', function() {
+        // 学科が変わったら下の階層をリセットして再構築
+        courseSelect.value = '';
+        classSelect.value = '';
+        updateCourseOptions();
+    });
+
+    courseSelect.addEventListener('change', function() {
+        // コースが変わったら下の階層をリセットして再構築
+        classSelect.value = '';
+        updateClassOptions();
+    });
+
+    // 画面を開いた瞬間に一度実行して、関係ない選択肢を消す
+    updateCourseOptions();
+});
+</script>
+{% endblock %}

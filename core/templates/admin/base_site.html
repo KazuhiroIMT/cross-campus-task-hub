@@ -1,0 +1,181 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">Cross-Campus Task Hub 管理画面</a></div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<!-- 外部化した管理画面用カスタムCSSを読み込み（キャッシュ対策で v=1.4 に更新） -->
+<link rel="stylesheet" href="{% static 'core/css/admin_custom.css' %}?v=1.5">
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+
+<script>
+(function() {
+    function injectTooltip() {
+        try {
+            // 対象のラベル（「ユーザーパーミッション:」）を探す
+            const permLabel = document.querySelector('label[for="id_user_permissions"]') || document.querySelector('.field-user_permissions label');
+            
+            if (!permLabel || permLabel.dataset.tooltipAdded) return;
+            permLabel.dataset.tooltipAdded = "true";
+
+            // 💡(詳しい解説を見る) のテキストとデザインを追加
+            const helpIcon = document.createElement('span');
+            helpIcon.innerHTML = ' 💡(詳しい解説を見る)';
+            helpIcon.style.cursor = 'help';
+            helpIcon.style.color = '#007bff';
+            helpIcon.style.fontWeight = 'bold';
+            helpIcon.style.marginLeft = '8px';
+            helpIcon.style.display = 'inline-block';
+            permLabel.appendChild(helpIcon);
+
+            // 吹き出し（ポップアップ）本体の作成
+            const tooltip = document.createElement('div');
+            tooltip.id = 'custom-permission-tooltip';
+            tooltip.style.display = 'none';
+            // ★変更：absolute から fixed に変更し、画面基準で配置する
+            tooltip.style.position = 'fixed'; 
+            tooltip.style.backgroundColor = '#2b2b2b';
+            tooltip.style.color = '#f8f9fa';
+            tooltip.style.padding = '16px';
+            tooltip.style.borderRadius = '8px';
+            tooltip.style.fontSize = '12px';
+            tooltip.style.lineHeight = '1.6';
+            tooltip.style.zIndex = '99999'; // 最前面に固定
+            tooltip.style.boxShadow = '0 6px 16px rgba(0,0,0,0.5)';
+            tooltip.style.width = '500px';
+            // ★変更：最大高さを画面の80%（80vh）に制限。これ以上はスクロールになる
+            tooltip.style.maxHeight = '80vh';
+            tooltip.style.overflowY = 'auto';
+            tooltip.style.cursor = 'default';
+            tooltip.style.textAlign = 'left';
+            tooltip.style.fontWeight = 'normal';
+            
+            // 吹き出しの中身（詳細なマニュアル化）
+            tooltip.innerHTML = `
+                <div style="font-size:15px; font-weight:bold; border-bottom:1px solid #555; margin-bottom:12px; padding-bottom:6px; color:#4bc0c0;">
+                    💡 パーミッション解説マニュアル
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">管理 | ログエントリー (log entry)</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>管理画面の右上に表示される「最近の操作履歴（誰がいつどのデータを変更したか）」に関するログデータに対する操作権限です。</div>
+                    <div><b>用途：</b>ログシステム自体のメンテナンス用であり、一般スタッフや事務局に付与する必要はありません。</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">認証と認可 | グループ (group)</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>「就職課」「教務課」などの部署グループ（権限をまとめたもの）自体の新設・編集・削除ができる権限です。</div>
+                    <div><b>用途：</b>部署を増やしたり、部署に紐付けるパーミッションを変更したりするシステム管理者専用です。</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #ff6b6b; font-weight: bold; margin-bottom: 2px;">認証と認可 | パーミッション (permission)</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>権限設定（例：Can view student）そのものを編集する権限です。</div>
+                    <div><b>用途：</b><span style="color:#ff6b6b; font-weight:bold;">【🚨絶対付与禁止】</span>一般ユーザーに渡すと、自分自身に全権限を付与できてしまうため、管理者（スーパーユーザー）以外には絶対に渡してはいけない項目です。</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">認証と認可 | ユーザー (user)</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>教職員アカウント（ログインIDやパスワード、氏名など）の管理権限です。</div>
+                    <div><b>用途：</b>教職員の新規追加やパスワードリセットを任せる人事担当者やシステム管理者に付与します。</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">Core | 学生</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>学生マスタの登録、修正、一覧閲覧、CSVインポートを行う権限です。</div>
+                    <div><b>用途：</b>学生のデータ管理を担当する教務事務などに付与します。（※誤操作防止のため delete は外すのが安全です）</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">Core | 学科 / コース / クラス</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>学校のマスターデータ（学科・コース・クラスなど）を管理する権限です。</div>
+                    <div><b>用途：</b>年度初めのクラス替えや新設コースの登録を任せる担当者に付与します。（※閲覧用に view だけ付与することも多いです）</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">Core | タスク / 対応メモ / 学生別進捗</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>日々のタスク案件やコメントに関するデータです。</div>
+                    <div><b>用途：</b>【付与不要】これらはポータル画面側で操作するため、管理画面側での権限付与は不要です。</div>
+                </div>
+                
+                <div style="margin-bottom: 0;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 2px;">コンテンツタイプ / セッション / その他</div>
+                    <div style="font-size: 11px; color: #adb5bd; margin-bottom: 4px;">Can add / change / delete / view</div>
+                    <div style="margin-bottom: 2px;"><b>意味：</b>システムが裏側で利用する管理データです。</div>
+                    <div><b>用途：</b>【付与不要】一般の操作には不要です。</div>
+                </div>
+            `;
+            
+            // アイコンの中に吹き出しを格納
+            helpIcon.appendChild(tooltip);
+
+            // ★変更：画面の上下左右の端を計算し、絶対に画面内に収まるように fixed 座標を算出
+            helpIcon.addEventListener('mouseenter', function() {
+                // まず表示してサイズを取得できるようにする
+                tooltip.style.display = 'block';
+                
+                const iconRect = helpIcon.getBoundingClientRect();
+                const ttRect = tooltip.getBoundingClientRect();
+                const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+                const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+                
+                // 基本位置：アイコンのすぐ下、左揃え
+                let topPos = iconRect.bottom + 8;
+                let leftPos = iconRect.left;
+
+                // 1. 下にはみ出る場合は、画面の底に合わせて引き上げる
+                if (topPos + ttRect.height > windowHeight - 10) {
+                    topPos = windowHeight - ttRect.height - 10;
+                }
+                
+                // 2. それでも上にはみ出そうなら、画面上部（ヘッダーのすぐ下）に固定
+                if (topPos < 60) {
+                    topPos = 60;
+                }
+                
+                // 3. 右にはみ出る場合は、画面右端に合わせて左にずらす
+                if (leftPos + ttRect.width > windowWidth - 10) {
+                    leftPos = windowWidth - ttRect.width - 10;
+                }
+                
+                // 計算した絶対安全な座標を適用
+                tooltip.style.top = topPos + 'px';
+                tooltip.style.left = leftPos + 'px';
+            });
+            
+            helpIcon.addEventListener('mouseleave', function() {
+                tooltip.style.display = 'none';
+            });
+
+            clearInterval(checkInterval);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', injectTooltip);
+    const checkInterval = setInterval(injectTooltip, 200);
+    setTimeout(() => clearInterval(checkInterval), 2000);
+})();
+</script>
+{% endblock %}

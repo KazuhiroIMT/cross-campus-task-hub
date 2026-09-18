@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>他部署の案件 - Cross-Campus Task Hub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>body { background-color: #f4f6f9; }</style>
+</head>
+<body>
+
+<div class="container-fluid px-4 py-4">
+    <div class="row align-items-center mb-3 g-2">
+        <div class="col-md-4">
+            <h4 class="fw-bold mb-0 text-secondary">
+                <i class="bi bi-building text-success"></i> 他部署の案件（学内共有）
+            </h4>
+        </div>
+        <!-- 検索バー -->
+        <div class="col-md-5">
+            <form method="get" action="{% url 'other_department_tasks' %}" class="d-flex gap-2">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="宛先部署・対象者・件名で検索">
+                    {% if search_query %}
+                        <a href="{% url 'other_department_tasks' %}" class="btn btn-outline-secondary">クリア</a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-secondary">検索</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-3 text-end">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">ダッシュボードへ戻る</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info py-2 small border-0">
+        <i class="bi bi-info-circle-fill"></i> プライバシー区分が「一般（学内共有可）」に設定されている、他部署対応中の案件を表示しています。
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 8%;">期日</th>
+                        <th style="width: 8%;">優先度</th>
+                        <th style="width: 8%;">状態</th>
+                        <th style="width: 20%;">対象者</th>
+                        <th style="width: 32%;">件名 / 宛先部署</th>
+                        <th style="width: 12%;">起票者</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr style="cursor: pointer;" onclick="location.href='{% url 'task_detail' task.pk %}'">
+                        <td>{{ task.due_date|date:"m/d" }}</td>
+                        <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
+                        <td>
+                            <span class="badge {% if task.status == 'open' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ task.target_display }}</td>
+                        <td>
+                            <span class="badge bg-secondary mb-1">宛先: {{ task.target_group.name }}</span>
+                            <div class="fw-bold text-dark">{{ task.title }}</div>
+                        </td>
+                        <td class="small text-muted">{{ task.created_by.username }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">現在、他部署で共有されている案件はありません。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- ページネーション -->
+        {% if tasks.has_other_pages %}
+        <div class="card-footer bg-white d-flex justify-content-center py-2 border-top">
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if tasks.has_previous %}
+                        <li class="page-item"><a class="page-link" href="?page={{ tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">前へ</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">前へ</span></li>
+                    {% endif %}
+
+                    {% for num in tasks.paginator.page_range %}
+                        {% if tasks.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > tasks.number|add:'-3' and num < tasks.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if tasks.has_next %}
+                        <li class="page-item"><a class="page-link" href="?page={{ tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">次へ</a></li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">次へ</span></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

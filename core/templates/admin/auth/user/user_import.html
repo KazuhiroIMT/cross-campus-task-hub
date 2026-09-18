@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 20px 0; background: #ffffff; padding: 25px; border-radius: 6px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <h2 style="margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #0d6efd; padding-bottom: 8px;">
+        📥 教職員ユーザーCSV 一括インポート
+    </h2>
+
+    <div style="background-color: #f8f9fa; border-left: 4px solid #0d6efd; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; color: #495057;">
+        <strong>【CSVフォーマット（5列構成）】</strong><br>
+        <strong>1列目＝ユーザー名、2列目＝姓、3列目＝名、4列目＝メールアドレス、5列目＝所属（部署グループ名）</strong><br>
+        <span style="color: #6c757d;">※1行目は見出し行（ヘッダー）として読み飛ばされます。</span><br>
+        <span style="color: #198754; font-weight: bold;">※登録時の初期パスワードは「aiwa1234」に設定されます。</span>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="margin-bottom: 20px;">
+            {{ form.as_p }}
+        </div>
+        <div>
+            <input type="submit" value="インポートを実行する" class="default" style="background-color: #0d6efd; color: white; font-weight: bold; padding: 8px 18px; cursor: pointer; border: none; border-radius: 4px;">
+            <a href="../" class="button cancel-link" style="margin-left: 10px; padding: 8px 15px;">キャンセル</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
