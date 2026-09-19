@@ -476,3 +476,58 @@ def normalize_user_fields(sender, instance, **kwargs):
         instance.last_name = normalize_text(instance.last_name)
     if instance.first_name:
         instance.first_name = normalize_text(instance.first_name)
+
+
+class UserCompanion(models.Model):
+    COMPANION_CHOICES = [
+        ('none', '未選択'),
+        ('chick', 'ひよこ'),
+        ('robot', 'ロボット'),
+        ('cactus', 'サボテン'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='usercompanion', verbose_name="ユーザー")
+    companion_type = models.CharField("キャラクター種類", max_length=20, choices=COMPANION_CHOICES, default='none')
+    completed_tasks_count = models.IntegerField("完了タスク数", default=0)
+
+    class Meta:
+        verbose_name = "育成キャラクター"
+        verbose_name_plural = "育成キャラクター一覧"
+
+    @property
+    def level(self):
+        if self.completed_tasks_count < 3:
+            return 1
+        elif self.completed_tasks_count < 10:
+            return 2
+        elif self.completed_tasks_count < 25:
+            return 3
+        else:
+            return 4
+
+    @property
+    def current_form(self):
+        forms = {
+            'chick': {1: '🐣', 2: '🐥', 3: '🐓', 4: '🦅'},
+            'robot': {1: '🤖(💤)', 2: '🤖(⚡)', 3: '🦾', 4: '🦸‍♂️'},
+            'cactus': {1: '🌱', 2: '🌿', 3: '🌳', 4: '🌸'},
+        }
+        if self.companion_type == 'none' or self.companion_type not in forms:
+            return '❓'
+        return forms[self.companion_type][self.level]
+
+    @property
+    def progress_to_next_level(self):
+        if self.level == 1:
+            return int((self.completed_tasks_count / 3) * 100)
+        elif self.level == 2:
+            return int(((self.completed_tasks_count - 3) / 7) * 100)
+        elif self.level == 3:
+            return int(((self.completed_tasks_count - 10) / 15) * 100)
+        else:
+            return 100
+
+@receiver(post_save, sender=User)
+def create_user_companion(sender, instance, created, **kwargs):
+    if created:
+        UserCompanion.objects.get_or_create(user=instance)
