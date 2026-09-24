@@ -2,7 +2,8 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User, Group
 from django.utils import timezone
 from datetime import timedelta
-from core.models import UserCompanion, GraduatedCompanion, Task, DepartmentGroup
+from core.models import UserCompanion, GraduatedCompanion, Task, DepartmentGroup, IslandProfile, IslandItem
+from core.services import process_task_completion
 
 class GamificationAndArchiveTests(TestCase):
     def setUp(self):
@@ -145,3 +146,147 @@ class GamificationAndArchiveTests(TestCase):
         res_all = self.client.get('/tasks/closed/?archive=all')
         self.assertContains(res_all, 'Normal Closed Task')
         self.assertContains(res_all, 'Archived Closed Task')
+
+
+class MyIslandTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='islanduser', password='password123', is_staff=True)
+        self.group = Group.objects.create(name='教務課')
+        self.user.groups.add(self.group)
+        self.client = Client()
+
+    def test_island_profile_one_to_one(self):
+        """IslandProfileがユーザーごとに1件だけ作成される"""
+        profile = IslandProfile.objects.get(user=self.user)
+        self.assertIsNotNone(profile)
+        self.assertEqual(profile.level, 1)
+        self.assertEqual(profile.experience, 0)
+        self.assertEqual(profile.coins, 0)
+        self.assertEqual(profile.gacha_tickets, 0)
+        with self.assertRaises(Exception):
+            IslandProfile.objects.create(user=self.user)
+
+    def test_task_completion_rewards_and_no_double_grant(self):
+        """タスクをopen->closedにすると報酬付与され、再処理しても二重付与されない"""
+        task = Task.objects.create(
+            title='Reward Test Task',
+            description='Test',
+            target_group=self.group,
+            created_by=self.user,
+            due_date=timezone.now().date(),
+            status='open'
+        )
+
+        self.client.login(username='islanduser', password='password123')
+
+        # Update status to closed via view
+        response = self.client.post(f'/task/{task.pk}/update/', {'status': 'closed'})
+        self.assertEqual(response.status_code, 302)
+
+        task.refresh_from_db()
+        self.assertTrue(task.reward_granted)
+
+        profile = IslandProfile.objects.get(user=self.user)
+        companion = UserCompanion.objects.get(user=self.user)
+
+        self.assertEqual(profile.experience, 10)
+        self.assertEqual(profile.coins, 5)
+        self.assertEqual(companion.completed_tasks_count, 1)
+
+        # Try completing the same task again
+        res2 = process_task_completion(task, self.user)
+        self.assertFalse(res2)
+
+        profile.refresh_from_db()
+        companion.refresh_from_db()
+
+        self.assertEqual(profile.experience, 10)
+        self.assertEqual(profile.coins, 5)
+        self.assertEqual(companion.completed_tasks_count, 1)
+
+    def test_gacha_tickets_every_5_tasks(self):
+        """5タスクごとにガチャチケットが増える"""
+        self.client.login(username='islanduser', password='password123')
+
+        for i in range(1, 11):
+            t = Task.objects.create(
+                title=f'Task {i}',
+                description='Desc',
+                target_group=self.group,
+                created_by=self.user,
+                due_date=timezone.now().date(),
+                status='open'
+            )
+            process_task_completion(t, self.user)
+
+        profile = IslandProfile.objects.get(user=self.user)
+        companion = UserCompanion.objects.get(user=self.user)
+
+        self.assertEqual(companion.completed_tasks_count, 10)
+        self.assertEqual(profile.experience, 100)
+        self.assertEqual(profile.coins, 50)
+        self.assertEqual(profile.gacha_tickets, 2)
+
+    def test_island_level_up(self):
+        """島レベルが正しく上昇する"""
+        profile = IslandProfile.objects.get(user=self.user)
+
+        self.assertEqual(profile.level, 1)
+
+        profile.experience = 40
+        profile.update_level()
+        profile.save()
+        self.assertEqual(profile.level, 1)
+
+        profile.experience = 50
+        leveled, old_lv, new_lv = profile.update_level()
+        profile.save()
+        self.assertTrue(leveled)
+        self.assertEqual(new_lv, 2)
+        self.assertEqual(profile.level, 2)
+
+        profile.experience = 120
+        leveled, old_lv, new_lv = profile.update_level()
+        profile.save()
+        self.assertEqual(profile.level, 3)
+
+        profile.experience = 220
+        profile.update_level()
+        profile.save()
+        self.assertEqual(profile.level, 4)
+
+        profile.experience = 350
+        profile.update_level()
+        profile.save()
+        self.assertEqual(profile.level, 5)
+
+    def test_gacha_draw_and_zero_ticket_check(self):
+        """ガチャチケット消費と0枚時の拒否"""
+        profile = IslandProfile.objects.get(user=self.user)
+        self.client.login(username='islanduser', password='password123')
+
+        res0 = self.client.post('/island/gacha/')
+        self.assertEqual(res0.status_code, 302)
+        self.assertEqual(IslandItem.objects.filter(user=self.user).count(), 0)
+
+        profile.gacha_tickets = 1
+        profile.save()
+
+        res1 = self.client.post('/island/gacha/')
+        self.assertEqual(res1.status_code, 302)
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.gacha_tickets, 0)
+        self.assertEqual(IslandItem.objects.filter(user=self.user).count(), 1)
+
+        item = IslandItem.objects.get(user=self.user)
+        self.assertTrue(item.is_placed)
+        self.assertIn(item.item_type, ['tree', 'flower', 'rock', 'house', 'fountain', 'shop', 'animal', 'castle'])
+
+    def test_my_island_page_access(self):
+        """マイアイランドページおよび表示のテスト"""
+        self.client.login(username='islanduser', password='password123')
+        res = self.client.get('/island/')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'マイアイランド')
+        self.assertContains(res, 'Lv. 1')

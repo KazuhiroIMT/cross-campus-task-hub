@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('island/', views.my_island, name='my_island'),
+    path('island/gacha/', views.gacha_page, name='gacha_page'),
     path('select-companion/', views.select_companion, name='select_companion'),
     path('graduate-companion/', views.graduate_companion, name='graduate_companion'),
     path('', views.dashboard, name='dashboard'),

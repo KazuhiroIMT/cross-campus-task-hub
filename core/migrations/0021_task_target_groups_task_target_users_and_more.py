@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("auth", "0013_alter_user_last_name"),
+        ("auth", "0012_alter_user_first_name_max_length"),
         ("core", "0020_task_is_archived_graduatedcompanion"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
