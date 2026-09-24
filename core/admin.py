@@ -685,11 +685,15 @@ class StudentAdmin(admin.ModelAdmin):
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     change_list_template = "admin/core/task/change_list.html"
-    list_display = ('title', 'target_type', 'target_group', 'priority', 'status', 'due_date', 'is_archived')
-    list_filter = ('is_archived', 'status', 'priority', 'target_group', 'privacy')
+    list_display = ('title', 'target_type', 'display_target_groups', 'priority', 'status', 'due_date', 'is_archived')
+    list_filter = ('is_archived', 'status', 'priority', 'target_groups', 'privacy')
     search_fields = ('title', 'description')
     date_hierarchy = 'due_date'
     actions = ['archive_tasks', 'unarchive_tasks', 'bulk_archive_old_closed_tasks']
+
+    @admin.display(description="担当部署")
+    def display_target_groups(self, obj):
+        return obj.target_groups_display
 
     @admin.action(description="選択したタスクをアーカイブする")
     def archive_tasks(self, request, queryset):

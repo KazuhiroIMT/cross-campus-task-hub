@@ -473,57 +473,83 @@
                         </div>
                     </div>
 
-                    <!-- 教職員選択セクション（個人宛・部署宛の切り替えUIを復元） -->
+                    <!-- 教職員選択セクション -->
                     <div id="staffSection" class="p-3 bg-light rounded mb-3 border" style="display: none;">
                         <div class="mb-3">
                             <label class="form-label small fw-bold">依頼タイプ</label>
                             <div class="btn-group w-100" role="group">
                                 <input type="radio" class="btn-check" name="staff_mode" id="modeIndividual" value="individual" checked onchange="toggleStaffMode()">
-                                <label class="btn btn-outline-secondary" for="modeIndividual">個人宛て</label>
+                                <label class="btn btn-outline-secondary" for="modeIndividual"><i class="bi bi-people"></i> 教職員個人（複数選択可）</label>
 
                                 <input type="radio" class="btn-check" name="staff_mode" id="modeDept" value="dept" onchange="toggleStaffMode()">
-                                <label class="btn btn-outline-secondary" for="modeDept">部署宛て</label>
+                                <label class="btn btn-outline-secondary" for="modeDept"><i class="bi bi-building"></i> 部署（複数選択可）</label>
                             </div>
                         </div>
 
-                        <!-- 教職員個人宛て選択セクション -->
-                    <div id="staffIndividualSection">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold mb-1">所属部署で絞り込み</label>
-                            <select id="searchStaffDept" class="form-select form-select-sm" onchange="filterStaffs()">
-                                <option value="">すべての部署（全員表示）</option>
-                                {% for g in groups %}
-                                    <option value="{{ g.id }}">{{ g.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold mb-1">対象教職員 <span class="text-danger">*</span></label>
-                            <select name="target_user_id" id="targetUserId" class="form-select form-select-sm">
-                                <option value="">選択してください</option>
-                                {% for staff in staffs %}
-                                    <option value="{{ staff.id }}" 
-                                            class="staff-option" 
-                                            data-dept-id="{{ staff.staff_profile.department_group.id|default:'' }}"
-                                            data-dept-name="{{ staff.staff_profile.department_group.name|default:'' }}">
-                                        {{ staff.last_name }} {{ staff.first_name }}（{{ staff.username }}）{% if staff.staff_profile.department_group %} - {{ staff.staff_profile.department_group.name }}{% endif %}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text text-muted small mt-1">※宛先部署は自動的に該当教職員の所属部署に設定されます。</div>
-                        </div>
-                    </div>
+                        <!-- 教職員個人宛て（複数選択）選択セクション -->
+                        <div id="staffIndividualSection">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold mb-1">所属部署絞り込み</label>
+                                    <select id="searchStaffDept" class="form-select form-select-sm" onchange="filterStaffs()">
+                                        <option value="">すべての部署（全員表示）</option>
+                                        {% for g in groups %}
+                                            <option value="{{ g.id }}">{{ g.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold mb-1">教職員検索</label>
+                                    <input type="text" id="searchStaffInput" class="form-control form-control-sm" placeholder="氏名・ユーザー名で検索" oninput="filterStaffs()">
+                                </div>
+                            </div>
 
-                        <!-- 部署宛て -->
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-muted">対象教職員を選択（チェックボックス）:</span>
+                                <div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 11px;" onclick="selectAllStaffs(true)">全選択</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 11px;" onclick="selectAllStaffs(false)">全解除</button>
+                                </div>
+                            </div>
+
+                            <div class="target-list-box" id="staffListBox" style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ced4da; border-radius: 4px; padding: 4px;">
+                                {% for staff in staffs %}
+                                <div class="target-item staff-item p-2 border-bottom" data-dept-id="{{ staff.staff_profile.department_group.id|default:'' }}" data-dept-name="{{ staff.staff_profile.department_group.name|default:'' }}" data-name="{{ staff.last_name }}{{ staff.first_name }}{{ staff.username }}">
+                                    <div class="form-check d-flex align-items-center m-0" style="min-height: 1.5rem;">
+                                        <input class="form-check-input me-2 staff-checkbox" type="checkbox" name="target_user_ids" id="staff_cb_{{ staff.id }}" value="{{ staff.id }}" style="cursor: pointer;">
+                                        <label class="form-check-label w-100 mb-0" for="staff_cb_{{ staff.id }}" style="cursor: pointer; line-height: 1.5;">
+                                            <span class="fw-bold">{{ staff.last_name }} {{ staff.first_name }}</span>
+                                            <span class="text-secondary small">({{ staff.username }})</span>
+                                            {% if staff.staff_profile.department_group %}
+                                                <span class="badge bg-light text-secondary border ms-1">{{ staff.staff_profile.department_group.name }}</span>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- 部署宛て（複数選択） -->
                         <div id="staffDeptSection" style="display: none;">
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">宛先部署</label>
-                                <select name="dept_target_group" class="form-select form-select-sm">
-                                    <option value="">-- 宛先部署を選択 --</option>
-                                    {% for g in groups %}
-                                        <option value="{{ g.pk }}">{{ g.name }}</option>
-                                    {% endfor %}
-                                </select>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-muted">対象部署を選択（チェックボックス）:</span>
+                                <div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 11px;" onclick="selectAllDepts(true)">全選択</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 11px;" onclick="selectAllDepts(false)">全解除</button>
+                                </div>
+                            </div>
+                            <div class="target-list-box" id="deptListBox" style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ced4da; border-radius: 4px; padding: 4px;">
+                                {% for g in groups %}
+                                <div class="target-item dept-item p-2 border-bottom">
+                                    <div class="form-check d-flex align-items-center m-0" style="min-height: 1.5rem;">
+                                        <input class="form-check-input me-2 dept-checkbox" type="checkbox" name="dept_target_group_ids" id="dept_cb_{{ g.pk }}" value="{{ g.pk }}" style="cursor: pointer;">
+                                        <label class="form-check-label w-100 mb-0 fw-bold" for="dept_cb_{{ g.pk }}" style="cursor: pointer;">
+                                            <i class="bi bi-building"></i> {{ g.name }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
@@ -645,6 +671,10 @@ function resetCreateTaskModal() {
 
     const searchStaffDept = document.getElementById('searchStaffDept');
     if (searchStaffDept) searchStaffDept.value = '';
+    const searchStaffInput = document.getElementById('searchStaffInput');
+    if (searchStaffInput) searchStaffInput.value = '';
+    selectAllStaffs(false);
+    selectAllDepts(false);
     filterStaffs();
 }
 
@@ -711,36 +741,36 @@ function toggleStaffMode() {
     document.getElementById('staffDeptSection').style.display = isIndividual ? 'none' : 'block';
 }
 
-// --- 教職員の連動絞り込み（所属部署プルダウン ➔ 対象教職員） ---
+// --- 教職員の連動絞り込み（所属部署プルダウン & 検索 ➔ 対象教職員） ---
 function filterStaffs() {
-    const deptSelect = document.getElementById('searchStaffDept');
-    const targetSelect = document.getElementById('targetUserId');
-    if (!targetSelect) return;
+    const deptVal = document.getElementById('searchStaffDept')?.value || '';
+    const query = (document.getElementById('searchStaffInput')?.value || '').toLowerCase().trim();
+    const items = document.querySelectorAll('.staff-item');
 
-    const selectedVal = deptSelect ? deptSelect.value.trim() : '';
-    const selectedText = deptSelect && deptSelect.selectedIndex >= 0 ? deptSelect.options[deptSelect.selectedIndex].text.trim() : '';
+    items.forEach(item => {
+        const deptId = item.getAttribute('data-dept-id') || '';
+        const nameData = (item.getAttribute('data-name') || '').toLowerCase();
+        const textContent = item.textContent.toLowerCase();
 
-    targetSelect.innerHTML = '<option value="">選択してください</option>';
+        const matchDept = (!deptVal || deptId === deptVal);
+        const matchQuery = (!query || nameData.includes(query) || textContent.includes(query));
 
-    const filtered = ALL_STAFFS.filter(s => {
-        if (!selectedVal) return true; // 未選択時は全員表示
-        return s.deptId === selectedVal || s.deptName === selectedVal || s.deptName === selectedText;
+        if (matchDept && matchQuery) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
     });
+}
 
-    if (filtered.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = "";
-        opt.disabled = true;
-        opt.textContent = "（該当する教職員がいません）";
-        targetSelect.appendChild(opt);
-    } else {
-        filtered.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s.id;
-            opt.textContent = s.name;
-            targetSelect.appendChild(opt);
-        });
-    }
+function selectAllStaffs(select) {
+    const visibleCheckboxes = document.querySelectorAll('.staff-item:not([style*="display: none"]) .staff-checkbox');
+    visibleCheckboxes.forEach(cb => cb.checked = select);
+}
+
+function selectAllDepts(select) {
+    const checkboxes = document.querySelectorAll('.dept-checkbox');
+    checkboxes.forEach(cb => cb.checked = select);
 }
 
 // --- 学生非同期検索 ---

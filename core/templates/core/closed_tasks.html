@@ -27,11 +27,16 @@
             <h4 class="fw-bold mb-0 text-secondary"><i class="bi bi-archive-fill text-success"></i> 完了済みタスク一覧</h4>
         </div>
         <div class="col-md-5">
-            <form method="get" action="{% url 'closed_tasks' %}" class="d-flex gap-2">
-                <div class="input-group input-group-sm">
+            <form method="get" action="{% url 'closed_tasks' %}" class="d-flex flex-wrap gap-2 align-items-center">
+                <select name="archive" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                    <option value="unarchived" {% if archive_filter == 'unarchived' %}selected{% endif %}>通常（アーカイブ除く）</option>
+                    <option value="archived" {% if archive_filter == 'archived' %}selected{% endif %}>アーカイブ済みのみ</option>
+                    <option value="all" {% if archive_filter == 'all' %}selected{% endif %}>すべて表示（アーカイブ含む）</option>
+                </select>
+                <div class="input-group input-group-sm" style="flex: 1; min-width: 200px;">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="学生氏名・学籍番号・件名で検索">
-                    {% if search_query %}
+                    {% if search_query or archive_filter != 'unarchived' %}
                         <a href="{% url 'closed_tasks' %}" class="btn btn-outline-secondary">クリア</a>
                     {% endif %}
                     <button type="submit" class="btn btn-secondary">検索</button>
@@ -86,6 +91,9 @@
                         </td>
                         <td class="fw-bold text-dark">
                             {{ task.title }}
+                            {% if task.is_archived %}
+                                <span class="badge bg-secondary ms-1"><i class="bi bi-archive"></i> アーカイブ済</span>
+                            {% endif %}
                         </td>
                         <td class="small text-muted">{{ task.created_by.username }}</td>
                     </tr>
@@ -105,7 +113,7 @@
                 <ul class="pagination pagination-sm mb-0">
                     {% if closed_tasks.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ closed_tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">前へ</a>
+                            <a class="page-link" href="?page={{ closed_tasks.previous_page_number }}&archive={{ archive_filter }}{% if search_query %}&q={{ search_query }}{% endif %}">前へ</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled"><span class="page-link">前へ</span></li>
@@ -116,14 +124,14 @@
                             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                         {% elif num > closed_tasks.number|add:'-3' and num < closed_tasks.number|add:'3' %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a>
+                                <a class="page-link" href="?page={{ num }}&archive={{ archive_filter }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a>
                             </li>
                         {% endif %}
                     {% endfor %}
 
                     {% if closed_tasks.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ closed_tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">次へ</a>
+                            <a class="page-link" href="?page={{ closed_tasks.next_page_number }}&archive={{ archive_filter }}{% if search_query %}&q={{ search_query }}{% endif %}">次へ</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled"><span class="page-link">次へ</span></li>

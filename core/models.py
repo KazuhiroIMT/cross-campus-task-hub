@@ -282,6 +282,12 @@ class Task(models.Model):
         null=True,
         blank=True
     )
+    target_users = models.ManyToManyField(
+        User,
+        related_name='targeted_tasks_m2m',
+        verbose_name="対象教職員（複数）",
+        blank=True
+    )
 
     title = models.CharField("依頼件名", max_length=200)
     description = models.TextField("依頼内容")
@@ -290,7 +296,15 @@ class Task(models.Model):
         Group, 
         on_delete=models.CASCADE, 
         verbose_name="担当部署", 
-        related_name='group_tasks'
+        related_name='group_tasks',
+        null=True,
+        blank=True
+    )
+    target_groups = models.ManyToManyField(
+        Group,
+        related_name='group_tasks_m2m',
+        verbose_name="担当部署（複数）",
+        blank=True
     )
     assigned_user = models.ForeignKey(
         User, 
@@ -314,7 +328,7 @@ class Task(models.Model):
     due_date = models.DateField("対応期日", db_index=True)
     completion_note = models.TextField("対応メモ（クローズ時）", blank=True, null=True)
     
-    is_archived = models.BooleanField("アーカイブフラグ", default=False, db_index=True)
+    is_archived = models.BooleanField("アーカイブ済み", default=False, db_index=True)
 
     created_at = models.DateTimeField("起票日時", auto_now_add=True)
     updated_at = models.DateTimeField("更新日時", auto_now=True)
@@ -331,6 +345,16 @@ class Task(models.Model):
     def is_urgent(self):
         """当日期限または期日超過かつ未完了か判定"""
         return self.status != 'closed' and self.due_date <= timezone.now().date()
+
+    @property
+    def target_groups_display(self):
+        """担当部署の一覧表示（複数対応）"""
+        groups = list(self.target_groups.all())
+        if groups:
+            return "、".join([g.name for g in groups])
+        elif self.target_group:
+            return self.target_group.name
+        return "部署指定なし"
 
     @property
     def target_display(self):
@@ -361,8 +385,37 @@ class Task(models.Model):
                 line3 = f'<div class="text-muted small mt-1" style="font-size: 0.75rem;">計 {len(student_list)} 名の一括案件</div>'
                 return mark_safe(f'{line1}{line2}{line3}')
 
-        elif self.target_type == 'staff' and self.target_user:
-            return mark_safe(f'<div class="fw-bold text-dark">{self.target_user.last_name} {self.target_user.first_name}</div><span class="badge bg-secondary" style="font-size: 0.75rem;">教職員宛て</span>')
+        elif self.target_type == 'staff':
+            target_user_list = list(self.target_users.all())
+            if not target_user_list and self.target_user:
+                target_user_list = [self.target_user]
+
+            if target_user_list:
+                first_u = target_user_list[0]
+                first_u_name = f"{first_u.last_name} {first_u.first_name}".strip() or first_u.username
+                if len(target_user_list) == 1:
+                    return mark_safe(f'<div class="fw-bold text-dark">{first_u_name}</div><span class="badge bg-secondary" style="font-size: 0.75rem;">教職員宛て</span>')
+                else:
+                    names_tooltip = ", ".join([f"{u.last_name} {u.first_name}".strip() or u.username for u in target_user_list])
+                    line1 = f'<div class="fw-bold text-dark">{first_u_name} <span class="badge bg-primary ms-1" data-bs-toggle="tooltip" data-bs-title="{names_tooltip}" style="cursor: pointer;">他 {len(target_user_list) - 1} 名</span></div>'
+                    line2 = f'<span class="badge bg-secondary" style="font-size: 0.75rem;">教職員宛て (計 {len(target_user_list)} 名)</span>'
+                    return mark_safe(f'{line1}{line2}')
+
+            target_group_list = list(self.target_groups.all())
+            if not target_group_list and self.target_group:
+                target_group_list = [self.target_group]
+
+            if target_group_list:
+                first_g = target_group_list[0]
+                if len(target_group_list) == 1:
+                    return mark_safe(f'<div class="fw-bold text-dark">{first_g.name}</div><span class="badge bg-secondary" style="font-size: 0.75rem;">部署宛て</span>')
+                else:
+                    groups_tooltip = ", ".join([g.name for g in target_group_list])
+                    line1 = f'<div class="fw-bold text-dark">{first_g.name} <span class="badge bg-primary ms-1" data-bs-toggle="tooltip" data-bs-title="{groups_tooltip}" style="cursor: pointer;">他 {len(target_group_list) - 1} 部署</span></div>'
+                    line2 = f'<span class="badge bg-secondary" style="font-size: 0.75rem;">部署宛て (計 {len(target_group_list)} 部署)</span>'
+                    return mark_safe(f'{line1}{line2}')
+
+            return mark_safe('<span class="badge bg-secondary" style="font-size: 0.75rem;">部署宛て</span>')
         else:
             return mark_safe('<span class="badge bg-secondary" style="font-size: 0.75rem;">部署宛て</span>')
 
