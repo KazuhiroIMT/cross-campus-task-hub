@@ -14,8 +14,9 @@ from django.urls import reverse
 from django.core import serializers
 
 # 必要なモデルを一括インポート（Student, TaskStudentProgress を含む）
-from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty, IslandProfile, IslandItem, Achievement, UserAchievement
-from .services import process_task_completion, ensure_initial_achievements, check_achievements
+from django.core.exceptions import PermissionDenied
+from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty, IslandProfile, IslandItem, Achievement, UserAchievement, DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
+from .services import process_task_completion, ensure_initial_achievements, check_achievements, ensure_initial_department_achievements, check_department_achievements
 from .forms import TaskCreateForm, CSVUploadForm
 
 
@@ -36,6 +37,78 @@ def get_accessible_tasks(user):
         | Q(target_groups__in=user_groups)
     )
     return Task.objects.filter(base_condition).distinct()
+
+
+@login_required
+def department_boss(request, dept_id=None):
+    """部署ボス討伐専用画面"""
+    user = request.user
+    user_groups = user.groups.all()
+
+    if dept_id:
+        department = get_object_or_404(Group, pk=dept_id)
+    else:
+        department = user_groups.first()
+        if not department:
+            messages.error(request, "所属部署が設定されていません。")
+            return redirect('dashboard')
+
+    # 他部署の詳細情報は不用意に閲覧させない権限チェック
+    if not (user.is_superuser or department in user_groups):
+        raise PermissionDenied("この部署のボス情報を閲覧する権限がありません。")
+
+    ensure_initial_department_achievements()
+    check_department_achievements(department)
+
+    dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
+    active_battle = DepartmentBattle.objects.filter(department=department, status='active').first()
+    defeated_battles = DepartmentBattle.objects.filter(department=department, status='defeated').order_by('-end_date')
+
+    unlocked_achievements_list = DepartmentAchievementUnlock.objects.filter(
+        department=department
+    ).select_related('achievement')
+
+    context = {
+        'department': department,
+        'dept_profile': dept_profile,
+        'active_battle': active_battle,
+        'defeated_battles': defeated_battles,
+        'unlocked_achievements_list': unlocked_achievements_list,
+    }
+    return render(request, 'core/department_boss.html', context)
+
+
+@login_required
+def set_department_title(request, dept_id):
+    """部署称号の設定"""
+    if request.method == 'POST':
+        user = request.user
+        department = get_object_or_404(Group, pk=dept_id)
+
+        if not (user.is_superuser or department in user.groups.all()):
+            raise PermissionDenied("部署称号を変更する権限がありません。")
+
+        achievement_id = request.POST.get('achievement_id')
+        dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
+
+        if not achievement_id or achievement_id == 'none':
+            dept_profile.current_title = None
+            dept_profile.save(update_fields=['current_title'])
+            messages.success(request, "部署称号の設定を解除しました。")
+        else:
+            unlock = DepartmentAchievementUnlock.objects.filter(
+                department=department,
+                achievement_id=achievement_id
+            ).select_related('achievement').first()
+
+            if unlock:
+                dept_profile.current_title = unlock.achievement
+                dept_profile.save(update_fields=['current_title'])
+                messages.success(request, f"部署称号を「🏆 {unlock.achievement.name}」に変更しました。")
+            else:
+                messages.error(request, "未達成の部署実績を称号に設定することはできません。")
+
+    return redirect('department_boss', dept_id=dept_id)
 
 
 @login_required
@@ -306,6 +379,12 @@ def dashboard(request):
 
     graduated_companions = GraduatedCompanion.objects.filter(user=user)
 
+    # 部署ボスの簡易表示用データ
+    user_primary_dept = user_groups.first()
+    active_dept_battle = None
+    if user_primary_dept:
+        active_dept_battle = DepartmentBattle.objects.filter(department=user_primary_dept, status='active').first()
+
     context = {
         'urgent_tasks': urgent_tasks,
         'normal_tasks': normal_tasks,
@@ -318,6 +397,8 @@ def dashboard(request):
         'search_query': search_query,
         'graduated_companions': graduated_companions,
         'island_profile': island_profile,
+        'user_primary_dept': user_primary_dept,
+        'active_dept_battle': active_dept_battle,
     }
     return render(request, 'core/dashboard.html', context)
 

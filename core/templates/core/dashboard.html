@@ -178,6 +178,31 @@
         </div>
     </div>
 
+    <!-- 部署ボス 簡易サマリー表示 (タスク一覧の邪魔にならないコンパクト表示) -->
+    <div class="card shadow-sm border-0 mb-3 bg-light">
+        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="font-size: 0.85rem;">
+            {% if active_dept_battle %}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-dark">⚔️ 部署ボス：{{ active_dept_battle.boss_name }}</span>
+                    <span class="badge bg-danger">HP {{ active_dept_battle.current_hp }}/{{ active_dept_battle.max_hp }}</span>
+                    <span class="text-muted d-none d-md-inline" style="font-size: 0.75rem;">(タスク完了でHP減少)</span>
+                </div>
+                <a href="{% url 'department_boss' active_dept_battle.department.id %}" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" style="font-size: 0.75rem;">
+                    討伐状況を見る
+                </a>
+            {% elif user_primary_dept %}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted">⚔️ 部署ボス：現在挑戦中のボスはいません</span>
+                </div>
+                <a href="{% url 'department_boss' user_primary_dept.id %}" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-bold" style="font-size: 0.75rem;">
+                    部署ボス画面
+                </a>
+            {% else %}
+                <div class="text-muted">⚔️ 所属部署が設定されていません</div>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="row align-items-center mb-3 g-2">
         <div class="col-lg-5 col-md-12">
             <h4 class="fw-bold mb-0 text-secondary">

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部署ボス討伐 - {{ department.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm px-4 py-2">
+    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+        <i class="bi bi-grid-fill text-primary"></i> Cross-Campus Task Hub
+    </a>
+    <div class="ms-auto d-flex align-items-center text-white small gap-3">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-house"></i> ダッシュボード</a>
+        <div>
+            <i class="bi bi-person-circle"></i> {{ user.username }}
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4" style="max-width: 900px;">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 部署ヘッダー -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4 text-center bg-white rounded">
+            <span class="badge bg-secondary mb-2" style="font-size: 0.9rem;">{{ department.name }}</span>
+            <h2 class="fw-bold text-dark mb-1">🛡️ 部署協力型ボス討伐</h2>
+            <p class="text-muted small mb-0">部署メンバー全員で日常のタスクを完了し、協力してボスを討伐しましょう！</p>
+            {% if dept_profile.current_title %}
+                <div class="mt-2">
+                    <span class="badge bg-warning text-dark border"><i class="bi bi-award-fill"></i> 部署称号: {{ dept_profile.current_title.name }}</span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- アクティブボス表示 -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+            <span>⚔️ 現在挑戦中のボス</span>
+            {% if active_battle %}
+                <span class="badge bg-danger">戦闘中</span>
+            {% else %}
+                <span class="badge bg-secondary">平和</span>
+            {% endif %}
+        </div>
+        <div class="card-body p-4 text-center">
+            {% if active_battle %}
+                <div class="display-1 mb-2">{{ active_battle.icon }}</div>
+                <h3 class="fw-bold mb-3">{{ active_battle.boss_name }}</h3>
+
+                <div class="row justify-content-center mb-3">
+                    <div class="col-md-8">
+                        <div class="d-flex justify-content-between small text-muted mb-1 fw-bold">
+                            <span>HP</span>
+                            <span>{{ active_battle.current_hp }} / {{ active_battle.max_hp }}</span>
+                        </div>
+                        <div class="progress shadow-sm" style="height: 24px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger fw-bold fs-6"
+                                 role="progressbar"
+                                 style="width: {{ active_battle.hp_percent }}%;">
+                                {{ active_battle.hp_percent }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info py-2 small d-inline-block px-4 mb-0">
+                    💡 「みんなのタスク完了でHPが減っていきます」
+                </div>
+            {% else %}
+                <div class="py-4 text-muted">
+                    <div class="fs-1 mb-2">🕊️</div>
+                    <p class="mb-0 fw-bold">現在、進行中のボス討伐はありません。</p>
+                    <small>管理者によって新しいボスが設定されると討伐が始まります。</small>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 過去の討伐履歴 -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-bold text-dark py-3">
+            🏆 討伐済みボス履歴 ({{ defeated_battles.count }}体)
+        </div>
+        <div class="card-body p-0">
+            {% if defeated_battles %}
+                <ul class="list-group list-group-flush">
+                    {% for battle in defeated_battles %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="fs-3">{{ battle.icon }}</span>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ battle.boss_name }}</div>
+                                    <small class="text-muted">最大HP: {{ battle.max_hp }}</small>
+                                </div>
+                            </div>
+                            <span class="badge bg-success rounded-pill px-3 py-2">
+                                🎉 討伐完了 ({{ battle.end_date|date:"Y/m/d" }})
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="p-4 text-center text-muted small">
+                    まだ討伐済みのボスはありません。
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 部署実績・称号設定 -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-bold text-dark py-3">
+            🎖️ 部署実績 & 称号設定
+        </div>
+        <div class="card-body p-4">
+            <h6 class="fw-bold text-secondary mb-3">獲得した部署実績</h6>
+            <div class="row g-3 mb-4">
+                {% for item in unlocked_achievements_list %}
+                    <div class="col-md-6">
+                        <div class="card border-warning bg-light shadow-sm h-100">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="fs-5">🏅</span>
+                                    <h6 class="fw-bold text-dark mb-0">{{ item.achievement.name }}</h6>
+                                </div>
+                                <p class="text-muted small mb-1">{{ item.achievement.description }}</p>
+                                <small class="text-secondary" style="font-size: 0.75rem;">達成日: {{ item.unlocked_at|date:"Y/m/d" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="col-12 text-muted small text-center py-2">
+                        まだ獲得した部署実績はありません。
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if unlocked_achievements_list %}
+                <hr>
+                <h6 class="fw-bold text-secondary mb-3">部署称号の変更</h6>
+                <form method="post" action="{% url 'set_department_title' department.id %}" class="d-flex gap-2 align-items-center style='max-width: 500px;'">
+                    {% csrf_token %}
+                    <select name="achievement_id" class="form-select form-select-sm">
+                        <option value="none">-- 称号なし --</option>
+                        {% for item in unlocked_achievements_list %}
+                            <option value="{{ item.achievement.id }}" {% if dept_profile.current_title_id == item.achievement.id %}selected{% endif %}>
+                                🏆 {{ item.achievement.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold flex-shrink-0">変更</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

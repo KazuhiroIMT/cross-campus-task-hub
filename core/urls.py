@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    path('department/boss/', views.department_boss, name='department_boss_my'),
+    path('department/<int:dept_id>/boss/', views.department_boss, name='department_boss'),
+    path('department/<int:dept_id>/set-title/', views.set_department_title, name='set_department_title'),
     path('island/', views.my_island, name='my_island'),
     path('island/gacha/', views.gacha_page, name='gacha_page'),
     path('achievements/', views.achievements_page, name='achievements_page'),
