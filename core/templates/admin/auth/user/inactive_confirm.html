@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+<h2>選択したユーザーを無効化（論理削除）しますか？</h2>
+<p>以下のユーザーアカウントは無効化され、ログインできなくなります。<br>※関連する過去のタスクや履歴は保持されます。</p>
+
+<ul>
+{% for obj in queryset %}
+  <li>{{ obj.username }}{% if obj.last_name %} ({{ obj.last_name }}{% if obj.first_name %} {{ obj.first_name }}{% endif %}){% endif %}</li>
+{% endfor %}
+</ul>
+
+<form action="" method="post">
+  {% csrf_token %}
+  <div>
+    {% for obj in queryset %}
+      <input type="hidden" name="{{ action_checkbox_name }}" value="{{ obj.pk|unlocalize }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="make_inactive_user">
+    <input type="hidden" name="post" value="yes">
+
+    <div style="margin-top: 20px;">
+      <a href="." class="button" style="background-color: #6c757d; color: #fff; padding: 10px 15px; border-radius: 4px; text-decoration: none;">キャンセル</a>
+      <input type="submit" value="はい、無効化します" class="button" style="background-color: #dc3545; color: #fff; padding: 10px 15px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; margin-left: 10px;">
+    </div>
+  </div>
+</form>
+{% endblock %}
