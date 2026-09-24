@@ -1,7 +1,92 @@
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
-from .models import UserCompanion, IslandProfile, Achievement, UserAchievement, UserTaskCompletionDate, IslandItem
+from .models import (
+    UserCompanion, IslandProfile, Achievement, UserAchievement,
+    UserTaskCompletionDate, IslandItem, DepartmentBattle,
+    DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
+)
+
+# Priority damage constants
+BOSS_DAMAGE_MAP = {
+    'high': 100,
+    'mid': 50,
+    'low': 25,
+}
+
+
+def ensure_initial_department_achievements():
+    """初期の部署実績データの作成/登録"""
+    initial_dept_achievements = [
+        {
+            'code': 'DEPT_DEFEAT_1',
+            'name': '初めての討伐',
+            'description': '部署で初めてボスを討伐する',
+            'requirement_type': 'DEFEAT_COUNT',
+            'requirement_value': 1,
+        },
+        {
+            'code': 'DEPT_DEFEAT_5',
+            'name': '討伐隊',
+            'description': '部署でボスを累計5体討伐する',
+            'requirement_type': 'DEFEAT_COUNT',
+            'requirement_value': 5,
+        },
+        {
+            'code': 'DEPT_DEFEAT_10',
+            'name': '精鋭討伐隊',
+            'description': '部署でボスを累計10体討伐する',
+            'requirement_type': 'DEFEAT_COUNT',
+            'requirement_value': 10,
+        },
+    ]
+
+    for item in initial_dept_achievements:
+        DepartmentAchievement.objects.get_or_create(
+            code=item['code'],
+            defaults={
+                'name': item['name'],
+                'description': item['description'],
+                'requirement_type': item['requirement_type'],
+                'requirement_value': item['requirement_value'],
+            }
+        )
+
+
+def check_department_achievements(department, request=None):
+    """部署実績のチェックと付与"""
+    ensure_initial_department_achievements()
+
+    unlocked_ids = set(
+        DepartmentAchievementUnlock.objects.filter(department=department).values_list('achievement_id', flat=True)
+    )
+
+    defeated_count = DepartmentBattle.objects.filter(department=department, status='defeated').count()
+    dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
+
+    achievements = DepartmentAchievement.objects.all()
+
+    for ach in achievements:
+        if ach.id in unlocked_ids:
+            continue
+
+        is_achieved = False
+        if ach.requirement_type == 'DEFEAT_COUNT' and defeated_count >= ach.requirement_value:
+            is_achieved = True
+
+        if is_achieved:
+            _, created = DepartmentAchievementUnlock.objects.get_or_create(
+                department=department,
+                achievement=ach
+            )
+            if created:
+                unlocked_ids.add(ach.id)
+                if not dept_profile.current_title:
+                    dept_profile.current_title = ach
+                    dept_profile.save(update_fields=['current_title'])
+
+                if request:
+                    messages.info(request, f"🛡️ 部署実績解除（{department.name}）：{ach.name}")
 
 
 def ensure_initial_achievements():
@@ -192,5 +277,32 @@ def process_task_completion(task, user, request=None):
 
     # 7. 実績達成チェック
     check_achievements(user, request=request)
+
+    # 8. 部署ボスへのダメージ処理（target_groupが指定されている場合）
+    if task.target_group:
+        target_dept = task.target_group
+        active_battle = DepartmentBattle.objects.filter(
+            department=target_dept,
+            status='active'
+        ).first()
+
+        if active_battle:
+            damage = BOSS_DAMAGE_MAP.get(task.priority, 50)
+            active_battle.current_hp -= damage
+
+            if active_battle.current_hp <= 0:
+                active_battle.current_hp = 0
+                active_battle.status = 'defeated'
+                active_battle.end_date = timezone.now()
+                active_battle.save()
+
+                if request:
+                    messages.success(request, f"🎉 {active_battle.boss_name}討伐！ ({target_dept.name})")
+
+                check_department_achievements(target_dept, request=request)
+            else:
+                active_battle.save()
+                if request:
+                    messages.info(request, f"⚔️ 部署ボス（{active_battle.boss_name}）に {damage} ダメージを与えました！（残りHP: {active_battle.current_hp}/{active_battle.max_hp}）")
 
     return True

@@ -779,3 +779,105 @@ class GraduatedCompanion(models.Model):
             'cactus': '🌸',
         }
         return forms.get(self.companion_type, '❓')
+
+
+class DepartmentBattle(models.Model):
+    STATUS_CHOICES = [
+        ('active', '進行中'),
+        ('defeated', '討伐完了'),
+        ('expired', '期限切れ'),
+    ]
+
+    BOSS_ICONS = {
+        'dragon': '🐉',
+        'robot': '🤖',
+        'monster': '👾',
+        'golem': '🗿',
+    }
+
+    department = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='battles', verbose_name="対象部署")
+    boss_type = models.CharField("ボスの種類", max_length=50, default='dragon')
+    boss_name = models.CharField("ボス名", max_length=100)
+    max_hp = models.IntegerField("最大HP", default=1000)
+    current_hp = models.IntegerField("現在HP", default=1000)
+    start_date = models.DateTimeField("開始日時", default=timezone.now)
+    end_date = models.DateTimeField("終了日時", null=True, blank=True)
+    status = models.CharField("ステータス", max_length=20, choices=STATUS_CHOICES, default='active', db_index=True)
+    created_at = models.DateTimeField("作成日時", auto_now_add=True)
+    updated_at = models.DateTimeField("更新日時", auto_now=True)
+
+    class Meta:
+        verbose_name = "部署ボス討伐"
+        verbose_name_plural = "部署ボス討伐一覧"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.department.name}] {self.boss_name} ({self.get_status_display()})"
+
+    @property
+    def icon(self):
+        if self.boss_type in self.BOSS_ICONS:
+            return self.BOSS_ICONS[self.boss_type]
+        for key, icon in self.BOSS_ICONS.items():
+            if key in self.boss_name.lower():
+                return icon
+        return '⚔️'
+
+    @property
+    def hp_percent(self):
+        if self.max_hp <= 0:
+            return 0
+        pct = int((max(0, self.current_hp) / self.max_hp) * 100)
+        return max(0, min(100, pct))
+
+
+class DepartmentAchievement(models.Model):
+    REQUIREMENT_CHOICES = [
+        ('DEFEAT_COUNT', '討伐数'),
+        ('ALL_MEMBERS', '全員参加'),
+    ]
+
+    code = models.CharField("部署実績コード", max_length=50, unique=True)
+    name = models.CharField("実績名 / 称号名", max_length=100)
+    description = models.TextField("説明", blank=True, null=True)
+    requirement_type = models.CharField("達成条件タイプ", max_length=30, choices=REQUIREMENT_CHOICES, default='DEFEAT_COUNT')
+    requirement_value = models.IntegerField("達成必要値", default=1)
+    created_at = models.DateTimeField("登録日時", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "部署実績・称号"
+        verbose_name_plural = "部署実績・称号一覧"
+        ordering = ['requirement_type', 'requirement_value', 'created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class DepartmentAchievementUnlock(models.Model):
+    department = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='unlocked_achievements', verbose_name="部署")
+    achievement = models.ForeignKey(DepartmentAchievement, on_delete=models.CASCADE, related_name='unlocked_departments', verbose_name="部署実績")
+    unlocked_at = models.DateTimeField("達成日時", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "部署獲得実績"
+        verbose_name_plural = "部署獲得実績一覧"
+        ordering = ['-unlocked_at']
+        constraints = [
+            models.UniqueConstraint(fields=['department', 'achievement'], name='unique_department_achievement')
+        ]
+
+    def __str__(self):
+        return f"{self.department.name} - {self.achievement.name}"
+
+
+class DepartmentProfile(models.Model):
+    department = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='department_profile', verbose_name="部署")
+    current_title = models.ForeignKey(DepartmentAchievement, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="現在の部署称号")
+
+    class Meta:
+        verbose_name = "部署プロファイル"
+        verbose_name_plural = "部署プロファイル一覧"
+
+    def __str__(self):
+        title_str = f" ({self.current_title.name})" if self.current_title else ""
+        return f"{self.department.name}{title_str}"

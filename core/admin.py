@@ -17,7 +17,12 @@ from django.utils.safestring import mark_safe
 from django.urls import path
 from django.shortcuts import redirect, get_object_or_404, render
 
-from .models import Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course, DepartmentGroup, UserCompanion, GraduatedCompanion, IslandProfile, IslandItem, Achievement, UserAchievement, UserTaskCompletionDate
+from .models import (
+    Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course,
+    DepartmentGroup, UserCompanion, GraduatedCompanion, IslandProfile,
+    IslandItem, Achievement, UserAchievement, UserTaskCompletionDate,
+    DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
+)
 from .forms import UserCSVUploadForm, CSVUploadForm
 
 
@@ -525,6 +530,28 @@ class IslandItemAdmin(admin.ModelAdmin):
     list_display = ('user', 'name', 'item_type', 'is_placed', 'obtained_at')
     list_filter = ('item_type', 'is_placed')
     search_fields = ('user__username', 'name')
+
+@admin.register(DepartmentBattle)
+class DepartmentBattleAdmin(admin.ModelAdmin):
+    list_display = ('department', 'boss_name', 'boss_type', 'current_hp', 'max_hp', 'status', 'start_date', 'end_date')
+    list_filter = ('status', 'department', 'boss_type')
+    search_fields = ('department__name', 'boss_name')
+
+@admin.register(DepartmentAchievement)
+class DepartmentAchievementAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name', 'requirement_type', 'requirement_value', 'created_at')
+    list_filter = ('requirement_type',)
+    search_fields = ('code', 'name', 'description')
+
+@admin.register(DepartmentAchievementUnlock)
+class DepartmentAchievementUnlockAdmin(admin.ModelAdmin):
+    list_display = ('department', 'achievement', 'unlocked_at')
+    search_fields = ('department__name', 'achievement__name', 'achievement__code')
+
+@admin.register(DepartmentProfile)
+class DepartmentProfileAdmin(admin.ModelAdmin):
+    list_display = ('department', 'current_title')
+    search_fields = ('department__name',)
 
 # 既存のUser登録を解除して再登録
 CustomUserAdmin.inlines = list(getattr(CustomUserAdmin, 'inlines', [])) + [UserCompanionInline]

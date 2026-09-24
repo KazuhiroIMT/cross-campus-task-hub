@@ -2,8 +2,15 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User, Group
 from django.utils import timezone
 from datetime import timedelta
-from core.models import UserCompanion, GraduatedCompanion, Task, DepartmentGroup, IslandProfile, IslandItem, Achievement, UserAchievement
-from core.services import process_task_completion, ensure_initial_achievements, check_achievements
+from core.models import (
+    UserCompanion, GraduatedCompanion, Task, DepartmentGroup,
+    IslandProfile, IslandItem, Achievement, UserAchievement,
+    DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
+)
+from core.services import (
+    process_task_completion, ensure_initial_achievements, check_achievements,
+    ensure_initial_department_achievements, check_department_achievements
+)
 
 class GamificationAndArchiveTests(TestCase):
     def setUp(self):
@@ -375,3 +382,180 @@ class AchievementTests(TestCase):
         self.assertEqual(res_ach.status_code, 200)
         self.assertContains(res_ach, 'はじめの一歩')
         self.assertContains(res_ach, '熟練開拓者')  # 未達成リストに表示
+
+
+class DepartmentBossTests(TestCase):
+    def setUp(self):
+        self.group1 = Group.objects.create(name='営業部')
+        self.group2 = Group.objects.create(name='開発部')
+
+        self.user1 = User.objects.create_user(username='sales_user', password='password123', is_staff=True)
+        self.user1.groups.add(self.group1)
+
+        self.user2 = User.objects.create_user(username='dev_user', password='password123', is_staff=True)
+        self.user2.groups.add(self.group2)
+
+        self.client = Client()
+
+    def test_task_completion_reduces_boss_hp_by_priority(self):
+        """target_group付きTaskがclosedになるとボスHPが優先度に応じて減少する"""
+        battle = DepartmentBattle.objects.create(
+            department=self.group1,
+            boss_name='納期ドラゴン',
+            max_hp=1000,
+            current_hp=1000,
+            status='active'
+        )
+
+        task_high = Task.objects.create(
+            title='High Priority Task',
+            description='Desc',
+            target_group=self.group1,
+            created_by=self.user1,
+            due_date=timezone.now().date(),
+            priority='high',
+            status='open'
+        )
+
+        process_task_completion(task_high, self.user1)
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 900)  # 1000 - 100
+
+        task_mid = Task.objects.create(
+            title='Mid Priority Task',
+            description='Desc',
+            target_group=self.group1,
+            created_by=self.user1,
+            due_date=timezone.now().date(),
+            priority='mid',
+            status='open'
+        )
+        process_task_completion(task_mid, self.user1)
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 850)  # 900 - 50
+
+        task_low = Task.objects.create(
+            title='Low Priority Task',
+            description='Desc',
+            target_group=self.group1,
+            created_by=self.user1,
+            due_date=timezone.now().date(),
+            priority='low',
+            status='open'
+        )
+        process_task_completion(task_low, self.user1)
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 825)  # 850 - 25
+
+    def test_task_without_target_group_does_not_affect_boss(self):
+        """target_groupがないTaskではボスHPが減らない"""
+        battle = DepartmentBattle.objects.create(
+            department=self.group1,
+            boss_name='会議ロボ',
+            max_hp=1000,
+            current_hp=1000,
+            status='active'
+        )
+
+        task_no_group = Task.objects.create(
+            title='No Group Task',
+            description='Desc',
+            target_group=None,
+            created_by=self.user1,
+            due_date=timezone.now().date(),
+            priority='high',
+            status='open'
+        )
+
+        process_task_completion(task_no_group, self.user1)
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 1000)
+
+    def test_no_double_damage_on_same_task(self):
+        """同じTaskで二重ダメージが発生しない"""
+        battle = DepartmentBattle.objects.create(
+            department=self.group1,
+            boss_name='タスクモンスター',
+            max_hp=1000,
+            current_hp=1000,
+            status='active'
+        )
+
+        task = Task.objects.create(
+            title='Double Damage Test',
+            description='Desc',
+            target_group=self.group1,
+            created_by=self.user1,
+            due_date=timezone.now().date(),
+            priority='high',
+            status='open'
+        )
+
+        res1 = process_task_completion(task, self.user1)
+        self.assertTrue(res1)
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 900)
+
+        res2 = process_task_completion(task, self.user1)
+        self.assertFalse(res2)
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 900)
+
+    def test_boss_status_becomes_defeated_when_hp_reaches_zero(self):
+        """HPが0になるとstatus=defeatedになる"""
+        battle = DepartmentBattle.objects.create(
+            department=self.group1,
+            boss_name='締切ゴーレム',
+            max_hp=100,
+            current_hp=100,
+            status='active'
+        )
+
+        task = Task.objects.create(
+            title='Final Hit Task',
+            description='Desc',
+            target_group=self.group1,
+            created_by=self.user1,
+            due_date=timezone.now().date(),
+            priority='high',  # 100 damage
+            status='open'
+        )
+
+        process_task_completion(task, self.user1)
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 0)
+        self.assertEqual(battle.status, 'defeated')
+        self.assertIsNotNone(battle.end_date)
+
+        # 部署実績の解除チェック
+        unlock = DepartmentAchievementUnlock.objects.filter(department=self.group1, achievement__code='DEPT_DEFEAT_1')
+        self.assertTrue(unlock.exists())
+
+    def test_dashboard_and_boss_view_permissions(self):
+        """Dashboardの簡易表示と閲覧権限・アクセス制御のテスト"""
+        battle = DepartmentBattle.objects.create(
+            department=self.group1,
+            boss_name='納期ドラゴン',
+            max_hp=1000,
+            current_hp=800,
+            status='active'
+        )
+
+        # 所属メンバー (user1) ログイン
+        self.client.login(username='sales_user', password='password123')
+        dash_res = self.client.get('/')
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertContains(dash_res, '納期ドラゴン')
+        self.assertContains(dash_res, 'HP 800/1000')
+
+        # 自分の部署ボス画面閲覧可能
+        dept_res = self.client.get(f'/department/{self.group1.id}/boss/')
+        self.assertEqual(dept_res.status_code, 200)
+        self.assertContains(dept_res, '納期ドラゴン')
+
+        # 他部署メンバー (user2) ログイン
+        self.client.login(username='dev_user', password='password123')
+
+        # 他部署詳細の閲覧拒否（PermissionDenied: 403）
+        forbidden_res = self.client.get(f'/department/{self.group1.id}/boss/')
+        self.assertEqual(forbidden_res.status_code, 403)
