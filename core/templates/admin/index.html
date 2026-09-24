@@ -1,0 +1,23 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+  {% if request.user.is_superuser %}
+    <div style="margin-bottom: 20px; padding: 16px; background: #ffffff; border: 1px solid #e1e4ea; border-radius: 8px; box-shadow: 0 2px 8px rgba(29, 53, 87, 0.05);">
+      <h3 style="margin-top: 0; margin-bottom: 8px; color: #1d3557; font-size: 1rem; font-weight: bold;">
+        データバックアップ（エクスポート）
+      </h3>
+      <p style="font-size: 0.85rem; color: #5b6472; margin-bottom: 12px;">
+        タスク、進捗データ、コメント、および関連する学生・教職員マスタデータを一括エクスポートします。
+      </p>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <a href="{% url 'export_data_json' %}" class="button" style="background-color: #0d6efd; color: #ffffff !important; font-weight: bold; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: inline-block;">
+          📥 データバックアップ (JSON)
+        </a>
+        <a href="{% url 'export_data_csv' %}" class="button" style="background-color: #198754; color: #ffffff !important; font-weight: bold; padding: 8px 16px; border-radius: 6px; text-decoration: none; display: inline-block;">
+          📥 データバックアップ (CSV)
+        </a>
+      </div>
+    </div>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

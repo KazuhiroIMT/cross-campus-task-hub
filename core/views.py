@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.core import serializers
 
 # 必要なモデルを一括インポート（Student, TaskStudentProgress を含む）
-from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion
+from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty
 from .forms import TaskCreateForm, CSVUploadForm
 
 
@@ -22,7 +22,7 @@ def get_accessible_tasks(user):
     """ユーザーが閲覧可能なタスクを取得する共通ベースクエリ
 
     ・スーパーユーザーであっても日常業務の一覧画面では他人の個人宛て機密案件を除外
-    ・自身が起票、自身宛て（target_user/assigned_user）、または個人指定のない自部署宛て案件のみを抽出
+    ・自身が起票、自身宛て（target_user/target_users/assigned_user）、または個人指定のない自部署宛て案件のみを抽出
     """
     user_groups = user.groups.all()
 
@@ -30,9 +30,11 @@ def get_accessible_tasks(user):
         Q(created_by=user)
         | Q(assigned_user=user)
         | Q(target_user=user)
-        | (Q(target_group__in=user_groups) & Q(target_user__isnull=True))
+        | Q(target_users=user)
+        | Q(target_group__in=user_groups)
+        | Q(target_groups__in=user_groups)
     )
-    return Task.objects.filter(base_condition)
+    return Task.objects.filter(base_condition).distinct()
 
 
 @login_required
@@ -55,15 +57,17 @@ def dashboard(request):
         .select_related(
             'target_group', 'created_by', 'assigned_user', 'target_user'
         )
-        .prefetch_related('students')
+        .prefetch_related('students', 'target_users', 'target_groups')
     )
 
     # 自分宛て、自分担当、または「個人指定のない自部署宛て案件」のみをダッシュボードに表示
     my_tasks = accessible_tasks.filter(
         Q(assigned_user=user)
         | Q(target_user=user)
-        | (Q(target_group__in=user_groups) & Q(target_user__isnull=True))
-    )
+        | Q(target_users=user)
+        | Q(target_group__in=user_groups)
+        | Q(target_groups__in=user_groups)
+    ).distinct()
 
     # フリーワード検索
     search_query = request.GET.get('q', '').strip()
@@ -89,13 +93,17 @@ def dashboard(request):
             Q(target_user__first_name__icontains=norm_q) |
             Q(target_user__last_name__icontains=norm_q) |
             Q(target_user__username__icontains=norm_q) |
+            Q(target_users__first_name__icontains=norm_q) |
+            Q(target_users__last_name__icontains=norm_q) |
+            Q(target_users__username__icontains=norm_q) |
             Q(assigned_user__first_name__icontains=norm_q) |
             Q(assigned_user__last_name__icontains=norm_q) |
             Q(assigned_user__username__icontains=norm_q) |
             Q(created_by__first_name__icontains=norm_q) |
             Q(created_by__last_name__icontains=norm_q) |
             Q(created_by__username__icontains=norm_q) |
-            Q(target_group__name__icontains=norm_q)
+            Q(target_group__name__icontains=norm_q) |
+            Q(target_groups__name__icontains=norm_q)
         )
 
         # 3. 日付検索対応（「9/22」や「9-22」を月・日に分解して検索）
@@ -175,31 +183,34 @@ def dashboard(request):
             staff_mode = request.POST.get('staff_mode')
 
             if staff_mode == 'individual':
-                target_user_id = request.POST.get('target_user_id')
-                if not target_user_id:
+                target_user_ids = request.POST.getlist('target_user_ids')
+                # もし単一選択の旧パラメータ target_user_id もあれば互換性のために拾う
+                single_id = request.POST.get('target_user_id')
+                if single_id and single_id not in target_user_ids:
+                    target_user_ids.append(single_id)
+
+                if not target_user_ids:
                     messages.error(request, '対象教職員を選択してください。')
                     return redirect('dashboard')
 
-                target_user = get_object_or_404(User, pk=target_user_id)
+                selected_users = list(User.objects.filter(pk__in=target_user_ids))
+                first_user = selected_users[0] if selected_users else None
 
-                # 宛先部署の特定
-                target_group = None
-                if (
-                    hasattr(target_user, 'staff_profile')
-                    and target_user.staff_profile.department_group
-                ):
-                    target_group = target_user.staff_profile.department_group
-                elif user_groups.exists():
-                    target_group = user_groups.first()
-                else:
-                    target_group = Group.objects.first()
+                # 部署グループの特定
+                depts = set()
+                for u in selected_users:
+                    if hasattr(u, 'staff_profile') and u.staff_profile.department_group:
+                        depts.add(u.staff_profile.department_group)
+                    for g in u.groups.all():
+                        depts.add(g)
 
-                # target_group を渡してNOT NULL制約エラーを防止
-                Task.objects.create(
+                primary_dept = list(depts)[0] if depts else (user_groups.first() or Group.objects.first())
+
+                task = Task.objects.create(
                     target_type='staff',
-                    target_user=target_user,
-                    assigned_user=target_user,
-                    target_group=target_group,
+                    target_user=first_user if len(selected_users) == 1 else None,
+                    assigned_user=first_user if len(selected_users) == 1 else None,
+                    target_group=primary_dept,
                     title=title,
                     description=description,
                     priority=priority,
@@ -207,26 +218,37 @@ def dashboard(request):
                     privacy='sensitive',
                     created_by=user,
                 )
-                messages.success(
-                    request,
-                    f'{target_user.get_full_name() or target_user.username} 宛ての教職員タスクを起票しました。',
-                )
+                task.target_users.set(selected_users)
+                if depts:
+                    task.target_groups.set(depts)
+
+                if len(selected_users) == 1:
+                    u_display = f"{first_user.last_name} {first_user.first_name}".strip() or first_user.username
+                    messages.success(request, f'{u_display} 宛ての教職員タスクを起票しました。')
+                else:
+                    messages.success(request, f'教職員 {len(selected_users)} 名宛てのタスクを一括起票しました。')
 
             else:
-                dept_group_id = request.POST.get('dept_target_group')
-                if not dept_group_id:
+                dept_group_ids = request.POST.getlist('dept_target_group_ids')
+                single_dept_id = request.POST.get('dept_target_group')
+                if single_dept_id and single_dept_id not in dept_group_ids:
+                    dept_group_ids.append(single_dept_id)
+
+                if not dept_group_ids:
                     messages.error(request, '宛先部署を選択してください。')
                     return redirect('dashboard')
 
-                target_group = get_object_or_404(Group, pk=dept_group_id)
+                selected_groups = list(Group.objects.filter(pk__in=dept_group_ids))
+                first_group = selected_groups[0] if selected_groups else None
+
                 selected_duties = request.POST.getlist('selected_duties')
                 desc = description
                 if selected_duties:
                     desc = f"【担当業務: {', '.join(selected_duties)}】\n" + desc
 
-                Task.objects.create(
+                task = Task.objects.create(
                     target_type='staff',
-                    target_group=target_group,
+                    target_group=first_group,
                     title=title,
                     description=desc,
                     priority=priority,
@@ -234,9 +256,12 @@ def dashboard(request):
                     privacy='sensitive',
                     created_by=user,
                 )
-                messages.success(
-                    request, f'【{target_group.name}】宛ての教職員タスクを起票しました。'
-                )
+                task.target_groups.set(selected_groups)
+
+                if len(selected_groups) == 1:
+                    messages.success(request, f'【{first_group.name}】宛ての教職員タスクを起票しました。')
+                else:
+                    messages.success(request, f'複数部署（{len(selected_groups)} 部署）宛ての教職員タスクを起票しました。')
 
             return redirect('dashboard')
 
@@ -312,9 +337,12 @@ def task_detail(request, pk):
     if task.privacy == 'sensitive':
         is_owner = (task.created_by == user)
         is_assigned = (task.assigned_user == user)
-        is_target_user = (task.target_user == user)
+        is_target_user = (task.target_user == user or user in task.target_users.all())
         # 部署宛て（個人指定なし）の場合のみ部署メンバーに閲覧を許可
-        is_target_group = (task.target_group in user_groups and task.target_user is None)
+        is_target_group = (
+            (task.target_group in user_groups and task.target_user is None and not task.target_users.exists())
+            or any(g in user_groups for g in task.target_groups.all())
+        )
         
         if not (user.is_superuser or is_owner or is_assigned or is_target_user or is_target_group):
             from django.core.exceptions import PermissionDenied
@@ -425,19 +453,28 @@ def closed_task_list(request):
     user = request.user
     user_groups = user.groups.all()
     search_query = request.GET.get('q', '').strip()
+    archive_filter = request.GET.get('archive', 'unarchived').strip()
 
     closed_tasks_qs = get_accessible_tasks(user).filter(
-        is_archived=False
-    ).filter(
         Q(assigned_user=user) | 
         Q(target_user=user) | 
-        (Q(target_group__in=user_groups) & Q(target_user__isnull=True))
+        Q(target_users=user) |
+        Q(target_group__in=user_groups) |
+        Q(target_groups__in=user_groups)
     ).filter(status='closed').select_related(
         'target_group', 
         'created_by', 
         'assigned_user', 
         'target_user'
-    ).prefetch_related('students')
+    ).prefetch_related('students', 'target_users', 'target_groups')
+
+    if archive_filter == 'archived':
+        closed_tasks_qs = closed_tasks_qs.filter(is_archived=True)
+    elif archive_filter == 'all':
+        pass  # フィルタなし（両方表示）
+    else:
+        archive_filter = 'unarchived'
+        closed_tasks_qs = closed_tasks_qs.filter(is_archived=False)
 
     if search_query:
         closed_tasks_qs = closed_tasks_qs.filter(
@@ -456,6 +493,7 @@ def closed_task_list(request):
     return render(request, 'core/closed_tasks.html', {
         'closed_tasks': closed_tasks,
         'search_query': search_query,
+        'archive_filter': archive_filter,
     })
 
 
@@ -571,10 +609,19 @@ def other_department_tasks(request):
 @user_passes_test(lambda u: u.is_superuser)
 def export_data_json(request):
     """スーパーユーザー限定：全タスク・関連データJSONエクスポート"""
-    tasks = Task.objects.all()
-    data = serializers.serialize('json', tasks, ensure_ascii=False, indent=2)
-    response = HttpResponse(data, content_type='application/json')
-    filename = f"task_backup_{timezone.now():%Y%m%d_%H%M%S}.json"
+    models_to_export = [
+        Task, TaskStudentProgress, TaskComment, Student, User, StaffProfile,
+        Group, Department, Course, SchoolClass
+    ]
+    backup_data = {}
+    for model in models_to_export:
+        key = model._meta.model_name
+        qs = model.objects.all()
+        backup_data[key] = json.loads(serializers.serialize('json', qs, ensure_ascii=False))
+
+    data_str = json.dumps(backup_data, ensure_ascii=False, indent=2)
+    response = HttpResponse(data_str, content_type='application/json')
+    filename = f"task_backup_full_{timezone.now():%Y%m%d_%H%M%S}.json"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
@@ -593,12 +640,12 @@ def export_data_csv(request):
         'プライバシー区分', '対応期日', '起票者', 'アーカイブ状態', '作成日時'
     ])
 
-    for task in Task.objects.select_related('target_group', 'created_by').all():
+    for task in Task.objects.prefetch_related('target_groups', 'target_users', 'students').select_related('target_group', 'target_user', 'created_by').all():
         writer.writerow([
             task.id,
             task.title,
             task.get_target_type_display(),
-            task.target_group.name if task.target_group else '',
+            task.target_groups_display,
             task.get_priority_display(),
             task.get_status_display(),
             task.get_privacy_display(),
