@@ -314,6 +314,8 @@ class Task(models.Model):
     due_date = models.DateField("対応期日", db_index=True)
     completion_note = models.TextField("対応メモ（クローズ時）", blank=True, null=True)
     
+    is_archived = models.BooleanField("アーカイブフラグ", default=False, db_index=True)
+
     created_at = models.DateTimeField("起票日時", auto_now_add=True)
     updated_at = models.DateTimeField("更新日時", auto_now=True)
 
@@ -531,3 +533,27 @@ class UserCompanion(models.Model):
 def create_user_companion(sender, instance, created, **kwargs):
     if created:
         UserCompanion.objects.get_or_create(user=instance)
+
+
+class GraduatedCompanion(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='graduated_companions', verbose_name="ユーザー")
+    companion_type = models.CharField("キャラクター種類", max_length=20, choices=UserCompanion.COMPANION_CHOICES)
+    completed_tasks_count = models.IntegerField("卒業時完了タスク数", default=0)
+    graduated_at = models.DateTimeField("殿堂入り日時", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "殿堂入りキャラクター"
+        verbose_name_plural = "殿堂入りキャラクター一覧"
+        ordering = ['-graduated_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_companion_type_display()} ({self.graduated_at:%Y/%m/%d})"
+
+    @property
+    def final_form(self):
+        forms = {
+            'chick': '🦅',
+            'robot': '🦸‍♂️',
+            'cactus': '🌸',
+        }
+        return forms.get(self.companion_type, '❓')

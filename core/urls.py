@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('select-companion/', views.select_companion, name='select_companion'),
+    path('graduate-companion/', views.graduate_companion, name='graduate_companion'),
     path('', views.dashboard, name='dashboard'),
     path('task/<int:pk>/update/', views.update_task_status, name='update_task_status'),
     path('task/<int:pk>/', views.task_detail, name='task_detail'),
@@ -10,4 +11,6 @@ urlpatterns = [
     path('tasks/sent/', views.my_created_tasks, name='my_created_tasks'),
     path('api/students/search/', views.api_search_students, name='api_search_students'),
     path('tasks/other/', views.other_department_tasks, name='other_department_tasks'),
+    path('export/json/', views.export_data_json, name='export_data_json'),
+    path('export/csv/', views.export_data_csv, name='export_data_csv'),
 ]
