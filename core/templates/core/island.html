@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイアイランド - Cross-Campus Task Hub</title>
+    {% load static %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm px-4 py-2">
+    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+        <i class="bi bi-grid-fill text-primary"></i> Cross-Campus Task Hub
+    </a>
+    <div class="ms-auto d-flex align-items-center text-white small gap-3">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left"></i> ダッシュボードへ戻る</a>
+        <a href="{% url 'gacha_page' %}" class="btn btn-warning btn-sm fw-bold"><i class="bi bi-ticket-perforated"></i> ガチャを引く</a>
+    </div>
+</nav>
+
+<div class="container py-4" style="max-width: 960px;">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- マイアイランド ヘッダー & ステータス -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h3 class="fw-bold mb-1"><i class="bi bi-tsunami text-info"></i> マイアイランド</h3>
+                    <p class="text-muted small mb-0">仕事の合間に少し眺める、あなたの小さな個人島空間です。</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'gacha_page' %}" class="btn btn-primary btn-sm fw-bold shadow-sm">
+                        🎟️ ガチャを引く (チケット ×{{ island_profile.gacha_tickets }})
+                    </a>
+                </div>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="row text-center g-3">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded border">
+                        <small class="text-muted d-block fw-bold mb-1">島レベル</small>
+                        <span class="fs-4 fw-bold text-primary">Lv. {{ island_profile.level }}</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded border">
+                        <small class="text-muted d-block fw-bold mb-1">EXP</small>
+                        <span class="fs-5 fw-bold text-dark">{{ island_profile.experience }} / {{ island_profile.next_level_exp }}</span>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-info" style="width: {{ island_profile.exp_progress_percent }}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded border">
+                        <small class="text-muted d-block fw-bold mb-1">所持コイン</small>
+                        <span class="fs-4 fw-bold text-warning">🪙 {{ island_profile.coins }}</span>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 bg-light rounded border">
+                        <small class="text-muted d-block fw-bold mb-1">ガチャチケット</small>
+                        <span class="fs-4 fw-bold text-success">🎟️ {{ island_profile.gacha_tickets }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 島のビジュアル（配置済みアイテム表示エリア） -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
+            <span>🏝️ 配置済みの島 ({{ placed_items.count }}件)</span>
+            <small class="text-muted font-normal">取得したアイテムを島に飾っています</small>
+        </div>
+        <div class="card-body p-4 text-center" style="background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 60%, #86efac 100%); min-height: 220px; border-radius: 0 0 8px 8px;">
+            {% if placed_items %}
+                <div class="d-flex flex-wrap justify-content-center align-items-center gap-4 py-4">
+                    {% for item in placed_items %}
+                        <div class="p-3 bg-white bg-opacity-75 rounded-4 shadow-sm text-center border" style="min-width: 90px;">
+                            <div class="display-5 mb-1">{{ item.icon }}</div>
+                            <small class="fw-bold text-dark d-block">{{ item.name }}</small>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="py-5 text-secondary">
+                    <i class="bi bi-tree fs-1 d-block mb-2"></i>
+                    <p class="mb-2">まだ島に配置されたアイテムがありません。</p>
+                    <a href="{% url 'gacha_page' %}" class="btn btn-sm btn-primary">ガチャを引いてアイテムを獲得しよう！</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 所有アイテム一覧 & 配置切替 -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white fw-bold py-3">
+            📦 所有コレクションアイテム一覧 ({{ items.count }}件)
+        </div>
+        <div class="card-body p-0">
+            {% if items %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 10%;">アイコン</th>
+                                <th style="width: 35%;">名称</th>
+                                <th style="width: 25%;">獲得日時</th>
+                                <th style="width: 15%;">状態</th>
+                                <th style="width: 15%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="fs-4 text-center">{{ item.icon }}</td>
+                                <td class="fw-bold text-dark">{{ item.name }}</td>
+                                <td class="small text-muted">{{ item.obtained_at|date:"Y/m/d H:i" }}</td>
+                                <td>
+                                    {% if item.is_placed %}
+                                        <span class="badge bg-success">島に配置中</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">非配置</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="post" action="{% url 'my_island' %}" class="m-0">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="toggle_item_placed" value="1">
+                                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                                        {% if item.is_placed %}
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm">外す</button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline-success btn-sm">配置する</button>
+                                        {% endif %}
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-4 text-center text-muted">
+                    まだアイテムを所持していません。タスクを完了してガチャチケットを集めましょう！
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

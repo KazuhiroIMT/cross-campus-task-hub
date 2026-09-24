@@ -17,7 +17,7 @@ from django.utils.safestring import mark_safe
 from django.urls import path
 from django.shortcuts import redirect, get_object_or_404, render
 
-from .models import Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course, DepartmentGroup, UserCompanion, GraduatedCompanion
+from .models import Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course, DepartmentGroup, UserCompanion, GraduatedCompanion, IslandProfile, IslandItem
 from .forms import UserCSVUploadForm, CSVUploadForm
 
 
@@ -498,6 +498,17 @@ class GraduatedCompanionAdmin(admin.ModelAdmin):
     list_display = ('user', 'companion_type', 'completed_tasks_count', 'final_form', 'graduated_at')
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
     date_hierarchy = 'graduated_at'
+
+@admin.register(IslandProfile)
+class IslandProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'level', 'experience', 'coins', 'gacha_tickets', 'created_at')
+    search_fields = ('user__username', 'user__last_name', 'user__first_name')
+
+@admin.register(IslandItem)
+class IslandItemAdmin(admin.ModelAdmin):
+    list_display = ('user', 'name', 'item_type', 'is_placed', 'obtained_at')
+    list_filter = ('item_type', 'is_placed')
+    search_fields = ('user__username', 'name')
 
 # 既存のUser登録を解除して再登録
 CustomUserAdmin.inlines = list(getattr(CustomUserAdmin, 'inlines', [])) + [UserCompanionInline]

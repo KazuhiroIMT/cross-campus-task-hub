@@ -329,6 +329,7 @@ class Task(models.Model):
     completion_note = models.TextField("対応メモ（クローズ時）", blank=True, null=True)
     
     is_archived = models.BooleanField("アーカイブ済み", default=False, db_index=True)
+    reward_granted = models.BooleanField("報酬付与済み", default=False)
 
     created_at = models.DateTimeField("起票日時", auto_now_add=True)
     updated_at = models.DateTimeField("更新日時", auto_now=True)
@@ -586,6 +587,116 @@ class UserCompanion(models.Model):
 def create_user_companion(sender, instance, created, **kwargs):
     if created:
         UserCompanion.objects.get_or_create(user=instance)
+
+
+class IslandProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='island_profile', verbose_name="ユーザー")
+    level = models.IntegerField("島レベル", default=1)
+    experience = models.IntegerField("島経験値", default=0)
+    coins = models.IntegerField("コイン", default=0)
+    gacha_tickets = models.IntegerField("ガチャチケット", default=0)
+    created_at = models.DateTimeField("登録日時", auto_now_add=True)
+    updated_at = models.DateTimeField("更新日時", auto_now=True)
+
+    class Meta:
+        verbose_name = "マイアイランド情報"
+        verbose_name_plural = "マイアイランド情報一覧"
+
+    def __str__(self):
+        return f"{self.user.username} - Island Lv.{self.level} (EXP: {self.experience})"
+
+    @property
+    def next_level_exp(self):
+        thresholds = {1: 50, 2: 120, 3: 220, 4: 350}
+        return thresholds.get(self.level, 350)
+
+    @property
+    def current_level_base_exp(self):
+        bases = {1: 0, 2: 50, 3: 120, 4: 220, 5: 350}
+        return bases.get(self.level, 350)
+
+    @property
+    def exp_progress_percent(self):
+        if self.level >= 5:
+            return 100
+        base = self.current_level_base_exp
+        target = self.next_level_exp
+        needed = target - base
+        current = self.experience - base
+        if needed <= 0:
+            return 100
+        progress = int((current / needed) * 100)
+        return max(0, min(100, progress))
+
+    def update_level(self):
+        """EXPに応じてレベルを更新し、レベル上昇があった場合は(True, old_level, new_level)を返す"""
+        old_level = self.level
+        exp = self.experience
+        if exp >= 350:
+            new_level = 5
+        elif exp >= 220:
+            new_level = 4
+        elif exp >= 120:
+            new_level = 3
+        elif exp >= 50:
+            new_level = 2
+        else:
+            new_level = 1
+
+        if new_level > old_level:
+            self.level = new_level
+            return True, old_level, new_level
+        return False, old_level, new_level
+
+
+@receiver(post_save, sender=User)
+def create_island_profile(sender, instance, created, **kwargs):
+    if created:
+        IslandProfile.objects.get_or_create(user=instance)
+
+
+class IslandItem(models.Model):
+    ITEM_TYPE_CHOICES = [
+        ('tree', '樹木 🌲'),
+        ('flower', 'お花 🌸'),
+        ('rock', '大きな岩 🪨'),
+        ('house', '小さな家 🏠'),
+        ('fountain', '噴水 ⛲'),
+        ('shop', 'お店 🏪'),
+        ('animal', '動物 🐶'),
+        ('castle', 'お城 🏰'),
+    ]
+
+    ITEM_ICONS = {
+        'tree': '🌲',
+        'flower': '🌸',
+        'rock': '🪨',
+        'house': '🏠',
+        'fountain': '⛲',
+        'shop': '🏪',
+        'animal': '🐶',
+        'castle': '🏰',
+    }
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='island_items', verbose_name="ユーザー")
+    item_type = models.CharField("アイテム種類", max_length=50, choices=ITEM_TYPE_CHOICES)
+    name = models.CharField("アイテム名", max_length=100)
+    position_x = models.IntegerField("配置位置X", default=0, null=True, blank=True)
+    position_y = models.IntegerField("配置位置Y", default=0, null=True, blank=True)
+    obtained_at = models.DateTimeField("獲得日時", auto_now_add=True)
+    is_placed = models.BooleanField("配置済み", default=True)
+
+    class Meta:
+        verbose_name = "島アイテム"
+        verbose_name_plural = "島アイテム一覧"
+        ordering = ['-obtained_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name} ({self.get_item_type_display()})"
+
+    @property
+    def icon(self):
+        return self.ITEM_ICONS.get(self.item_type, '🎁')
 
 
 class GraduatedCompanion(models.Model):

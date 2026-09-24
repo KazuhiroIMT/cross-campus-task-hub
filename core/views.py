@@ -14,7 +14,8 @@ from django.urls import reverse
 from django.core import serializers
 
 # 必要なモデルを一括インポート（Student, TaskStudentProgress を含む）
-from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty
+from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty, IslandProfile, IslandItem
+from .services import process_task_completion
 from .forms import TaskCreateForm, CSVUploadForm
 
 
@@ -46,6 +47,8 @@ def dashboard(request):
     if not companion:
         from .models import UserCompanion
         UserCompanion.objects.get_or_create(user=user)
+
+    island_profile, _ = IslandProfile.objects.get_or_create(user=user)
     user_groups = user.groups.all()
     today = timezone.now().date()
 
@@ -314,6 +317,7 @@ def dashboard(request):
         'dept_class_map_json': dept_class_map_json,
         'search_query': search_query,
         'graduated_companions': graduated_companions,
+        'island_profile': island_profile,
     }
     return render(request, 'core/dashboard.html', context)
 
@@ -396,13 +400,7 @@ def task_detail(request, pk):
             task.status = new_status
             task.save()
             if new_status == 'closed' and old_status != 'closed':
-                companion, created = getattr(request.user, 'usercompanion', None), False
-                if not companion:
-                    from .models import UserCompanion
-                    companion, created = UserCompanion.objects.get_or_create(user=request.user)
-                if companion:
-                    companion.completed_tasks_count += 1
-                    companion.save()
+                process_task_completion(task, user, request)
 
         messages.success(request, '対応内容を保存しました。')
         return redirect('task_detail', pk=task.pk)
@@ -508,13 +506,7 @@ def update_task_status(request, pk):
             task.status = new_status
             task.save()
             if new_status == 'closed' and old_status != 'closed':
-                companion, created = getattr(request.user, 'usercompanion', None), False
-                if not companion:
-                    from .models import UserCompanion
-                    companion, created = UserCompanion.objects.get_or_create(user=request.user)
-                if companion:
-                    companion.completed_tasks_count += 1
-                    companion.save()
+                process_task_completion(task, request.user, request)
             messages.success(request, f'案件「{task.title}」のステータスを更新しました。')
     return redirect('dashboard')
 
@@ -694,3 +686,74 @@ def graduate_companion(request):
         else:
             messages.error(request, 'まだ最大レベルに達していません。')
     return redirect('dashboard')
+
+
+import random
+
+@login_required
+def my_island(request):
+    """マイアイランド管理画面"""
+    profile, _ = IslandProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST' and 'toggle_item_placed' in request.POST:
+        item_id = request.POST.get('item_id')
+        item = get_object_or_404(IslandItem, pk=item_id, user=request.user)
+        item.is_placed = not item.is_placed
+        item.save()
+        status_str = "配置" if item.is_placed else "非配置"
+        messages.success(request, f"アイテム「{item.name}」を{status_str}にしました。")
+        return redirect('my_island')
+
+    items = IslandItem.objects.filter(user=request.user)
+    placed_items = items.filter(is_placed=True)
+
+    context = {
+        'island_profile': profile,
+        'items': items,
+        'placed_items': placed_items,
+    }
+    return render(request, 'core/island.html', context)
+
+
+@login_required
+def gacha_page(request):
+    """ガチャ画面"""
+    profile, _ = IslandProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        if profile.gacha_tickets < 1:
+            messages.error(request, "ガチャチケットが足りません。タスクを完了してチケットを獲得してください。")
+            return redirect('gacha_page')
+
+        profile.gacha_tickets -= 1
+        profile.save()
+
+        ITEM_CHOICES = [
+            ('tree', '🌲 立派な樹木'),
+            ('flower', '🌸 綺麗なお花'),
+            ('rock', '🪨 風情のある大岩'),
+            ('house', '🏠 快適なコテージ'),
+            ('fountain', '⛲ 癒やしの噴水'),
+            ('shop', '🏪 賑やかなショップ'),
+            ('animal', '🐶 かわいい動物'),
+            ('castle', '🏰 ミニチュア城'),
+        ]
+
+        item_type, item_name = random.choice(ITEM_CHOICES)
+        IslandItem.objects.create(
+            user=request.user,
+            item_type=item_type,
+            name=item_name,
+            is_placed=True
+        )
+
+        messages.success(request, f"🎉 ガチャ成功！「{item_name}」を獲得しました！")
+        return redirect('gacha_page')
+
+    items = IslandItem.objects.filter(user=request.user)
+
+    context = {
+        'island_profile': profile,
+        'items': items,
+    }
+    return render(request, 'core/gacha.html', context)
