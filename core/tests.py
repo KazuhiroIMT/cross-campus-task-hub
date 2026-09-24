@@ -2,8 +2,8 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User, Group
 from django.utils import timezone
 from datetime import timedelta
-from core.models import UserCompanion, GraduatedCompanion, Task, DepartmentGroup, IslandProfile, IslandItem
-from core.services import process_task_completion
+from core.models import UserCompanion, GraduatedCompanion, Task, DepartmentGroup, IslandProfile, IslandItem, Achievement, UserAchievement
+from core.services import process_task_completion, ensure_initial_achievements, check_achievements
 
 class GamificationAndArchiveTests(TestCase):
     def setUp(self):
@@ -290,3 +290,88 @@ class MyIslandTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'マイアイランド')
         self.assertContains(res, 'Lv. 1')
+
+
+class AchievementTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='achieveuser', password='password123', is_staff=True)
+        self.group = Group.objects.create(name='教務課')
+        self.user.groups.add(self.group)
+        self.client = Client()
+        ensure_initial_achievements()
+
+    def test_task_count_achievements_and_no_duplicates(self):
+        """10タスク完了で「はじめの一歩」、50タスク完了で「島の開拓者」が取得され重複登録されない"""
+        self.client.login(username='achieveuser', password='password123')
+
+        # 10件完了まで実行
+        for i in range(1, 11):
+            t = Task.objects.create(
+                title=f'Achievement Task {i}',
+                description='Desc',
+                target_group=self.group,
+                created_by=self.user,
+                due_date=timezone.now().date(),
+                status='open'
+            )
+            process_task_completion(t, self.user)
+
+        ua_10 = UserAchievement.objects.filter(user=self.user, achievement__code='TASK_10')
+        self.assertEqual(ua_10.count(), 1)
+        self.assertEqual(ua_10.first().achievement.name, 'はじめの一歩')
+
+        # 重複チェックのコール
+        check_achievements(self.user)
+        self.assertEqual(UserAchievement.objects.filter(user=self.user, achievement__code='TASK_10').count(), 1)
+
+        # 50件完了まで追加実行
+        for i in range(11, 51):
+            t = Task.objects.create(
+                title=f'Achievement Task {i}',
+                description='Desc',
+                target_group=self.group,
+                created_by=self.user,
+                due_date=timezone.now().date(),
+                status='open'
+            )
+            process_task_completion(t, self.user)
+
+        ua_50 = UserAchievement.objects.filter(user=self.user, achievement__code='TASK_50')
+        self.assertEqual(ua_50.count(), 1)
+        self.assertEqual(ua_50.first().achievement.name, '島の開拓者')
+
+    def test_change_title_and_dashboard_display(self):
+        """称号を変更でき、Dashboardおよび実績ページに反映される"""
+        self.client.login(username='achieveuser', password='password123')
+
+        # 10件完了して実績「TASK_10」を取得
+        for i in range(1, 11):
+            t = Task.objects.create(
+                title=f'Task {i}',
+                description='Desc',
+                target_group=self.group,
+                created_by=self.user,
+                due_date=timezone.now().date(),
+                status='open'
+            )
+            process_task_completion(t, self.user)
+
+        ach = Achievement.objects.get(code='TASK_10')
+
+        # 称号を変更
+        res_set = self.client.post('/achievements/set-title/', {'achievement_id': ach.id})
+        self.assertEqual(res_set.status_code, 302)
+
+        profile = IslandProfile.objects.get(user=self.user)
+        self.assertEqual(profile.current_title, ach)
+
+        # Dashboardに現在の称号が表示される
+        res_dash = self.client.get('/')
+        self.assertContains(res_dash, 'はじめの一歩')
+        self.assertContains(res_dash, '実績を見る')
+
+        # 実績ページで達成済み・未達成を確認できる
+        res_ach = self.client.get('/achievements/')
+        self.assertEqual(res_ach.status_code, 200)
+        self.assertContains(res_ach, 'はじめの一歩')
+        self.assertContains(res_ach, '熟練開拓者')  # 未達成リストに表示

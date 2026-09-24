@@ -17,7 +17,7 @@ from django.utils.safestring import mark_safe
 from django.urls import path
 from django.shortcuts import redirect, get_object_or_404, render
 
-from .models import Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course, DepartmentGroup, UserCompanion, GraduatedCompanion, IslandProfile, IslandItem
+from .models import Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course, DepartmentGroup, UserCompanion, GraduatedCompanion, IslandProfile, IslandItem, Achievement, UserAchievement, UserTaskCompletionDate
 from .forms import UserCSVUploadForm, CSVUploadForm
 
 
@@ -499,9 +499,25 @@ class GraduatedCompanionAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
     date_hierarchy = 'graduated_at'
 
+@admin.register(Achievement)
+class AchievementAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name', 'category', 'requirement_value', 'created_at')
+    list_filter = ('category',)
+    search_fields = ('code', 'name', 'description')
+
+@admin.register(UserAchievement)
+class UserAchievementAdmin(admin.ModelAdmin):
+    list_display = ('user', 'achievement', 'achieved_at')
+    search_fields = ('user__username', 'achievement__name', 'achievement__code')
+
+@admin.register(UserTaskCompletionDate)
+class UserTaskCompletionDateAdmin(admin.ModelAdmin):
+    list_display = ('user', 'date')
+    search_fields = ('user__username',)
+
 @admin.register(IslandProfile)
 class IslandProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'level', 'experience', 'coins', 'gacha_tickets', 'created_at')
+    list_display = ('user', 'level', 'experience', 'coins', 'gacha_tickets', 'current_title', 'created_at')
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
 
 @admin.register(IslandItem)

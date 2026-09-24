@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>実績・称号コレクション - Cross-Campus Task Hub</title>
+    {% load static %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm px-4 py-2">
+    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+        <i class="bi bi-grid-fill text-primary"></i> Cross-Campus Task Hub
+    </a>
+    <div class="ms-auto d-flex align-items-center text-white small gap-3">
+        <a href="{% url 'my_island' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-island"></i> マイアイランド</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-speedometer2"></i> ダッシュボード</a>
+    </div>
+</nav>
+
+<div class="container py-4" style="max-width: 800px;">
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 mb-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Header & Title Setup Card -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h4 class="fw-bold m-0 text-dark">
+                    <i class="bi bi-trophy-fill text-warning me-2"></i> 実績・称号コレクション
+                </h4>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> ダッシュボードへ戻る
+                </a>
+            </div>
+            <p class="text-muted small mb-3">
+                自分が積み重ねた成果の記録です。順位や競い合いではなく、個人のコツコツした歩みを確認できます。
+            </p>
+
+            <!-- Current Title Setting Widget -->
+            <div class="p-3 bg-light rounded border">
+                <form method="post" action="{% url 'set_current_title' %}" class="d-flex flex-wrap align-items-center gap-3">
+                    {% csrf_token %}
+                    <div>
+                        <span class="fw-bold small text-secondary">現在の称号:</span>
+                        <div class="fs-5 fw-bold text-primary mt-1">
+                            {% if island_profile.current_title %}
+                                🏆 {{ island_profile.current_title.name }}
+                            {% else %}
+                                <span class="text-muted fs-6">（未設定）</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                        <select name="achievement_id" class="form-select form-select-sm" style="min-width: 180px;">
+                            <option value="none">-- 称号なし --</option>
+                            {% for item in achieved_list %}
+                                <option value="{{ item.achievement.id }}" {% if item.is_current %}selected{% endif %}>
+                                    🏆 {{ item.achievement.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-3">
+                            称号を変更
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achieved Achievements List -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-success text-white fw-bold py-2">
+            ✓ 達成済み実績 ({{ achieved_list|length }})
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for item in achieved_list %}
+                <li class="list-group-item d-flex align-items-center justify-content-between py-3">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="fs-4 text-success">✓</span>
+                        <div>
+                            <div class="fw-bold text-dark">
+                                {{ item.achievement.name }}
+                                {% if item.is_current %}
+                                    <span class="badge bg-primary ms-2" style="font-size: 0.75rem;">現在の称号</span>
+                                {% endif %}
+                            </div>
+                            <div class="small text-muted mb-1">{{ item.achievement.description }}</div>
+                            <div class="text-secondary" style="font-size: 0.75rem;">
+                                達成日時: {{ item.achieved_at|date:"Y/m/d H:i" }}
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-center py-4 text-muted">
+                    まだ獲得した実績はありません。仕事を進めると解除されます！
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Unachieved Achievements List -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-secondary text-white fw-bold py-2">
+            ○ 未達成実績 ({{ unachieved_list|length }})
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for item in unachieved_list %}
+                <li class="list-group-item d-flex align-items-center justify-content-between py-3 bg-light">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="fs-4 text-secondary">○</span>
+                        <div>
+                            <div class="fw-bold text-secondary">{{ item.achievement.name }}</div>
+                            <div class="small text-muted mb-1">{{ item.achievement.description }}</div>
+                            <div class="badge bg-outline-secondary text-dark border" style="font-size: 0.75rem;">
+                                条件: {{ item.achievement.get_category_display }} {{ item.achievement.requirement_value }}
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-center py-4 text-success fw-bold">
+                    🎉 すべての実績を達成しました！素晴らしい積み重ねです！
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

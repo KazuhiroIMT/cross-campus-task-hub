@@ -14,8 +14,8 @@ from django.urls import reverse
 from django.core import serializers
 
 # 必要なモデルを一括インポート（Student, TaskStudentProgress を含む）
-from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty, IslandProfile, IslandItem
-from .services import process_task_completion
+from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty, IslandProfile, IslandItem, Achievement, UserAchievement
+from .services import process_task_completion, ensure_initial_achievements, check_achievements
 from .forms import TaskCreateForm, CSVUploadForm
 
 
@@ -747,6 +747,9 @@ def gacha_page(request):
             is_placed=True
         )
 
+        from .services import check_achievements
+        check_achievements(request.user, request=request)
+
         messages.success(request, f"🎉 ガチャ成功！「{item_name}」を獲得しました！")
         return redirect('gacha_page')
 
@@ -757,3 +760,62 @@ def gacha_page(request):
         'items': items,
     }
     return render(request, 'core/gacha.html', context)
+
+
+@login_required
+def achievements_page(request):
+    """実績・称号専用ページ"""
+    ensure_initial_achievements()
+    check_achievements(request.user)
+
+    user = request.user
+    island_profile, _ = IslandProfile.objects.get_or_create(user=user)
+
+    all_achievements = Achievement.objects.all()
+    user_achievements = UserAchievement.objects.filter(user=user).select_related('achievement')
+    achieved_map = {ua.achievement_id: ua.achieved_at for ua in user_achievements}
+
+    achieved_list = []
+    unachieved_list = []
+
+    for ach in all_achievements:
+        if ach.id in achieved_map:
+            achieved_list.append({
+                'achievement': ach,
+                'achieved_at': achieved_map[ach.id],
+                'is_current': island_profile.current_title_id == ach.id,
+            })
+        else:
+            unachieved_list.append({
+                'achievement': ach,
+            })
+
+    context = {
+        'island_profile': island_profile,
+        'achieved_list': achieved_list,
+        'unachieved_list': unachieved_list,
+    }
+    return render(request, 'core/achievements.html', context)
+
+
+@login_required
+def set_current_title(request):
+    """称号の設定/解除"""
+    if request.method == 'POST':
+        achievement_id = request.POST.get('achievement_id')
+        island_profile, _ = IslandProfile.objects.get_or_create(user=request.user)
+
+        if not achievement_id or achievement_id == 'none':
+            island_profile.current_title = None
+            island_profile.save(update_fields=['current_title'])
+            messages.success(request, "称号の設定を解除しました。")
+        else:
+            ua = UserAchievement.objects.filter(user=request.user, achievement_id=achievement_id).select_related('achievement').first()
+            if ua:
+                island_profile.current_title = ua.achievement
+                island_profile.save(update_fields=['current_title'])
+                messages.success(request, f"称号を「🏆 {ua.achievement.name}」に変更しました。")
+            else:
+                messages.error(request, "未達成の実績を称号に設定することはできません。")
+
+    return redirect('achievements_page')
