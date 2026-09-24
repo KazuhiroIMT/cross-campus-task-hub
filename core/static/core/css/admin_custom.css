@@ -388,3 +388,7 @@ a.section:hover,
 }
 
 /* ユーザー名バリデーションのエラー表示色は既存(rust系)のまま統一感あり、変更不要 */
+/* パスワードリセットボタンの文字色修正 */
+#id_password a.button {
+    color: #ffffff !important;
+}

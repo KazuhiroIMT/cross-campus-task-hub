@@ -288,6 +288,8 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 
 /* --- 学生/教職員検索リスト --- */
 .target-list-box {
+  max-height: 200px;
+  overflow-y: auto;
   border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-surface);

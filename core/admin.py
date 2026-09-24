@@ -222,13 +222,13 @@ class CustomUserAdmin(BaseUserAdmin):
     list_display = (
         'username', 'display_full_name', 'email',
         'display_login_status', 'display_inactivity_alert',
-        'display_leave_toggle', 'is_staff'
+        'display_leave_toggle', 'is_staff', 'display_active_status'
     )
     list_filter = (
         LoginStatusFilter, LeaveStatusFilter,
         'is_staff', 'is_superuser', 'is_active', 'groups'
     )
-    actions = ['make_on_leave', 'make_working']
+    actions = ['make_on_leave', 'make_working', 'make_inactive_user']
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
@@ -291,6 +291,28 @@ class CustomUserAdmin(BaseUserAdmin):
     # ==========================================
     # ▲ 追加ここまで ▲
     # ==========================================
+
+
+    @admin.display(description="状態", ordering="is_active")
+    def display_active_status(self, obj):
+        if obj.is_active:
+            return mark_safe('<span style="background-color: #198754; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em;">有効</span>')
+        return mark_safe('<span style="background-color: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85em;">停止中</span>')
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.action(description="選択されたユーザーを無効化（論理削除）する")
+    def make_inactive_user(self, request, queryset):
+        if request.POST.get('post'):
+            updated = queryset.update(is_active=False)
+            self.message_user(request, f"{updated} 名のユーザーを無効化（停止中）にしました。", messages.SUCCESS)
+            return None
+        context = {
+            'queryset': queryset,
+            'action_checkbox_name': admin.helpers.ACTION_CHECKBOX_NAME,
+        }
+        return render(request, 'admin/auth/user/inactive_confirm.html', context)
 
     @admin.display(description="氏名", ordering="last_name")
     def display_full_name(self, obj):
