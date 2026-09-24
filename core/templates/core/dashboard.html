@@ -96,11 +96,16 @@
                                 🏝️ 島 Lv.{{ island_profile.level }} <span class="text-secondary fw-normal" style="font-size: 0.75rem;">({{ island_profile.experience }}/{{ island_profile.next_level_exp }} EXP)</span>
                             </div>
                             <div class="small text-muted mb-1" style="font-size: 0.75rem;">
-                                🪙 {{ island_profile.coins }}　🎟️ ガチャ×{{ island_profile.gacha_tickets }}
+                                🏆 称号: {% if island_profile.current_title %}{{ island_profile.current_title.name }}{% else %}なし{% endif %}
                             </div>
-                            <a href="{% url 'my_island' %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;">
-                                島を見る
-                            </a>
+                            <div class="d-flex gap-1 justify-content-end">
+                                <a href="{% url 'my_island' %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                    島を見る
+                                </a>
+                                <a href="{% url 'achievements_page' %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                    実績を見る
+                                </a>
+                            </div>
                         </div>
                         {% endif %}
                     </div>
@@ -141,18 +146,23 @@
                         </div>
                         {% endif %}
 
-                        <!-- マイアイランド 簡易サマリー -->
+                        <!-- マイアイランド & 称号 簡易サマリー -->
                         {% if island_profile %}
                         <div class="border-start ps-3 flex-shrink-0 text-end">
                             <div class="fw-bold small text-dark mb-1">
                                 🏝️ 島 Lv.{{ island_profile.level }} <span class="text-secondary fw-normal" style="font-size: 0.75rem;">({{ island_profile.experience }}/{{ island_profile.next_level_exp }} EXP)</span>
                             </div>
                             <div class="small text-muted mb-1" style="font-size: 0.75rem;">
-                                🪙 {{ island_profile.coins }}　🎟️ ガチャ×{{ island_profile.gacha_tickets }}
+                                🏆 称号: {% if island_profile.current_title %}{{ island_profile.current_title.name }}{% else %}なし{% endif %}
                             </div>
-                            <a href="{% url 'my_island' %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;">
-                                島を見る
-                            </a>
+                            <div class="d-flex gap-1 justify-content-end">
+                                <a href="{% url 'my_island' %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                    島を見る
+                                </a>
+                                <a href="{% url 'achievements_page' %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                    実績を見る
+                                </a>
+                            </div>
                         </div>
                         {% endif %}
                     </div>

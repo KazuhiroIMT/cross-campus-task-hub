@@ -589,12 +589,70 @@ def create_user_companion(sender, instance, created, **kwargs):
         UserCompanion.objects.get_or_create(user=instance)
 
 
+class Achievement(models.Model):
+    CATEGORY_CHOICES = [
+        ('TASK_COUNT', 'タスク件数'),
+        ('STREAK', '継続日数'),
+        ('ISLAND_LEVEL', '島レベル'),
+        ('GACHA', 'ガチャ回数'),
+        ('OTHER', 'その他'),
+    ]
+
+    code = models.CharField("実績コード", max_length=50, unique=True)
+    name = models.CharField("実績名 / 称号名", max_length=100)
+    description = models.TextField("説明", blank=True, null=True)
+    category = models.CharField("カテゴリ", max_length=30, choices=CATEGORY_CHOICES, default='TASK_COUNT')
+    requirement_value = models.IntegerField("達成必要値", default=1)
+    created_at = models.DateTimeField("登録日時", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "実績・称号"
+        verbose_name_plural = "実績・称号一覧"
+        ordering = ['category', 'requirement_value', 'created_at']
+
+    def __str__(self):
+        return f"[{self.get_category_display()}] {self.name} ({self.code})"
+
+
+class UserAchievement(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_achievements', verbose_name="ユーザー")
+    achievement = models.ForeignKey(Achievement, on_delete=models.CASCADE, related_name='user_achievements', verbose_name="実績")
+    achieved_at = models.DateTimeField("達成日時", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "ユーザー獲得実績"
+        verbose_name_plural = "ユーザー獲得実績一覧"
+        ordering = ['-achieved_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'achievement'], name='unique_user_achievement')
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.achievement.name}"
+
+
+class UserTaskCompletionDate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='task_completion_dates', verbose_name="ユーザー")
+    date = models.DateField("タスク完了日", db_index=True)
+
+    class Meta:
+        verbose_name = "ユーザー日別タスク完了記録"
+        verbose_name_plural = "ユーザー日別タスク完了記録一覧"
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'date'], name='unique_user_completion_date')
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date}"
+
+
 class IslandProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='island_profile', verbose_name="ユーザー")
     level = models.IntegerField("島レベル", default=1)
     experience = models.IntegerField("島経験値", default=0)
     coins = models.IntegerField("コイン", default=0)
     gacha_tickets = models.IntegerField("ガチャチケット", default=0)
+    current_title = models.ForeignKey(Achievement, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="現在の称号")
     created_at = models.DateTimeField("登録日時", auto_now_add=True)
     updated_at = models.DateTimeField("更新日時", auto_now=True)
 
