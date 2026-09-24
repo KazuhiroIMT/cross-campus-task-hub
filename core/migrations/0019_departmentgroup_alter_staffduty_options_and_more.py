@@ -9,7 +9,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("auth", "0013_alter_user_last_name"),
         ("core", "0018_student_created_at_student_updated_at"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
