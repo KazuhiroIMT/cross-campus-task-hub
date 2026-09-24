@@ -37,6 +37,12 @@ def get_accessible_tasks(user):
 @login_required
 def dashboard(request):
     user = request.user
+
+    # Ensure companion exists for existing users
+    companion = getattr(user, 'usercompanion', None)
+    if not companion:
+        from .models import UserCompanion
+        UserCompanion.objects.get_or_create(user=user)
     user_groups = user.groups.all()
     today = timezone.now().date()
 
@@ -352,9 +358,18 @@ def task_detail(request, pk):
                 content=comment_content
             )
 
+        old_status = task.status
         if new_status and new_status in dict(Task.STATUS_CHOICES):
             task.status = new_status
             task.save()
+            if new_status == 'closed' and old_status != 'closed':
+                companion, created = getattr(request.user, 'usercompanion', None), False
+                if not companion:
+                    from .models import UserCompanion
+                    companion, created = UserCompanion.objects.get_or_create(user=request.user)
+                if companion:
+                    companion.completed_tasks_count += 1
+                    companion.save()
 
         messages.success(request, '対応内容を保存しました。')
         return redirect('task_detail', pk=task.pk)
@@ -444,8 +459,17 @@ def update_task_status(request, pk):
     if request.method == 'POST':
         new_status = request.POST.get('status')
         if new_status in ['open', 'in_progress', 'closed']:
+            old_status = task.status
             task.status = new_status
             task.save()
+            if new_status == 'closed' and old_status != 'closed':
+                companion, created = getattr(request.user, 'usercompanion', None), False
+                if not companion:
+                    from .models import UserCompanion
+                    companion, created = UserCompanion.objects.get_or_create(user=request.user)
+                if companion:
+                    companion.completed_tasks_count += 1
+                    companion.save()
             messages.success(request, f'案件「{task.title}」のステータスを更新しました。')
     return redirect('dashboard')
 
@@ -533,3 +557,16 @@ def other_department_tasks(request):
         'tasks': page_obj,
         'search_query': search_query,
     })
+
+
+@login_required
+def select_companion(request):
+    if request.method == 'POST':
+        companion_type = request.POST.get('companion_type')
+        from .models import UserCompanion
+        companion, created = UserCompanion.objects.get_or_create(user=request.user)
+        if companion_type in dict(UserCompanion.COMPANION_CHOICES).keys():
+            companion.companion_type = companion_type
+            companion.save()
+            messages.success(request, '育成キャラクターを選択しました。')
+    return redirect('dashboard')
