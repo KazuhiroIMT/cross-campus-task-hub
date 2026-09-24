@@ -3,17 +3,18 @@ import io
 import json
 import unicodedata
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Q
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.urls import reverse
+from django.core import serializers
 
 # 必要なモデルを一括インポート（Student, TaskStudentProgress を含む）
-from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass
+from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion
 from .forms import TaskCreateForm, CSVUploadForm
 
 
@@ -49,6 +50,7 @@ def dashboard(request):
     # 1. 閲覧可能なタスクを取得
     accessible_tasks = (
         get_accessible_tasks(user)
+        .filter(is_archived=False)
         .exclude(status='closed')
         .select_related(
             'target_group', 'created_by', 'assigned_user', 'target_user'
@@ -274,6 +276,8 @@ def dashboard(request):
         {k: sorted(list(v)) for k, v in dept_class_map.items()}, ensure_ascii=False
     )
 
+    graduated_companions = GraduatedCompanion.objects.filter(user=user)
+
     context = {
         'urgent_tasks': urgent_tasks,
         'normal_tasks': normal_tasks,
@@ -284,6 +288,7 @@ def dashboard(request):
         'departments': departments,
         'dept_class_map_json': dept_class_map_json,
         'search_query': search_query,
+        'graduated_companions': graduated_companions,
     }
     return render(request, 'core/dashboard.html', context)
 
@@ -390,7 +395,7 @@ def my_created_tasks(request):
     user = request.user
     search_query = request.GET.get('q', '').strip()
 
-    tasks_qs = Task.objects.filter(created_by=user).select_related(
+    tasks_qs = Task.objects.filter(created_by=user, is_archived=False).select_related(
         'target_group', 'assigned_user', 'target_user', 'created_by'
     ).prefetch_related('students')
 
@@ -422,6 +427,8 @@ def closed_task_list(request):
     search_query = request.GET.get('q', '').strip()
 
     closed_tasks_qs = get_accessible_tasks(user).filter(
+        is_archived=False
+    ).filter(
         Q(assigned_user=user) | 
         Q(target_user=user) | 
         (Q(target_group__in=user_groups) & Q(target_user__isnull=True))
@@ -523,6 +530,7 @@ def other_department_tasks(request):
     # 2. プライバシー区分が「一般（general）」
     # 3. 宛先部署が自部署「以外」、担当が自分「以外」、起票者が自分「以外」
     tasks = Task.objects.filter(
+        is_archived=False,
         status__in=['open', 'in_progress'],
         privacy='general'
     ).exclude(
@@ -560,6 +568,50 @@ def other_department_tasks(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_superuser)
+def export_data_json(request):
+    """スーパーユーザー限定：全タスク・関連データJSONエクスポート"""
+    tasks = Task.objects.all()
+    data = serializers.serialize('json', tasks, ensure_ascii=False, indent=2)
+    response = HttpResponse(data, content_type='application/json')
+    filename = f"task_backup_{timezone.now():%Y%m%d_%H%M%S}.json"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def export_data_csv(request):
+    """スーパーユーザー限定：全タスクデータCSVエクスポート"""
+    response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
+    filename = f"task_backup_{timezone.now():%Y%m%d_%H%M%S}.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID', '件名', '対象種別', '担当部署', '優先度', 'ステータス',
+        'プライバシー区分', '対応期日', '起票者', 'アーカイブ状態', '作成日時'
+    ])
+
+    for task in Task.objects.select_related('target_group', 'created_by').all():
+        writer.writerow([
+            task.id,
+            task.title,
+            task.get_target_type_display(),
+            task.target_group.name if task.target_group else '',
+            task.get_priority_display(),
+            task.get_status_display(),
+            task.get_privacy_display(),
+            task.due_date,
+            task.created_by.username,
+            'アーカイブ済' if task.is_archived else '通常',
+            task.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        ])
+
+    return response
+
+
+@login_required
 def select_companion(request):
     if request.method == 'POST':
         companion_type = request.POST.get('companion_type')
@@ -569,4 +621,29 @@ def select_companion(request):
             companion.companion_type = companion_type
             companion.save()
             messages.success(request, '育成キャラクターを選択しました。')
+    return redirect('dashboard')
+
+
+@login_required
+def graduate_companion(request):
+    if request.method == 'POST':
+        new_companion_type = request.POST.get('new_companion_type')
+        companion, created = UserCompanion.objects.get_or_create(user=request.user)
+
+        if companion.level >= 4 and companion.companion_type != 'none':
+            # 卒業（殿堂入り）記録を作成
+            GraduatedCompanion.objects.create(
+                user=request.user,
+                companion_type=companion.companion_type,
+                completed_tasks_count=companion.completed_tasks_count
+            )
+
+            # 育成キャラクターと完了数をリセットして新キャラ（または未選択）へ変更
+            valid_choices = dict(UserCompanion.COMPANION_CHOICES).keys()
+            companion.companion_type = new_companion_type if new_companion_type in valid_choices else 'none'
+            companion.completed_tasks_count = 0
+            companion.save()
+            messages.success(request, 'キャラクターが殿堂入りしました！新しいキャラクターの育成がスタートします。')
+        else:
+            messages.error(request, 'まだ最大レベルに達していません。')
     return redirect('dashboard')

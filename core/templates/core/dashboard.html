@@ -12,6 +12,32 @@
     
     <!-- 外部化したダッシュボード用カスタムCSSを読み込み -->
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+
+    {% if not user.is_superuser %}
+    <style>
+        /* テキスト選択無効化 */
+        body, input, textarea, select, button {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+        }
+
+        /* 画面ブラー（キー検知時等） */
+        .screen-protected-blur {
+            filter: blur(15px) !important;
+            transition: filter 0.1s ease !important;
+        }
+
+        /* 印刷無効化 */
+        @media print {
+            html, body {
+                display: none !important;
+                visibility: hidden !important;
+            }
+        }
+    </style>
+    {% endif %}
 </head>
 <body>
 
@@ -85,8 +111,18 @@
                             </div>
                         </div>
                         {% else %}
-                        <div class="flex-grow-1 px-md-3 text-center text-success fw-bold" style="font-size: 0.85rem;">
-                            <i class="bi bi-trophy-fill text-warning"></i> 最終形態到達！
+                        <div class="flex-grow-1 px-md-3 text-center text-success fw-bold d-flex flex-column align-items-center justify-content-center" style="font-size: 0.85rem;">
+                            <div><i class="bi bi-trophy-fill text-warning"></i> 最終形態到達！</div>
+                            <button type="button" class="btn btn-warning btn-sm mt-1 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#graduateModal">
+                                🎓 卒業して次のキャラを育てる
+                            </button>
+                        </div>
+                        {% endif %}
+                        {% if graduated_companions %}
+                        <div class="ms-auto flex-shrink-0">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#hallOfFameModal">
+                                🏆 殿堂入り一覧 ({{ graduated_companions.count }})
+                            </button>
                         </div>
                         {% endif %}
                     </div>
@@ -298,6 +334,72 @@
         </div>
     </div>
 
+</div>
+
+<!-- 卒業・新キャラ選択モーダル -->
+<div class="modal fade" id="graduateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold">🎓 キャラクターの卒業と新キャラ選択</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'graduate_companion' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        おめでとうございます！現在のキャラクターは最大レベルに到達しました。<br>
+                        卒業（殿堂入り）させて、新しく次のキャラクターを最初から育てますか？
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">次に育てるキャラクターを選択:</label>
+                        <select name="new_companion_type" class="form-select">
+                            <option value="chick">🐣 ひよこ</option>
+                            <option value="robot">🤖 ロボット</option>
+                            <option value="cactus">🌱 サボテン</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="submit" class="btn btn-warning btn-sm fw-bold">卒業して新規育成開始</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 殿堂入りキャラクター一覧モーダル -->
+<div class="modal fade" id="hallOfFameModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold">🏆 卒業・殿堂入りキャラクター一覧</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    {% for g in graduated_companions %}
+                    <div class="col-md-4">
+                        <div class="card shadow-sm text-center border">
+                            <div class="card-body">
+                                <div class="display-4 my-2">{{ g.final_form }}</div>
+                                <h6 class="fw-bold mb-1">{{ g.get_companion_type_display }}</h6>
+                                <p class="text-muted small mb-0">達成タスク数: {{ g.completed_tasks_count }}</p>
+                                <p class="text-secondary small mb-0" style="font-size: 0.75rem;">殿堂入り: {{ g.graduated_at|date:"Y/m/d H:i" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-4 text-muted">殿堂入りしたキャラクターはまだありません。</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- 新規タスク起票モーダル -->
@@ -722,6 +824,57 @@ function selectAllStudents(select) {
     const checkboxes = document.querySelectorAll('.student-checkbox');
     checkboxes.forEach(cb => cb.checked = select);
 }
+
+{% if not user.is_superuser %}
+// スクリーンショット・情報漏洩抑止スクリプト（一般ユーザー限定）
+(function() {
+    // 1. 右クリック（コンテキストメニュー）無効化
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+    });
+
+    // 2. ブラー処理関数
+    let blurTimer = null;
+    function applyTemporaryBlur(duration = 2000) {
+        document.body.classList.add('screen-protected-blur');
+        if (blurTimer) clearTimeout(blurTimer);
+        blurTimer = setTimeout(function() {
+            document.body.classList.remove('screen-protected-blur');
+        }, duration);
+    }
+
+    // 3. PrintScreenおよびキーショートカット検知
+    window.addEventListener('keydown', function(e) {
+        // PrintScreen キー検知
+        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+            applyTemporaryBlur(3000);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(''); // クリップボード消去試行
+            }
+        }
+        // Win + Shift + S / Cmd + Shift + 4 / Ctrl + P 等のショートカット抑止・ブラー
+        if ((e.shiftKey && (e.metaKey || e.winKey) && (e.key === 'S' || e.key === 's')) ||
+            (e.ctrlKey && (e.key === 'p' || e.key === 'P')) ||
+            (e.metaKey && (e.key === 'p' || e.key === 'P'))) {
+            applyTemporaryBlur(3000);
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+            }
+        }
+    });
+
+    window.addEventListener('keyup', function(e) {
+        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+            applyTemporaryBlur(3000);
+        }
+    });
+
+    // 4. フォーカス喪失（画面キャプチャツール等に切り替わった場合）での一時ブラー
+    window.addEventListener('blur', function() {
+        applyTemporaryBlur(1500);
+    });
+})();
+{% endif %}
 </script>
 </body>
 </html>

@@ -21,6 +21,61 @@
 {% block extrahead %}
 {{ block.super }}
 
+{% if not request.user.is_superuser %}
+<style>
+    /* 一般ユーザー限定のテキスト選択無効化 */
+    body, input, textarea, select, button {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+    }
+
+    /* 画面ブラー */
+    .screen-protected-blur {
+        filter: blur(15px) !important;
+        transition: filter 0.1s ease !important;
+    }
+
+    /* 印刷無効化 */
+    @media print {
+        html, body {
+            display: none !important;
+            visibility: hidden !important;
+        }
+    }
+</style>
+<script>
+(function() {
+    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    let blurTimer = null;
+    function applyTemporaryBlur(duration = 2000) {
+        document.body.classList.add('screen-protected-blur');
+        if (blurTimer) clearTimeout(blurTimer);
+        blurTimer = setTimeout(function() {
+            document.body.classList.remove('screen-protected-blur');
+        }, duration);
+    }
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+            applyTemporaryBlur(3000);
+            if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(''); }
+        }
+        if ((e.shiftKey && (e.metaKey || e.winKey) && (e.key === 'S' || e.key === 's')) ||
+            (e.ctrlKey && (e.key === 'p' || e.key === 'P')) ||
+            (e.metaKey && (e.key === 'p' || e.key === 'P'))) {
+            applyTemporaryBlur(3000);
+            if (e.ctrlKey || e.metaKey) { e.preventDefault(); }
+        }
+    });
+    window.addEventListener('keyup', function(e) {
+        if (e.key === 'PrintScreen' || e.keyCode === 44) { applyTemporaryBlur(3000); }
+    });
+    window.addEventListener('blur', function() { applyTemporaryBlur(1500); });
+})();
+</script>
+{% endif %}
+
 <script>
 (function() {
     function injectTooltip() {

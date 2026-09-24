@@ -17,7 +17,7 @@ from django.utils.safestring import mark_safe
 from django.urls import path
 from django.shortcuts import redirect, get_object_or_404, render
 
-from .models import Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course, DepartmentGroup
+from .models import Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course, DepartmentGroup, UserCompanion, GraduatedCompanion
 from .forms import UserCSVUploadForm, CSVUploadForm
 
 
@@ -481,7 +481,26 @@ class CustomUserAdmin(BaseUserAdmin):
         return render(request, 'admin/auth/user/user_import.html', context)
 
 
+class UserCompanionInline(admin.StackedInline):
+    model = UserCompanion
+    can_delete = False
+    verbose_name = "育成キャラクター設定"
+    verbose_name_plural = "育成キャラクター設定"
+
+@admin.register(UserCompanion)
+class UserCompanionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'companion_type', 'completed_tasks_count', 'level', 'current_form')
+    list_editable = ('companion_type', 'completed_tasks_count')
+    search_fields = ('user__username', 'user__last_name', 'user__first_name')
+
+@admin.register(GraduatedCompanion)
+class GraduatedCompanionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'companion_type', 'completed_tasks_count', 'final_form', 'graduated_at')
+    search_fields = ('user__username', 'user__last_name', 'user__first_name')
+    date_hierarchy = 'graduated_at'
+
 # 既存のUser登録を解除して再登録
+CustomUserAdmin.inlines = list(getattr(CustomUserAdmin, 'inlines', [])) + [UserCompanionInline]
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
@@ -665,10 +684,34 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('title', 'target_type', 'target_group', 'priority', 'status', 'due_date')
-    list_filter = ('status', 'priority', 'target_group', 'privacy')
+    change_list_template = "admin/core/task/change_list.html"
+    list_display = ('title', 'target_type', 'target_group', 'priority', 'status', 'due_date', 'is_archived')
+    list_filter = ('is_archived', 'status', 'priority', 'target_group', 'privacy')
     search_fields = ('title', 'description')
     date_hierarchy = 'due_date'
+    actions = ['archive_tasks', 'unarchive_tasks', 'bulk_archive_old_closed_tasks']
+
+    @admin.action(description="選択したタスクをアーカイブする")
+    def archive_tasks(self, request, queryset):
+        updated = queryset.update(is_archived=True)
+        self.message_user(request, f"{updated} 件のタスクをアーカイブしました。", messages.SUCCESS)
+
+    @admin.action(description="アーカイブを解除（復元）する")
+    def unarchive_tasks(self, request, queryset):
+        updated = queryset.update(is_archived=False)
+        self.message_user(request, f"{updated} 件のタスクのアーカイブを解除しました。", messages.SUCCESS)
+
+    @admin.action(description="3ヶ月以上前の完了タスクを一括でアーカイブする")
+    def bulk_archive_old_closed_tasks(self, request, queryset):
+        three_months_ago = timezone.now() - timedelta(days=90)
+        # queryset全体から対象条件を適用
+        old_closed = Task.objects.filter(
+            status='closed',
+            is_archived=False,
+            updated_at__lte=three_months_ago
+        )
+        count = old_closed.update(is_archived=True)
+        self.message_user(request, f"3ヶ月以上前に完了したタスク {count} 件を一括アーカイブしました。", messages.SUCCESS)
 
 
 # --- 所属部署（親）と担当業務（子）のネスト管理 ---
