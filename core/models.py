@@ -540,13 +540,84 @@ def normalize_user_fields(sender, instance, **kwargs):
 class UserCompanion(models.Model):
     COMPANION_CHOICES = [
         ('none', '未選択'),
-        ('chick', 'ひよこ'),
-        ('robot', 'ロボット'),
-        ('cactus', 'サボテン'),
+        # 動物系 (15種)
+        ('shiba_inu', 'シバイヌ 🐕'),
+        ('calico_cat', '三毛猫 🐈'),
+        ('rabbit', 'ウサギ 🐇'),
+        ('squirrel', 'リス 🐿️'),
+        ('owl', 'フクロウ 🦉'),
+        ('fox', 'キツネ 🦊'),
+        ('lesser_panda', 'レッサーパンダ 🐼'),
+        ('penguin', 'ペンギン 🐧'),
+        ('otter', 'カワウソ 🦦'),
+        ('fennec', 'フェネック 🦊'),
+        ('koala', 'コアラ 🐨'),
+        ('hedgehog', 'ハリネズミ 🦔'),
+        ('fawn', '子ジカ 🦌'),
+        ('seal', 'アザラシ 🦭'),
+        ('white_tiger', '白トラ 🐅'),
+        # 植物・精霊系 (15種)
+        ('mandragora', 'マンドラゴラ 🪴'),
+        ('cactus_boy', 'サボテン坊や 🌵'),
+        ('sunflower_spirit', 'ヒマワリ精霊 🌻'),
+        ('acorn_boy', 'ドングリ小僧 🌰'),
+        ('mushroom_fairy', 'きのこ妖精 🍄'),
+        ('cherry_spirit', '桜の精霊 🌸'),
+        ('clover_spirit', '四つ葉のクローバー 🍀'),
+        ('moss_ball', 'コケ丸 🟢'),
+        ('lotus_spirit', '蓮の花の精 🪷'),
+        ('ivy_runner', 'ツタランナー 🌿'),
+        ('rose_fairy', 'ローズフェアリー 🌹'),
+        ('tree_elder', '樹木長老 🌳'),
+        ('palm_spirit', 'ヤシの精 🌴'),
+        ('succulent', '多肉ちゃん 🪴'),
+        ('apple_fairy', 'リンゴの妖精 🍎'),
+        # 旧互換キー
+        ('chick', 'ひよこ 🐣'),
+        ('robot', 'ロボット 🤖'),
+        ('cactus', 'サボテン 🌱'),
     ]
 
+    COMPANION_FORMS = {
+        'shiba_inu': {1: '🐾', 2: '🐕‍🦺', 3: '🐕', 4: '🐕', 5: '🐕✨', 6: '🐕‍🦺🌟', 7: '🐕⚡', 8: '🐕🔥', 9: '🐕🌈', 10: '神狼シバイヌ 🐕‍🦺👑'},
+        'calico_cat': {1: '🐾', 2: '🐈‍⬛', 3: '🐈', 4: '🐈', 5: '🐈✨', 6: '🐈‍⬛🌟', 7: '🐈⚡', 8: '🐈🔥', 9: '🐈🌈', 10: '霊猫ミケ 🐈‍⬛👑'},
+        'rabbit': {1: '🥚', 2: '🐇', 3: '🐇', 4: '🐇✨', 5: '🐇🌟', 6: '🐇⚡', 7: '🐇🔥', 8: '🐇🌈', 9: '月兎 🐇🌙', 10: '月宮仙兎 🐇👑'},
+        'squirrel': {1: '🌰', 2: '🐿️', 3: '🐿️', 4: '🐿️✨', 5: '🐿️🌟', 6: '🐿️⚡', 7: '🐿️🔥', 8: '🐿️🌈', 9: '疾風リス 🐿️💨', 10: '雷光風リス 🐿️👑'},
+        'owl': {1: '🥚', 2: '🦉', 3: '🦉', 4: '🦉✨', 5: '🦉🌟', 6: '🦉⚡', 7: '🦉🔥', 8: '🦉🌈', 9: '賢者ミミズク 🦉📜', 10: '叡智の大天梟 🦉👑'},
+        'fox': {1: '🐾', 2: '🦊', 3: '🦊', 4: '🦊✨', 5: '🦊🌟', 6: '🦊⚡', 7: '🦊🔥', 8: '九尾の狐 🦊🔥', 9: '天狐 🦊🌈', 10: '九尾仙狐 🦊👑'},
+        'lesser_panda': {1: '🐾', 2: '🐼', 3: '🐼', 4: '🐼✨', 5: '🐼🌟', 6: '🐼⚡', 7: '🐼🔥', 8: 'レッサー武者 🐼⚔️', 9: '威風レッサー 🐼🌈', 10: '烈火レッサー王 🐼👑'},
+        'penguin': {1: '🥚', 2: '🐧', 3: '🐧', 4: '🐧✨', 5: '🐧🌟', 6: '🐧⚡', 7: '氷結ペンギン 🐧❄️', 8: '皇帝ペンギン 🐧👑', 9: '極光ペンギン 🐧🌌', 10: '極寒帝ペンギン 🐧👑'},
+        'otter': {1: '🐾', 2: '🦦', 3: '🦦', 4: '🦦✨', 5: '🦦🌟', 6: '🦦⚡', 7: '水流カワウソ 🦦💧', 8: '波導カワウソ 🦦🌊', 9: '海神カワウソ 🦦🔱', 10: '水龍霊カワウソ 🦦👑'},
+        'fennec': {1: '🐾', 2: '🦊', 3: '🦊', 4: '🦊✨', 5: '砂漠フェネック 🦊🏜️', 6: '幻砂フェネック 🦊✨', 7: '風砂フェネック 🦊🌪️', 8: '太陽フェネック 🦊☀️', 9: '蜃気楼フェネック 🦊🌟', 10: '砂神フェネック 🦊👑'},
+        'koala': {1: '🌱', 2: '🐨', 3: '🐨', 4: '🐨✨', 5: 'ユーカリコアラ 🐨🌿', 6: '安らぎコアラ 🐨💤', 7: '大樹コアラ 🐨🌳', 8: '守護者コアラ 🐨🛡️', 9: '森精コアラ 🐨🌈', 10: '世界樹コアラ王 🐨👑'},
+        'hedgehog': {1: '🪨', 2: '🦔', 3: '🦔', 4: '🦔✨', 5: 'トゲトゲハリネズミ 🦔⚡', 6: '鋼鉄ハリネズミ 🦔🛡️', 7: '疾風ハリネズミ 🦔💨', 8: '閃光ハリネズミ 🦔✨', 9: '金剛ハリネズミ 🦔💎', 10: '針聖王ハリネズミ 🦔👑'},
+        'fawn': {1: '🌱', 2: '🦌', 3: '🦌', 4: '🦌✨', 5: '若鹿 🦌🌿', 6: '草原の鹿 🦌🌾', 7: '神木鹿 🦌🌳', 8: '蒼天の角鹿 🦌✨', 9: '聖霊鹿 🦌🌟', 10: '森林神シカ 🦌👑'},
+        'seal': {1: '🧊', 2: '🦭', 3: '🦭', 4: '🦭✨', 5: '氷原アザラシ 🦭❄️', 6: '流氷アザラシ 🦭🌊', 7: 'オーロラアザラシ 🦭🌌', 8: '蒼海アザラシ 🦭💎', 9: '氷晶アザラシ 🦭✨', 10: '海王精アザラシ 🦭👑'},
+        'white_tiger': {1: '🐾', 2: '🐅', 3: '🐅', 4: '🐅✨', 5: '白虎幼獣 🐅⚡', 6: '迅雷の白トラ 🐅⚡', 7: '風雲の白トラ 🐅🌪️', 8: '白虎武神 🐅⚔️', 9: '四神白虎 🐅✨', 10: '天帝白虎 🐅👑'},
+
+        'mandragora': {1: '🌱', 2: '🪴', 3: '🪴', 4: 'マンドラ 🪴✨', 5: '叫ぶマンドラ 🪴🎶', 6: '音撃マンドラ 🪴⚡', 7: '魔法マンドラ 🪴🪄', 8: '歌姫マンドラ 🪴🎤', 9: '大樹マンドラ 🪴🌳', 10: '世界樹のマンドラゴラ 🪴👑'},
+        'cactus_boy': {1: '🌱', 2: '🌵', 3: '🌵', 4: 'サボテンくん 🌵✨', 5: 'トゲトゲサボテン 🌵⚡', 6: '情熱サボテン 🌵🔥', 7: '花開くサボテン 🌵🌸', 8: '砂漠の覇王サボテン 🌵👑', 9: '太陽サボテン 🌵☀️', 10: '陽光の神サボテン 🌵👑'},
+        'sunflower_spirit': {1: '🌱', 2: '🌻', 3: '🌻', 4: 'ヒマワリちゃん 🌻✨', 5: '太陽ヒマワリ 🌻☀️', 6: '黄金ヒマワリ 🌻✨', 7: '大輪ヒマワリ 🌻🌟', 8: '日輪精霊 🌻🔥', 9: '天日精霊 🌻🌈', 10: '太陽神ヒマワリ 🌻👑'},
+        'acorn_boy': {1: '🌰', 2: '🌰🌱', 3: 'ドングリぼうや 🌰✨', 4: 'ドングリ騎士 🌰⚔️', 5: '樫の木の精 🌰🌳', 6: '森の用心棒 🌰🛡️', 7: '木の実王 🌰👑', 8: '森の守護神 🌰🌟', 9: '世界樹の騎士 🌰⚔️', 10: '大樹聖騎士ドングリ 🌰👑'},
+        'mushroom_fairy': {1: '🍄', 2: '🍄✨', 3: 'キノコちゃん 🍄🌟', 4: '毒キノコ妖精 🍄💜', 5: '光るキノコ 🍄💡', 6: '胞子ダンス 🍄💃', 7: '幻惑のキノコ 🍄✨', 8: '大妖精キノコ 🍄👑', 9: '菌界の女王 🍄👸', 10: '真菌神ドクキノコ 🍄👑'},
+        'cherry_spirit': {1: '🌱', 2: '🌸', 3: '🌸', 4: '桜のつぼみ 🌸✨', 5: '桜花妖精 🌸💫', 6: '満開桜 🌸🌟', 7: '春風の桜精 🌸🍃', 8: '桜吹雪姫 🌸👑', 9: '千本桜精 🌸✨', 10: '桜神天女 🌸👑'},
+        'clover_spirit': {1: '🌱', 2: '🍀', 3: '🍀', 4: '四つ葉ちゃん 🍀✨', 5: '幸運のクローバー 🍀🌟', 6: 'ラッキースピリット 🍀💫', 7: '黄金クローバー 🍀✨', 8: '祝福の妖精 🍀👼', 9: '奇跡のクローバー 🍀🌈', 10: '幸福神クローバー 🍀👑'},
+        'moss_ball': {1: '🟢', 2: '🟢✨', 3: 'コケ丸 🟢', 4: 'コロコロコケ丸 🟢💨', 5: 'ふわふわモスコケ 🟢🌿', 6: '清流コケ丸 🟢💧', 7: '古代コケ丸 🟢🪨', 8: '大樹のコケ丸 🟢🌳', 9: '生命のコケ玉 🟢✨', 10: '森羅万象コケ神 🟢👑'},
+        'lotus_spirit': {1: '🌱', 2: '🪷', 3: '🪷', 4: 'ハスの華 🪷✨', 5: '清らかな蓮 🪷💧', 6: '水上の蓮精 🪷🌊', 7: '浄化の蓮姫 🪷✨', 8: '聖なる蓮華 🪷🌟', 9: '天界の蓮華 🪷👼', 10: '極楽蓮華天女 🪷👑'},
+        'ivy_runner': {1: '🌱', 2: '🌿', 3: '🌿', 4: 'ツタちゃん 🌿✨', 5: '疾走ツタランナー 🌿💨', 6: '緑のツタ騎士 🌿⚔️', 7: '碧緑ツタウィザード 🌿🪄', 8: '森の導き手 🌿🌟', 9: '大地を駆けるツタ 🌿⚡', 10: '大自然ツタ神 🌿👑'},
+        'rose_fairy': {1: '🌱', 2: '🌹', 3: '🌹', 4: '薔薇の蕾 🌹✨', 5: 'ローズプリンセス 🌹👑', 6: '情熱の赤薔薇 🌹🔥', 7: '高貴な妖精 🌹💫', 8: '薔薇の女王 🌹👸', 9: '真紅の薔薇精 🌹✨', 10: '美と情熱の薔薇神 🌹👑'},
+        'tree_elder': {1: '🌱', 2: '🌳', 3: '🌳', 4: '若い大樹 🌳✨', 5: '長老の芽 🌳🌿', 6: '智慧の大樹 🌳📜', 7: '森の長老 🌳👴', 8: '古代樹の精 🌳🌟', 9: '世界樹の長老 🌳🌌', 10: '全知全能の樹木神 🌳👑'},
+        'palm_spirit': {1: '🌱', 2: '🌴', 3: '🌴', 4: '南国ヤシくん 🌴✨', 5: 'トロピカル精霊 🌴🍹', 6: 'ココナッツ精 🌴🥥', 7: '常夏の歌い手 🌴🎶', 8: '常夏王ヤシ 🌴👑', 9: '太陽と海ヤシ 🌴☀️', 10: '常夏楽園の神 🌴👑'},
+        'succulent': {1: '🌱', 2: '🪴', 3: '🪴', 4: 'ぷにぷに多肉 🪴✨', 5: '宝石多肉 🪴💎', 6: 'オパール多肉 🪴🌟', 7: '癒やしの多肉 🪴💖', 8: '華麗なる多肉 🪴🌹', 9: '不滅の多肉精 🪴✨', 10: '永遠の翡翠多肉神 🪴👑'},
+        'apple_fairy': {1: '🌱', 2: '🍎', 3: '🍎', 4: 'リンゴちゃん 🍎✨', 5: '完熟リンゴ妖精 🍎💫', 6: '甘美なリンゴ精 🍎🍯', 7: '黄金のリンゴ 🍎✨', 8: '知恵のリンゴ姫 🍎👸', 9: '楽園のリンゴ精 🍎🌈', 10: '禁断の果実アダム神 🍎👑'},
+
+        'chick': {1: '🐣', 2: '🐥', 3: '🐥✨', 4: '🐓', 5: '🐓🔥', 6: '🦅', 7: '🦅⚡', 8: '🦅🔥', 9: '鳳凰 🦅🌈', 10: '不死鳥フェニックス 🦅👑'},
+        'robot': {1: '🤖(💤)', 2: '🤖(⚡)', 3: '🤖', 4: '🦾', 5: '🦸‍♂️', 6: '🦸‍♂️⚡', 7: '🦸‍♂️🔥', 8: '超機甲神 🤖⚔️', 9: '銀河ロボ 🤖🌌', 10: '絶対神ロボ 🤖👑'},
+        'cactus': {1: '🌱', 2: '🌿', 3: '🌵', 4: '🌵✨', 5: '🌳', 6: '🌸', 7: '🌸✨', 8: '🌸🔥', 9: '神木サボテン 🌵🌈', 10: 'サボテンの神 🌵👑'},
+    }
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='usercompanion', verbose_name="ユーザー")
-    companion_type = models.CharField("キャラクター種類", max_length=20, choices=COMPANION_CHOICES, default='none')
+    companion_type = models.CharField("キャラクター種類", max_length=50, choices=COMPANION_CHOICES, default='none')
     completed_tasks_count = models.IntegerField("完了タスク数", default=0)
 
     class Meta:
@@ -555,36 +626,97 @@ class UserCompanion(models.Model):
 
     @property
     def level(self):
-        if self.completed_tasks_count < 3:
+        cnt = self.completed_tasks_count
+        if cnt < 2:
             return 1
-        elif self.completed_tasks_count < 10:
+        elif cnt < 4:
             return 2
-        elif self.completed_tasks_count < 25:
+        elif cnt < 7:
             return 3
-        else:
+        elif cnt < 11:
             return 4
+        elif cnt < 16:
+            return 5
+        elif cnt < 22:
+            return 6
+        elif cnt < 29:
+            return 7
+        elif cnt < 37:
+            return 8
+        elif cnt < 46:
+            return 9
+        else:
+            return 10
+
+    @property
+    def stage_name(self):
+        lvl = self.level
+        if lvl <= 3:
+            return "幼体・種/芽"
+        elif lvl <= 7:
+            return "成長期"
+        else:
+            return "成体・覚醒形態"
 
     @property
     def current_form(self):
-        forms = {
-            'chick': {1: '🐣', 2: '🐥', 3: '🐓', 4: '🦅'},
-            'robot': {1: '🤖(💤)', 2: '🤖(⚡)', 3: '🦾', 4: '🦸‍♂️'},
-            'cactus': {1: '🌱', 2: '🌿', 3: '🌳', 4: '🌸'},
-        }
-        if self.companion_type == 'none' or self.companion_type not in forms:
+        if self.companion_type == 'none' or self.companion_type not in self.COMPANION_FORMS:
             return '❓'
-        return forms[self.companion_type][self.level]
+        forms = self.COMPANION_FORMS[self.companion_type]
+        return forms.get(self.level, forms.get(10, '❓'))
+
+    @property
+    def required_tasks_for_next_level(self):
+        thresholds = {1: 2, 2: 4, 3: 7, 4: 11, 5: 16, 6: 22, 7: 29, 8: 37, 9: 46, 10: 46}
+        return thresholds.get(self.level, 46)
+
+    @property
+    def current_level_base_tasks(self):
+        bases = {1: 0, 2: 2, 3: 4, 4: 7, 5: 11, 6: 16, 7: 22, 8: 29, 9: 37, 10: 46}
+        return bases.get(self.level, 0)
 
     @property
     def progress_to_next_level(self):
-        if self.level == 1:
-            return int((self.completed_tasks_count / 3) * 100)
-        elif self.level == 2:
-            return int(((self.completed_tasks_count - 3) / 7) * 100)
-        elif self.level == 3:
-            return int(((self.completed_tasks_count - 10) / 15) * 100)
-        else:
+        if self.level >= 10:
             return 100
+        base = self.current_level_base_tasks
+        target = self.required_tasks_for_next_level
+        needed = target - base
+        current = self.completed_tasks_count - base
+        if needed <= 0:
+            return 100
+        progress = int((current / needed) * 100)
+        return max(0, min(100, progress))
+
+    @property
+    def trait_history(self):
+        """到達レベルごとの習得特性・進化履歴"""
+        history = []
+        if self.companion_type == 'none':
+            return history
+
+        forms = self.COMPANION_FORMS.get(self.companion_type, {})
+        lvl = self.level
+
+        for l in range(1, lvl + 1):
+            f = forms.get(l, '')
+            if l == 1:
+                desc = "誕生（幼体・種/芽）: 新しい命が目覚めました。"
+            elif l == 4:
+                desc = "進化（成長期）: 活発に成長し、固有のオーラを纏い始めました。"
+            elif l == 8:
+                desc = "覚醒（成体・覚醒形態）: 完全な姿へ進化し、強力な力を解放しました。"
+            elif l == 10:
+                desc = "最終到達（神化形態）: 極限まで高められた絶対的な存在になりました。"
+            else:
+                desc = f"成長 (Lv.{l}): 日々のタスク消化により絆と生命力が高まりました。"
+
+            history.append({
+                'level': l,
+                'form': f,
+                'desc': desc
+            })
+        return history
 
 @receiver(post_save, sender=User)
 def create_user_companion(sender, instance, created, **kwargs):
@@ -666,19 +798,28 @@ class IslandProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} - Island Lv.{self.level} (EXP: {self.experience})"
 
+    @staticmethod
+    def get_base_exp_for_level(lvl):
+        if lvl <= 1:
+            return 0
+        if lvl <= 5:
+            return {1: 0, 2: 50, 3: 120, 4: 220, 5: 350}[lvl]
+        extra = lvl - 5
+        return 350 + extra * 100 + (extra * (extra + 1) // 2) * 25
+
     @property
     def next_level_exp(self):
-        thresholds = {1: 50, 2: 120, 3: 220, 4: 350}
-        return thresholds.get(self.level, 350)
+        if self.level >= 99:
+            return self.get_base_exp_for_level(99)
+        return self.get_base_exp_for_level(self.level + 1)
 
     @property
     def current_level_base_exp(self):
-        bases = {1: 0, 2: 50, 3: 120, 4: 220, 5: 350}
-        return bases.get(self.level, 350)
+        return self.get_base_exp_for_level(self.level)
 
     @property
     def exp_progress_percent(self):
-        if self.level >= 5:
+        if self.level >= 99:
             return 100
         base = self.current_level_base_exp
         target = self.next_level_exp
@@ -690,19 +831,18 @@ class IslandProfile(models.Model):
         return max(0, min(100, progress))
 
     def update_level(self):
-        """EXPに応じてレベルを更新し、レベル上昇があった場合は(True, old_level, new_level)を返す"""
+        """EXPに応じてレベル(1〜99)を更新し、レベル上昇があった場合は(True, old_level, new_level)を返す"""
         old_level = self.level
         exp = self.experience
-        if exp >= 350:
-            new_level = 5
-        elif exp >= 220:
-            new_level = 4
-        elif exp >= 120:
-            new_level = 3
-        elif exp >= 50:
-            new_level = 2
-        else:
-            new_level = 1
+
+        new_level = 1
+        for lvl in range(1, 100):
+            if exp >= self.get_base_exp_for_level(lvl):
+                new_level = lvl
+            else:
+                break
+
+        new_level = min(99, max(1, new_level))
 
         if new_level > old_level:
             self.level = new_level
@@ -718,7 +858,7 @@ def create_island_profile(sender, instance, created, **kwargs):
 
 class IslandItem(models.Model):
     ITEM_TYPE_CHOICES = [
-        # ① 自然・ガーデニング系
+        # ① 陸地（自然・ガーデニング・リゾート系 - Lv.1〜）
         ('tree', '樹木 🌲'),
         ('palm_tree', 'ヤシの木 🌴'),
         ('broadleaf_tree', '広葉樹 🌳'),
@@ -731,8 +871,6 @@ class IslandItem(models.Model):
         ('fountain', '噴水 ⛲'),
         ('small_pond', '小さな池 💧'),
         ('rock', '大きな岩 🪨'),
-
-        # ② リゾート・休憩設備
         ('wooden_bench', '木製ベンチ 🪑'),
         ('hammock', 'ハンモック 🏕️'),
         ('beach_parasol_set', 'ビーチパラソル＆サマーベッド 🏖️'),
@@ -743,8 +881,6 @@ class IslandItem(models.Model):
         ('house', '小さな家 🏠'),
         ('shop', 'お店 🏪'),
         ('castle', 'お城 🏰'),
-
-        # ③ 生き物（動物・マスコット）
         ('animal', '動物 🐶'),
         ('shiba_inu', 'シバイヌ（犬） 🐕'),
         ('calico_cat', '三毛猫（猫） 🐈'),
@@ -753,6 +889,23 @@ class IslandItem(models.Model):
         ('penguin', 'ペンギン 🐧'),
         ('seagull', '小鳥（カモメ） 🕊️'),
         ('parakeet', '小鳥（インコ） 🦜'),
+
+        # ② 海洋アイテム（Lv.20〜解放）
+        ('yacht', 'ヨット ⛵'),
+        ('rowboat', '手漕ぎボート 🚣'),
+        ('overwater_cottage', '水上コテージ 🏚️'),
+        ('swim_ring', '浮き輪 🛟'),
+        ('sea_turtle', 'ウミガメ 🐢'),
+        ('dolphin_spot', 'イルカのジャンプスポット 🐬'),
+        ('lighthouse_islet', '灯台の小島 🏮'),
+
+        # ③ 上空アイテム（Lv.50〜解放）
+        ('hot_air_balloon', 'ふわふわ気球 🎈'),
+        ('floating_island', '浮島（ラピュタ風ミニアイランド） 🏝️'),
+        ('rainbow_arch', '虹のアーチ 🌈'),
+        ('meteor_spot', '流星群スポット 🌠'),
+        ('airship', '小型飛行艇 🛩️'),
+        ('aurora_generator', 'オーロラ発生器 🌌'),
     ]
 
     ITEM_ICONS = {
@@ -786,6 +939,21 @@ class IslandItem(models.Model):
         'penguin': '🐧',
         'seagull': '🕊️',
         'parakeet': '🦜',
+
+        'yacht': '⛵',
+        'rowboat': '🚣',
+        'overwater_cottage': '🏚️',
+        'swim_ring': '🛟',
+        'sea_turtle': '🐢',
+        'dolphin_spot': '🐬',
+        'lighthouse_islet': '🏮',
+
+        'hot_air_balloon': '🎈',
+        'floating_island': '🏝️',
+        'rainbow_arch': '🌈',
+        'meteor_spot': '🌠',
+        'airship': '🛩️',
+        'aurora_generator': '🌌',
     }
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='island_items', verbose_name="ユーザー")
@@ -810,10 +978,29 @@ class IslandItem(models.Model):
     def icon(self):
         return self.ITEM_ICONS.get(self.item_type, '🎁')
 
+    @property
+    def area_category(self):
+        ocean_items = {'yacht', 'rowboat', 'overwater_cottage', 'swim_ring', 'sea_turtle', 'dolphin_spot', 'lighthouse_islet'}
+        sky_items = {'hot_air_balloon', 'floating_island', 'rainbow_arch', 'meteor_spot', 'airship', 'aurora_generator'}
+        if self.item_type in ocean_items:
+            return 'ocean'
+        elif self.item_type in sky_items:
+            return 'sky'
+        return 'land'
+
+    @property
+    def required_island_level(self):
+        cat = self.area_category
+        if cat == 'ocean':
+            return 20
+        elif cat == 'sky':
+            return 50
+        return 1
+
 
 class GraduatedCompanion(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='graduated_companions', verbose_name="ユーザー")
-    companion_type = models.CharField("キャラクター種類", max_length=20, choices=UserCompanion.COMPANION_CHOICES)
+    companion_type = models.CharField("キャラクター種類", max_length=50, choices=UserCompanion.COMPANION_CHOICES)
     completed_tasks_count = models.IntegerField("卒業時完了タスク数", default=0)
     graduated_at = models.DateTimeField("殿堂入り日時", auto_now_add=True)
 
@@ -827,12 +1014,8 @@ class GraduatedCompanion(models.Model):
 
     @property
     def final_form(self):
-        forms = {
-            'chick': '🦅',
-            'robot': '🦸‍♂️',
-            'cactus': '🌸',
-        }
-        return forms.get(self.companion_type, '❓')
+        forms = UserCompanion.COMPANION_FORMS.get(self.companion_type, {})
+        return forms.get(10, forms.get(4, '❓'))
 
 
 class DepartmentBattle(models.Model):

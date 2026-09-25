@@ -27,7 +27,7 @@ class GamificationAndArchiveTests(TestCase):
         companion.completed_tasks_count = 25
         companion.save()
 
-        self.assertEqual(companion.level, 4)
+        self.assertEqual(companion.level, 7)
 
         response = self.client.post('/graduate-companion/', {'new_companion_type': 'robot'})
         self.assertEqual(response.status_code, 302)

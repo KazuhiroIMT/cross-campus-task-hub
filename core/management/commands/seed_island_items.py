@@ -31,6 +31,15 @@ SEED_ITEMS = [
     ('penguin', 'よちよちペンギン', -6.5, 2.7, 3.5, 0.0, True),
     ('seagull', '優雅なカモメ', 0.0, 4.0, 1.0, 0.0, True),
     ('parakeet', 'カラフルなインコ', 4.8, 2.7, -3.8, 0.0, True),
+
+    # ④ 海洋エリアアイテム (Lv.20〜)
+    ('yacht', '豪華なリゾートヨット', 12.0, 0.0, 8.0, 0.5, True),
+    ('overwater_cottage', '南国の水上コテージ', -12.0, 0.0, -10.0, 0.0, True),
+    ('dolphin_spot', '跳ねるイルカスポット', 10.0, 0.0, -12.0, 0.0, True),
+
+    # ⑤ 上空エリアアイテム (Lv.50〜)
+    ('hot_air_balloon', '優雅なふわふわ気球', -6.0, 15.0, 6.0, 0.0, True),
+    ('rainbow_arch', '輝く虹のアーチ', 0.0, 10.0, -15.0, 0.0, True),
 ]
 
 def seed_items_for_user(user, force=False):

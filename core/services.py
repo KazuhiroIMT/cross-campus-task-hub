@@ -8,12 +8,28 @@ from .models import (
     DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
 )
 
-# ボス候補テンプレート（自動生成用）
+# ドラゴンボス20段階マスタ設計（業務・タスクモチーフ）
 BOSS_TEMPLATES = [
-    {'boss_type': 'dragon', 'boss_name': '納期ドラゴン', 'max_hp': 1000},
-    {'boss_type': 'robot', 'boss_name': '業務整理ロボ', 'max_hp': 1200},
-    {'boss_type': 'monster', 'boss_name': '書類モンスター', 'max_hp': 1500},
-    {'boss_type': 'golem', 'boss_name': '未対応ゴーレム', 'max_hp': 2000},
+    {'boss_level': 1,  'boss_type': 'dragon', 'boss_name': 'コドモドラゴ（未着手タスクの幼体）', 'max_hp': 1000},
+    {'boss_level': 2,  'boss_type': 'dragon', 'boss_name': 'メモリーワイバーン（連絡漏れの使い魔）', 'max_hp': 1200},
+    {'boss_level': 3,  'boss_type': 'dragon', 'boss_name': 'ケアレスリザード（記入ミス・誤字脱字竜）', 'max_hp': 1400},
+    {'boss_level': 4,  'boss_type': 'dragon', 'boss_name': 'スケジュールパピー（日程重複の幼竜）', 'max_hp': 1600},
+    {'boss_level': 5,  'boss_type': 'dragon', 'boss_name': '催促のフライヤー（提出物未回収の飛竜）', 'max_hp': 1800},
+    {'boss_level': 6,  'boss_type': 'dragon', 'boss_name': '保留のドレイク（ペンディング案件の沼竜）', 'max_hp': 2000},
+    {'boss_level': 7,  'boss_type': 'dragon', 'boss_name': '欠席ラッシュドラゴン（突発対応の咆哮竜）', 'max_hp': 2300},
+    {'boss_level': 8,  'boss_type': 'dragon', 'boss_name': '事務処理ゴーンドラゴン（書類山積の岩石竜）', 'max_hp': 2600},
+    {'boss_level': 9,  'boss_type': 'dragon', 'boss_name': '面談過密のスピリット（スケジュール逼迫竜）', 'max_hp': 2900},
+    {'boss_level': 10, 'boss_type': 'dragon', 'boss_name': '納期ドラゴン・幼生（期限切迫の赤翼竜）', 'max_hp': 3200},
+    {'boss_level': 11, 'boss_type': 'dragon', 'boss_name': 'システムエラーワイバーン（連携障害の雷竜）', 'max_hp': 3600},
+    {'boss_level': 12, 'boss_type': 'dragon', 'boss_name': '期日超過のケルベロスドラゴン（追跡困難の猛竜）', 'max_hp': 4000},
+    {'boss_level': 13, 'boss_type': 'dragon', 'boss_name': '怒涛の行事ラダー（学校行事ピークの嵐竜）', 'max_hp': 4500},
+    {'boss_level': 14, 'boss_type': 'dragon', 'boss_name': '評価ラッシュファング（成績・レポート査定の激竜）', 'max_hp': 5000},
+    {'boss_level': 15, 'boss_type': 'dragon', 'boss_name': '多重案件のヒドラ（タスク同時多発の多頭竜）', 'max_hp': 5600},
+    {'boss_level': 16, 'boss_type': 'dragon', 'boss_name': '締切プレッシャーベヒモス（最終期限の鉄壁竜）', 'max_hp': 6200},
+    {'boss_level': 17, 'boss_type': 'dragon', 'boss_name': 'キャパシティオーバーロード（業務限界の灼熱竜）', 'max_hp': 7000},
+    {'boss_level': 18, 'boss_type': 'dragon', 'boss_name': 'インシデント・ドゥーム（緊急事態対応の獄炎竜）', 'max_hp': 8000},
+    {'boss_level': 19, 'boss_type': 'dragon', 'boss_name': '終末のタスクカタストロフィ（学期末総決算の破壊竜）', 'max_hp': 9200},
+    {'boss_level': 20, 'boss_type': 'dragon', 'boss_name': 'アビス・エンドライン（完全納期崩壊を司る絶対の深淵古龍）', 'max_hp': 10500},
 ]
 
 
