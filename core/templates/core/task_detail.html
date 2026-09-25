@@ -126,7 +126,7 @@
                                 </td>
                                 <td>
                                     <select name="student_status_{{ p.student.id }}" class="form-select form-select-sm">
-                                        <option value="open" {% if p.status == 'open' %}selected{% endif %}>未対応</option>
+                                        <option value="open" {% if p.status == 'open' %}selected{% endif %}>未着手</option>
                                         <option value="in_progress" {% if p.status == 'in_progress' %}selected{% endif %}>対応中</option>
                                         <option value="closed" {% if p.status == 'closed' %}selected{% endif %}>完了</option>
                                     </select>
@@ -211,7 +211,7 @@
                     <br><span class="badge bg-secondary mt-1">現在の状態: {{ task.get_status_display }}</span>
                 </p>
                 <div class="d-flex flex-column gap-2">
-                    <button type="button" class="btn btn-outline-warning text-dark fw-bold" onclick="submitLogWithStatus('open')">「未対応」にする</button>
+                    <button type="button" class="btn btn-outline-warning text-dark fw-bold" onclick="submitLogWithStatus('open')">「未着手」にする</button>
                     <button type="button" class="btn btn-outline-info text-dark fw-bold" onclick="submitLogWithStatus('in_progress')">「対応中」にする</button>
                     <button type="button" class="btn btn-outline-success fw-bold" onclick="submitLogWithStatus('closed')">「完了」にする</button>
                 </div>

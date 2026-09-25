@@ -16,7 +16,7 @@ from django.core import serializers
 # 必要なモデルを一括インポート（Student, TaskStudentProgress を含む）
 from django.core.exceptions import PermissionDenied
 from .models import Task, TaskComment, Student, TaskStudentProgress, Department, Course, SchoolClass, UserCompanion, GraduatedCompanion, StaffProfile, StaffDuty, IslandProfile, IslandItem, Achievement, UserAchievement, DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
-from .services import process_task_completion, ensure_initial_achievements, check_achievements, ensure_initial_department_achievements, check_department_achievements
+from .services import process_task_completion, ensure_initial_achievements, check_achievements, ensure_initial_department_achievements, check_department_achievements, ensure_active_department_boss
 from .forms import TaskCreateForm, CSVUploadForm
 
 
@@ -60,6 +60,7 @@ def department_boss(request, dept_id=None):
     ensure_initial_department_achievements()
     check_department_achievements(department)
 
+    ensure_active_department_boss(department)
     dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
     active_battle = DepartmentBattle.objects.filter(department=department, status='active').first()
     defeated_battles = DepartmentBattle.objects.filter(department=department, status='defeated').order_by('-end_date')
@@ -125,11 +126,28 @@ def dashboard(request):
     user_groups = user.groups.all()
     today = timezone.now().date()
 
-    # 1. 閲覧可能なタスクを取得
+    # 1. 一括ステータス変更アクションの処理
+    if request.method == 'POST' and 'bulk_update_status' in request.POST:
+        selected_task_ids = request.POST.getlist('task_ids')
+        new_status = request.POST.get('bulk_status')
+        if selected_task_ids and new_status in ['open', 'in_progress', 'closed']:
+            target_tasks = get_accessible_tasks(user).filter(pk__in=selected_task_ids)
+            updated_count = 0
+            for t in target_tasks:
+                old_status = t.status
+                t.status = new_status
+                t.save()
+                if new_status == 'closed' and old_status != 'closed':
+                    process_task_completion(t, user, request)
+                updated_count += 1
+            status_labels = {'open': '未着手', 'in_progress': '対応中', 'closed': '完了'}
+            messages.success(request, f"{updated_count} 件のタスクを「{status_labels.get(new_status)}」に一括変更しました。")
+            return redirect('dashboard')
+
+    # 2. 閲覧可能な全アクティブタスクを取得
     accessible_tasks = (
         get_accessible_tasks(user)
         .filter(is_archived=False)
-        .exclude(status='closed')
         .select_related(
             'target_group', 'created_by', 'assigned_user', 'target_user'
         )
@@ -191,18 +209,46 @@ def dashboard(request):
 
         my_tasks = my_tasks.filter(search_condition).distinct()
 
-    urgent_tasks = my_tasks.filter(due_date__lte=today).order_by(
-        'due_date', '-priority'
-    )
-    normal_tasks_qs = my_tasks.filter(due_date__gt=today).order_by(
-        'due_date', '-priority'
+    from django.db.models import Case, When, Value, IntegerField
+
+    priority_order = Case(
+        When(priority='high', then=Value(1)),
+        When(priority='mid', then=Value(2)),
+        When(priority='low', then=Value(3)),
+        default=Value(4),
+        output_field=IntegerField(),
     )
 
+    # 未完了案件と完了済み案件を分離
+    active_my_tasks = my_tasks.exclude(status='closed')
+    closed_my_tasks_qs = my_tasks.filter(status='closed').order_by('-updated_at')
+
+    urgent_tasks_qs = active_my_tasks.filter(due_date__lte=today).annotate(
+        priority_rank=priority_order
+    ).order_by('due_date', 'priority_rank')
+
+    normal_tasks_qs = active_my_tasks.filter(due_date__gt=today).annotate(
+        priority_rank=priority_order
+    ).order_by('due_date', 'priority_rank')
+
+    urgent_tasks_count = urgent_tasks_qs.count()
     normal_tasks_count = normal_tasks_qs.count()
+    closed_tasks_count = closed_my_tasks_qs.count()
 
-    paginator = Paginator(normal_tasks_qs, 20)
-    page_number = request.GET.get('page')
-    normal_tasks = paginator.get_page(page_number)
+    # 至急タスクの10件単位ページネーション
+    urgent_paginator = Paginator(urgent_tasks_qs, 10)
+    urgent_page_number = request.GET.get('urgent_page')
+    urgent_tasks = urgent_paginator.get_page(urgent_page_number)
+
+    # 今後予定タスクの10件単位ページネーション
+    normal_paginator = Paginator(normal_tasks_qs, 10)
+    normal_page_number = request.GET.get('page')
+    normal_tasks = normal_paginator.get_page(normal_page_number)
+
+    # 完了済み案件の10件単位ページネーション
+    closed_paginator = Paginator(closed_my_tasks_qs, 10)
+    closed_page_number = request.GET.get('closed_page')
+    closed_tasks = closed_paginator.get_page(closed_page_number)
 
     # タスク起票処理
     if request.method == 'POST' and 'create_task' in request.POST:
@@ -383,12 +429,16 @@ def dashboard(request):
     user_primary_dept = user_groups.first()
     active_dept_battle = None
     if user_primary_dept:
+        ensure_active_department_boss(user_primary_dept)
         active_dept_battle = DepartmentBattle.objects.filter(department=user_primary_dept, status='active').first()
 
     context = {
         'urgent_tasks': urgent_tasks,
+        'urgent_tasks_count': urgent_tasks_count,
         'normal_tasks': normal_tasks,
         'normal_tasks_count': normal_tasks_count,
+        'closed_tasks': closed_tasks,
+        'closed_tasks_count': closed_tasks_count,
         'today': today,
         'staffs': staffs,
         'groups': groups,
@@ -484,7 +534,7 @@ def task_detail(request, pk):
                 process_task_completion(task, user, request)
 
         messages.success(request, '対応内容を保存しました。')
-        return redirect('task_detail', pk=task.pk)
+        return redirect('dashboard')
 
     # --- 5. 画面表示（GET）処理 ---
     context = {
@@ -665,7 +715,15 @@ def other_department_tasks(request):
             Q(target_group__name__icontains=search_query)
         )
 
-    tasks = tasks.order_by('due_date', '-priority')
+    tasks = tasks.annotate(
+        priority_rank=Case(
+            When(priority='high', then=Value(1)),
+            When(priority='mid', then=Value(2)),
+            When(priority='low', then=Value(3)),
+            default=Value(4),
+            output_field=IntegerField(),
+        )
+    ).order_by('due_date', 'priority_rank')
     
     # ページネーション（1ページ20件）
     paginator = Paginator(tasks, 20)
