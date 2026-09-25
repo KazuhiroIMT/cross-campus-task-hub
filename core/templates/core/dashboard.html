@@ -13,8 +13,34 @@
     <!-- 外部化したダッシュボード用カスタムCSSを読み込み -->
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
 
-    {% if not user.is_superuser %}
     <style>
+        /* Character Idle Animations */
+        @keyframes charBreathing {
+            0%, 100% { transform: translateY(0px) scale(1.0); }
+            50% { transform: translateY(-8px) scale(1.05); }
+        }
+        @keyframes charFloating {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(3deg); }
+        }
+
+        .animated-character-avatar {
+            display: inline-block;
+            font-size: 4.5rem;
+            animation: charBreathing 2.8s ease-in-out infinite, charFloating 4s ease-in-out infinite;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+            user-select: none;
+            line-height: 1;
+        }
+
+        .motivation-avatar-mini {
+            display: inline-block;
+            animation: charBreathing 2.5s ease-in-out infinite;
+            font-size: 1.25rem;
+            vertical-align: middle;
+        }
+
+    {% if not user.is_superuser %}
         /* テキスト選択無効化 */
         body, input, textarea, select, button {
             -webkit-user-select: none !important;
@@ -346,8 +372,8 @@
                     {% if user.usercompanion %}
                         {% if user.usercompanion.companion_type != 'none' %}
                             <div class="d-flex align-items-center gap-1 small">
-                                <span>キャラ: {{ user.usercompanion.current_form }} Lv.{{ user.usercompanion.level }}</span>
-                                {% if user.usercompanion.level >= 4 %}
+                                <span>キャラ: <span class="motivation-avatar-mini">{{ user.usercompanion.current_form }}</span> Lv.{{ user.usercompanion.level }} <span class="badge bg-info text-dark" style="font-size: 0.68rem;">{{ user.usercompanion.stage_name }}</span></span>
+                                {% if user.usercompanion.level >= 10 %}
                                     <button type="button" class="btn btn-link p-0 small text-warning fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#graduateModal">卒業</button>
                                 {% endif %}
                             </div>
@@ -378,6 +404,9 @@
 
                 <!-- 各専用ページへのリンク -->
                 <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-primary btn-sm py-1 px-2 fw-bold" style="font-size: 0.75rem; background: linear-gradient(135deg, #2b5876 0%, #4e4376 100%); border: none;" data-bs-toggle="modal" data-bs-target="#viewCharacterModal">
+                        👤 キャラを見る
+                    </button>
                     <a href="{% url 'my_island' %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
                         <i class="bi bi-tree"></i> 島ページ
                     </a>
@@ -401,6 +430,109 @@
 
 </div>
 
+<!-- 育成キャラクター詳細・アニメーション確認モーダル -->
+<div class="modal fade" id="viewCharacterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #1d3557 0%, #457b9d 100%);">
+                <h5 class="modal-title fw-bold">👤 育成キャラクター詳細 (Lv.1〜10)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                {% if user.usercompanion and user.usercompanion.companion_type != 'none' %}
+                    <div class="row align-items-center mb-4">
+                        <div class="col-md-5 text-center border-end">
+                            <!-- Animated character graphic -->
+                            <div class="my-3">
+                                <span class="animated-character-avatar">{{ user.usercompanion.current_form }}</span>
+                            </div>
+                            <h4 class="fw-bold text-dark mb-1">{{ user.usercompanion.get_companion_type_display }}</h4>
+                            <span class="badge bg-primary px-3 py-1 fs-6 mb-2">Lv. {{ user.usercompanion.level }} / 10</span>
+                            <div>
+                                <span class="badge bg-info text-dark">{{ user.usercompanion.stage_name }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-graph-up-arrow"></i> 次のレベルまでの必要経験値</h6>
+                            <div class="d-flex justify-content-between small text-muted mb-1">
+                                <span>完了タスク数</span>
+                                <span class="fw-bold text-dark">{{ user.usercompanion.completed_tasks_count }} / {{ user.usercompanion.required_tasks_for_next_level }} 件</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 14px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                     role="progressbar"
+                                     style="width: {{ user.usercompanion.progress_to_next_level }}%;">
+                                    {{ user.usercompanion.progress_to_next_level }}%
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-stars"></i> 育成キャラクターの切り替え</h6>
+                            <form method="post" action="{% url 'select_companion' %}" class="d-flex gap-2">
+                                {% csrf_token %}
+                                <select name="companion_type" class="form-select form-select-sm">
+                                    {% for code, label in user.usercompanion.COMPANION_CHOICES %}
+                                        {% if code != 'none' and code != 'chick' and code != 'robot' and code != 'cactus' %}
+                                            <option value="{{ code }}" {% if user.usercompanion.companion_type == code %}selected{% endif %}>{{ label }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-outline-primary btn-sm flex-shrink-0 fw-bold">変更</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 習得した特性・進化履歴 -->
+                    <div class="card bg-light border-0">
+                        <div class="card-body">
+                            <h6 class="fw-bold text-dark mb-3"><i class="bi bi-journal-check"></i> 習得した特性 & 進化履歴</h6>
+                            <div class="list-group list-group-flush rounded border" style="max-height: 220px; overflow-y: auto;">
+                                {% for trait in user.usercompanion.trait_history %}
+                                    <div class="list-group-item d-flex align-items-center justify-content-between py-2 px-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <span class="badge bg-secondary">Lv.{{ trait.level }}</span>
+                                            <span class="fs-4">{{ trait.form }}</span>
+                                            <span class="small text-dark fw-bold">{{ trait.desc }}</span>
+                                        </div>
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    </div>
+                                {% empty %}
+                                    <div class="p-3 text-center text-muted small">まだ進化履歴はありません。</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- 未選択時 -->
+                    <div class="text-center py-4">
+                        <div class="fs-1 mb-2">🌱</div>
+                        <h5 class="fw-bold mb-3">育成キャラクターを選択しましょう！</h5>
+                        <p class="text-muted small mb-4">全30種類のユニークなキャラクターから、一緒に業務をこなす相棒を選べます。</p>
+
+                        <form method="post" action="{% url 'select_companion' %}" class="mx-auto" style="max-width: 400px;">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <select name="companion_type" class="form-select">
+                                    {% for code, label in user.usercompanion.COMPANION_CHOICES %}
+                                        {% if code != 'none' and code != 'chick' and code != 'robot' and code != 'cactus' %}
+                                            <option value="{{ code }}">{{ label }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary fw-bold px-4">キャラクターを決定する</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 卒業・新キャラ選択モーダル -->
 <div class="modal fade" id="graduateModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -419,9 +551,11 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold small">次に育てるキャラクターを選択:</label>
                         <select name="new_companion_type" class="form-select">
-                            <option value="chick">🐣 ひよこ</option>
-                            <option value="robot">🤖 ロボット</option>
-                            <option value="cactus">🌱 サボテン</option>
+                            {% for code, label in user.usercompanion.COMPANION_CHOICES %}
+                                {% if code != 'none' and code != 'chick' and code != 'robot' and code != 'cactus' %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
                         </select>
                     </div>
                 </div>

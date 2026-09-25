@@ -6,6 +6,98 @@
     <title>部署ボス討伐 - {{ department.name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* Dragon Animation Keyframes */
+        @keyframes dragonIdleBreathing {
+            0%, 100% { transform: translateY(0px) scale(1.0); }
+            50% { transform: translateY(-14px) scale(1.04); }
+        }
+
+        @keyframes smokeRise {
+            0% { opacity: 0.8; transform: translate(0, 0) scale(0.6); }
+            100% { opacity: 0; transform: translate(-25px, -45px) scale(1.8); }
+        }
+
+        @keyframes dragonHitFlash {
+            0%, 100% { filter: none; transform: translate(0, 0); }
+            20% { filter: brightness(2) drop-shadow(0 0 25px #ff1744); transform: translate(-12px, 6px) rotate(-5deg); }
+            40% { filter: brightness(1.8) drop-shadow(0 0 20px #ff9100); transform: translate(12px, -6px) rotate(5deg); }
+            60% { filter: brightness(1.4); transform: translate(-6px, 3px); }
+            80% { filter: brightness(1.2); transform: translate(4px, -1px); }
+        }
+
+        @keyframes dragonDefeatLightBurst {
+            0% { opacity: 1; transform: scale(1) rotate(0deg); filter: brightness(1); }
+            50% { opacity: 0.85; transform: scale(1.4) rotate(15deg); filter: brightness(3) drop-shadow(0 0 50px #ffd700); }
+            100% { opacity: 0; transform: scale(0.0) rotate(45deg); filter: brightness(5); }
+        }
+
+        @keyframes damageFloat {
+            0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
+            30% { opacity: 1; transform: translate(-50%, -30px) scale(1.4); }
+            100% { opacity: 0; transform: translate(-50%, -75px) scale(1.0); }
+        }
+
+        .dragon-stage-wrapper {
+            position: relative;
+            display: inline-block;
+            padding: 30px;
+        }
+
+        .dragon-live-avatar {
+            font-size: 7.0rem;
+            display: inline-block;
+            animation: dragonIdleBreathing 3s ease-in-out infinite;
+            user-select: none;
+            filter: drop-shadow(0 12px 25px rgba(0,0,0,0.35));
+            transition: transform 0.2s ease, filter 0.2s ease;
+            line-height: 1;
+        }
+
+        .smoke-puff-1 {
+            position: absolute;
+            top: 25%;
+            left: 20%;
+            font-size: 1.8rem;
+            animation: smokeRise 2.2s ease-out infinite;
+            pointer-events: none;
+        }
+
+        .smoke-puff-2 {
+            position: absolute;
+            top: 30%;
+            right: 20%;
+            font-size: 1.6rem;
+            animation: smokeRise 2.6s ease-out infinite 0.8s;
+            pointer-events: none;
+        }
+
+        .dragon-hit-anim {
+            animation: dragonHitFlash 0.5s ease-in-out !important;
+        }
+
+        .dragon-defeat-anim {
+            animation: dragonDefeatLightBurst 2.0s forwards !important;
+        }
+
+        .damage-pop-text {
+            position: absolute;
+            color: #ff1744;
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-shadow: 0 0 10px #ffffff, 2px 2px 0px #000000;
+            pointer-events: none;
+            animation: damageFloat 1.2s ease-out forwards;
+            z-index: 100;
+        }
+
+        .victory-banner-box {
+            background: linear-gradient(135deg, #ffe082 0%, #ffb300 100%);
+            color: #3e2723;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(255, 179, 0, 0.4);
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -56,29 +148,53 @@
                 <span class="badge bg-secondary">平和</span>
             {% endif %}
         </div>
-        <div class="card-body p-4 text-center">
+        <div class="card-body p-4 text-center position-relative">
             {% if active_battle %}
-                <div class="display-1 mb-2">{{ active_battle.icon }}</div>
-                <h3 class="fw-bold mb-3">{{ active_battle.boss_name }}</h3>
+                <!-- Animated Live Dragon Graphic -->
+                <div class="dragon-stage-wrapper" id="dragonStage">
+                    <span class="smoke-puff-1">💨</span>
+                    <span class="smoke-puff-2">🔥</span>
+                    <span class="dragon-live-avatar" id="dragonAvatar">{{ active_battle.icon }}</span>
+                </div>
 
-                <div class="row justify-content-center mb-3">
+                <h3 class="fw-bold mb-1 text-dark" id="bossNameTitle">{{ active_battle.boss_name }}</h3>
+
+                <div class="row justify-content-center my-3">
                     <div class="col-md-8">
                         <div class="d-flex justify-content-between small text-muted mb-1 fw-bold">
                             <span>HP</span>
-                            <span>{{ active_battle.current_hp }} / {{ active_battle.max_hp }}</span>
+                            <span id="hpText">{{ active_battle.current_hp }} / {{ active_battle.max_hp }}</span>
                         </div>
-                        <div class="progress shadow-sm" style="height: 24px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger fw-bold fs-6"
+                        <div class="progress shadow-sm" style="height: 26px; border-radius: 13px; background: #e9ecef;">
+                            <div id="hpProgressBar"
+                                 class="progress-bar progress-bar-striped progress-bar-animated bg-danger fw-bold fs-6"
                                  role="progressbar"
-                                 style="width: {{ active_battle.hp_percent }}%;">
+                                 style="width: {{ active_battle.hp_percent }}%; transition: width 0.6s ease;">
                                 {{ active_battle.hp_percent }}%
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Simulation & Interactive Attack Test Buttons -->
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(100, '【高優先度タスク完了!】')">
+                        ⚔️ 高優先度撃破 (-100)
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm text-dark fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(50, '【中優先度タスク完了!】')">
+                        ⚔️ 中優先度撃破 (-50)
+                    </button>
+                </div>
+
+                <!-- Defeat Victory Banner (Hidden by default until HP reaches 0) -->
+                <div id="victoryBanner" class="victory-banner-box p-4 my-3 d-none">
+                    <div class="display-3 mb-2">🎉 👑 ✨</div>
+                    <h3 class="fw-bold mb-1">討伐成功！ 部署の勝利！</h3>
+                    <p class="mb-0 font-bold">部署メンバー全員の協力によりボスを撃破しました！次の世代のボスが解放されます。</p>
+                </div>
+
                 <div class="alert alert-info py-2 small d-inline-block px-4 mb-0">
-                    💡 「みんなのタスク完了でHPが減っていきます」
+                    💡 「部署メンバーがタスクをクローズするたびにリアルタイムでダメージが与えられます」
                 </div>
             {% else %}
                 <div class="py-4 text-muted">
@@ -171,5 +287,51 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let currentHp = parseInt("{{ active_battle.current_hp|default:1000 }}", 10);
+let maxHp = parseInt("{{ active_battle.max_hp|default:1000 }}", 10);
+
+function triggerTaskDamageEffect(amount = 50, label = '') {
+    const dragonAvatar = document.getElementById("dragonAvatar");
+    const dragonStage = document.getElementById("dragonStage");
+    const hpText = document.getElementById("hpText");
+    const hpBar = document.getElementById("hpProgressBar");
+    const victoryBanner = document.getElementById("victoryBanner");
+
+    if (!dragonAvatar || currentHp <= 0) return;
+
+    // 1. Floating damage popup
+    const pop = document.createElement("div");
+    pop.className = "damage-pop-text";
+    pop.innerText = `-${amount}`;
+    pop.style.left = "50%";
+    pop.style.top = "20%";
+    dragonStage.appendChild(pop);
+    setTimeout(() => pop.remove(), 1200);
+
+    // 2. Dragon hit flinch & flash shake
+    dragonAvatar.classList.remove("dragon-hit-anim");
+    void dragonAvatar.offsetWidth; // trigger reflow
+    dragonAvatar.classList.add("dragon-hit-anim");
+
+    // 3. Update HP
+    currentHp = Math.max(0, currentHp - amount);
+    const pct = Math.max(0, Math.min(100, Math.round((currentHp / maxHp) * 100)));
+
+    if (hpText) hpText.innerText = `${currentHp} / ${maxHp}`;
+    if (hpBar) {
+        hpBar.style.width = `${pct}%`;
+        hpBar.innerText = `${pct}%`;
+    }
+
+    // 4. Defeat Reaction if HP reaches 0
+    if (currentHp <= 0) {
+        setTimeout(() => {
+            dragonAvatar.classList.add("dragon-defeat-anim");
+            if (victoryBanner) victoryBanner.classList.remove("d-none");
+        }, 600);
+    }
+}
+</script>
 </body>
 </html>

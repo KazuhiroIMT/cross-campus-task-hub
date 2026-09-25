@@ -118,6 +118,60 @@
             50% { transform: translate(-50%, -100%) scale(1.3); }
             100% { opacity: 0; transform: translate(-50%, -160%) scale(1); }
         }
+
+        .rotation-toolbar {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+            background: rgba(29, 53, 87, 0.92);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .item-stack-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #e63946;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 10px;
+            border: 2px solid white;
+        }
+
+        .item-area-badge {
+            font-size: 0.65rem;
+            border-radius: 4px;
+            padding: 1px 4px;
+            margin-top: 2px;
+        }
+
+        .toast-warning-widget {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(217, 4, 41, 0.92);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -215,14 +269,26 @@
                     </button>
                 </div>
 
+                <!-- Toast Warning Widget -->
+                <div id="toast-warning-widget" class="toast-warning-widget d-none"></div>
+
                 <!-- Toast instructions for edit mode -->
                 <div id="edit-instructions" class="edit-controls-toast d-none">
-                    トレイのアイテムを選択して島の上をクリックで配置／配置済みオブジェクトを選択して移動・回転
+                    トレイのカードを選択して島にドラッグ＆配置／配置済みアイテムをドラッグ移動・回転
+                </div>
+
+                <!-- Rotation Toolbar for Selected Object -->
+                <div id="object-rotation-toolbar" class="rotation-toolbar d-none">
+                    <span id="rotation-item-name" class="fw-bold small me-2 text-white"></span>
+                    <button type="button" class="btn btn-sm btn-outline-light py-0 px-2 me-1" id="btn-rotate-ccw-45" title="左45度回転">↺ -45°</button>
+                    <button type="button" class="btn btn-sm btn-outline-light py-0 px-2 me-1" id="btn-rotate-cw-45" title="右45度回転">↻ +45°</button>
+                    <button type="button" class="btn btn-sm btn-outline-light py-0 px-2 me-1" id="btn-rotate-180" title="180度回転">180°</button>
+                    <button type="button" class="btn btn-sm btn-danger py-0 px-2 text-white ms-2" id="btn-unplace-selected" title="島から外す">外す</button>
                 </div>
 
                 <!-- Item Tray (Edit Mode) -->
                 <div id="item-tray" class="item-tray d-none">
-                    <!-- Dynamic items will be populated by JS -->
+                    <!-- Dynamic stacked item cards populated by JS -->
                 </div>
 
                 <!-- Canvas -->
@@ -1605,6 +1671,234 @@ document.addEventListener("DOMContentLoaded", function() {
         return createShibaInuMesh();
     }
 
+    // ④ 海洋・⑤ 上空アイテム メッシュ生成関数群
+    function createYachtMesh() {
+        const group = new THREE.Group();
+        const hull = new THREE.Mesh(new THREE.ConeGeometry(0.7, 2.2, 4), new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }));
+        hull.rotation.x = Math.PI / 2;
+        hull.rotation.z = Math.PI / 4;
+        hull.position.y = 0.2;
+        hull.scale.set(1, 0.4, 1);
+        hull.castShadow = true;
+        group.add(hull);
+
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 1.8), new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+        deck.position.y = 0.35;
+        group.add(deck);
+
+        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 2.5, 6), new THREE.MeshLambertMaterial({ color: 0x3e2723 }));
+        mast.position.y = 1.6;
+        group.add(mast);
+
+        const sail = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 3), new THREE.MeshLambertMaterial({ color: 0x0288d1, side: THREE.DoubleSide, flatShading: true }));
+        sail.position.set(0, 1.8, 0.3);
+        sail.rotation.y = Math.PI / 2;
+        group.add(sail);
+        return group;
+    }
+
+    function createRowboatMesh() {
+        const group = new THREE.Group();
+        const boat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 1.5), new THREE.MeshLambertMaterial({ color: 0x795548, flatShading: true }));
+        boat.position.y = 0.15;
+        boat.castShadow = true;
+        group.add(boat);
+
+        [-0.45, 0.45].forEach(x => {
+            const oar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2, 6), new THREE.MeshLambertMaterial({ color: 0xd7ccc8 }));
+            oar.position.set(x, 0.3, 0);
+            oar.rotation.z = x > 0 ? -0.4 : 0.4;
+            group.add(oar);
+        });
+        return group;
+    }
+
+    function createOverwaterCottageMesh() {
+        const group = new THREE.Group();
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+        [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]].forEach(p => {
+            const stilt = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 6), woodMat);
+            stilt.position.set(p[0], 0.6, p[1]);
+            group.add(stilt);
+        });
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.1, 2.0), woodMat);
+        deck.position.y = 1.2;
+        group.add(deck);
+
+        const hut = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 1.4), new THREE.MeshLambertMaterial({ color: 0xd7ccc8 }));
+        hut.position.y = 1.8;
+        group.add(hut);
+
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.4, 0.9, 4), new THREE.MeshLambertMaterial({ color: 0xd84315, flatShading: true }));
+        roof.position.y = 2.8;
+        roof.rotation.y = Math.PI / 4;
+        group.add(roof);
+        return group;
+    }
+
+    function createSwimRingMesh() {
+        const group = new THREE.Group();
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.22, 12, 24), new THREE.MeshLambertMaterial({ color: 0xff4081 }));
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.15;
+        group.add(ring);
+        for (let i = 0; i < 4; i++) {
+            const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.1, 8), new THREE.MeshLambertMaterial({ color: 0xffeb3b }));
+            const a = (i / 4) * Math.PI * 2;
+            stripe.position.set(Math.cos(a) * 0.6, 0.15, Math.sin(a) * 0.6);
+            group.add(stripe);
+        }
+        return group;
+    }
+
+    function createSeaTurtleMesh() {
+        const group = new THREE.Group();
+        const shellMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32, flatShading: true });
+        const skinMat = new THREE.MeshLambertMaterial({ color: 0x81c784, flatShading: true });
+        const shell = new THREE.Mesh(new THREE.SphereGeometry(0.55, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), shellMat);
+        shell.position.y = 0.2;
+        shell.scale.set(1, 0.6, 1.3);
+        group.add(shell);
+
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), skinMat);
+        head.position.set(0, 0.2, 0.75);
+        group.add(head);
+
+        [[-0.5, 0.15, 0.4], [0.5, 0.15, 0.4], [-0.4, 0.15, -0.4], [0.4, 0.15, -0.4]].forEach(p => {
+            const flipper = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.05, 0.25), skinMat);
+            flipper.position.set(p[0], p[1], p[2]);
+            flipper.rotation.z = p[0] > 0 ? -0.3 : 0.3;
+            group.add(flipper);
+        });
+        return group;
+    }
+
+    function createDolphinSpotMesh() {
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.18, 10, 16, Math.PI), new THREE.MeshPhongMaterial({ color: 0x0288d1, shininess: 80 }));
+        body.position.y = 0.5;
+        body.rotation.z = -Math.PI / 6;
+        group.add(body);
+
+        const splash = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.08, 8, 16), new THREE.MeshPhongMaterial({ color: 0xb3e5fc, transparent: true, opacity: 0.8 }));
+        splash.rotation.x = Math.PI / 2;
+        splash.position.y = 0.05;
+        group.add(splash);
+        return group;
+    }
+
+    function createLighthouseIsletMesh() {
+        const group = new THREE.Group();
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), new THREE.MeshLambertMaterial({ color: 0x546e7a, flatShading: true }));
+        rock.position.y = 0.3;
+        rock.scale.set(1.4, 0.5, 1.4);
+        group.add(rock);
+
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 2.5, 8), new THREE.MeshLambertMaterial({ color: 0xef5350, flatShading: true }));
+        tower.position.y = 1.6;
+        tower.castShadow = true;
+        group.add(tower);
+
+        const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.42, 0.6, 8), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+        stripe.position.y = 1.6;
+        group.add(stripe);
+
+        const top = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffeb3b }));
+        top.position.y = 3.0;
+        group.add(top);
+
+        const pLight = new THREE.PointLight(0xffeb3b, 2.0, 15);
+        pLight.position.y = 3.0;
+        group.add(pLight);
+        return group;
+    }
+
+    function createHotAirBalloonMesh() {
+        const group = new THREE.Group();
+        const balloon = new THREE.Mesh(new THREE.SphereGeometry(1.4, 12, 12), new THREE.MeshLambertMaterial({ color: 0xab47bc, flatShading: true }));
+        balloon.position.y = 10.0;
+        balloon.scale.set(1, 1.2, 1);
+        balloon.castShadow = true;
+        group.add(balloon);
+
+        [[-0.3, -0.3], [0.3, -0.3], [-0.3, 0.3], [0.3, 0.3]].forEach(p => {
+            const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.5, 4), new THREE.MeshBasicMaterial({ color: 0x8d6e63 }));
+            rope.position.set(p[0], 8.2, p[1]);
+            group.add(rope);
+        });
+
+        const basket = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.7), new THREE.MeshLambertMaterial({ color: 0x6d4c41 }));
+        basket.position.y = 7.2;
+        group.add(basket);
+        return group;
+    }
+
+    function createFloatingIslandMesh() {
+        const group = new THREE.Group();
+        const rock = new THREE.Mesh(new THREE.ConeGeometry(1.6, 2.2, 7), new THREE.MeshLambertMaterial({ color: 0x4e342e, flatShading: true }));
+        rock.rotation.x = Math.PI;
+        rock.position.y = 9.0;
+        group.add(rock);
+
+        const grass = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.6, 0.2, 8), new THREE.MeshLambertMaterial({ color: 0x4caf50 }));
+        grass.position.y = 10.1;
+        group.add(grass);
+
+        const miniTree = createTreeMesh();
+        miniTree.position.y = 10.2;
+        miniTree.scale.setScalar(0.7);
+        group.add(miniTree);
+        return group;
+    }
+
+    function createRainbowArchMesh() {
+        const group = new THREE.Group();
+        const colors = [0xff1744, 0xff9100, 0xffea00, 0x00e676, 0x29b6f6, 0x651fff];
+        colors.forEach((col, idx) => {
+            const arch = new THREE.Mesh(new THREE.TorusGeometry(3.5 + idx * 0.12, 0.06, 8, 24, Math.PI), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }));
+            arch.position.y = 8.0;
+            group.add(arch);
+        });
+        return group;
+    }
+
+    function createMeteorSpotMesh() {
+        const group = new THREE.Group();
+        const starCore = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8, 1), new THREE.MeshBasicMaterial({ color: 0xffeb3b }));
+        starCore.position.y = 11.0;
+        group.add(starCore);
+
+        const starLight = new THREE.PointLight(0xffea00, 2.5, 15);
+        starLight.position.y = 11.0;
+        group.add(starLight);
+        return group;
+    }
+
+    function createAirshipMesh() {
+        const group = new THREE.Group();
+        const blimp = new THREE.Mesh(new THREE.SphereGeometry(1.2, 10, 10), new THREE.MeshLambertMaterial({ color: 0x37474f, flatShading: true }));
+        blimp.position.y = 10.5;
+        blimp.scale.set(1, 0.9, 2.2);
+        group.add(blimp);
+
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 1.2), new THREE.MeshLambertMaterial({ color: 0xffb300 }));
+        cabin.position.set(0, 9.4, 0);
+        group.add(cabin);
+        return group;
+    }
+
+    function createAuroraGeneratorMesh() {
+        const group = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.0, 0.4, 8), new THREE.MeshLambertMaterial({ color: 0x00e676 }));
+        base.position.y = 8.0;
+        group.add(base);
+
+        const ribbon = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 0.8, 4.0, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0x00e676, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+        ribbon.position.y = 10.0;
+        group.add(ribbon);
+        return group;
+    }
+
     function build3DMeshForItemType(type) {
         switch (type) {
             case 'tree': return createTreeMesh();
@@ -1637,6 +1931,24 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'penguin': return createPenguinMesh();
             case 'seagull': return createSeagullMesh();
             case 'parakeet': return createParakeetMesh();
+
+            // 海洋アイテム
+            case 'yacht': return createYachtMesh();
+            case 'rowboat': return createRowboatMesh();
+            case 'overwater_cottage': return createOverwaterCottageMesh();
+            case 'swim_ring': return createSwimRingMesh();
+            case 'sea_turtle': return createSeaTurtleMesh();
+            case 'dolphin_spot': return createDolphinSpotMesh();
+            case 'lighthouse_islet': return createLighthouseIsletMesh();
+
+            // 上空アイテム
+            case 'hot_air_balloon': return createHotAirBalloonMesh();
+            case 'floating_island': return createFloatingIslandMesh();
+            case 'rainbow_arch': return createRainbowArchMesh();
+            case 'meteor_spot': return createMeteorSpotMesh();
+            case 'airship': return createAirshipMesh();
+            case 'aurora_generator': return createAuroraGeneratorMesh();
+
             default: return createTreeMesh();
         }
     }
@@ -1727,33 +2039,152 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // エリア解放・アイテムエリア区分ヘルパー
+    function getItemAreaCategory(type) {
+        const oceanTypes = ['yacht', 'rowboat', 'overwater_cottage', 'swim_ring', 'sea_turtle', 'dolphin_spot', 'lighthouse_islet'];
+        const skyTypes = ['hot_air_balloon', 'floating_island', 'rainbow_arch', 'meteor_spot', 'airship', 'aurora_generator'];
+        if (oceanTypes.includes(type)) return 'ocean';
+        if (skyTypes.includes(type)) return 'sky';
+        return 'land';
+    }
+
+    function getItemRequiredLevel(type) {
+        const cat = getItemAreaCategory(type);
+        if (cat === 'ocean') return 20;
+        if (cat === 'sky') return 50;
+        return 1;
+    }
+
+    function showWarningToast(msg) {
+        const w = document.getElementById("toast-warning-widget");
+        if (!w) return;
+        w.innerText = msg;
+        w.classList.remove("d-none");
+        setTimeout(() => {
+            w.classList.add("d-none");
+        }, 3200);
+    }
+
+    // アイテムトレイのカード化＆スタック（一括まとめ）表示
     function populateItemTray() {
         itemTray.innerHTML = "";
         if (!islandData || !islandData.items) return;
 
-        islandData.items.forEach(item => {
-            const trayElem = document.createElement("div");
-            trayElem.className = `tray-item ${item.is_placed ? 'opacity-50' : ''}`;
-            trayElem.dataset.itemId = item.id;
-            trayElem.innerHTML = `
-                <div class="fs-4">${item.icon}</div>
-                <small class="fw-bold text-dark text-truncate" style="max-width: 80px;">${item.name}</small>
-                <small class="text-secondary" style="font-size: 0.7rem;">${item.is_placed ? '配置中' : '未配置'}</small>
+        const unplaced = islandData.items.filter(i => !i.is_placed);
+        if (unplaced.length === 0) {
+            itemTray.innerHTML = `<div class="small text-muted py-2 px-3 fw-bold">未配置の所有アイテムはありません</div>`;
+            return;
+        }
+
+        const stacks = new Map(); // item_type -> Array of items
+        unplaced.forEach(item => {
+            if (!stacks.has(item.item_type)) {
+                stacks.set(item.item_type, []);
+            }
+            stacks.get(item.item_type).push(item);
+        });
+
+        stacks.forEach((itemsList, itemType) => {
+            const firstItem = itemsList[0];
+            const count = itemsList.length;
+            const reqLvl = getItemRequiredLevel(itemType);
+            const areaCat = getItemAreaCategory(itemType);
+
+            const card = document.createElement("div");
+            card.className = "tray-item position-relative";
+            card.dataset.itemType = itemType;
+
+            let areaBadge = '';
+            if (areaCat === 'ocean') areaBadge = `<span class="badge bg-info text-dark item-area-badge">海洋 Lv.20</span>`;
+            else if (areaCat === 'sky') areaBadge = `<span class="badge bg-primary item-area-badge">上空 Lv.50</span>`;
+
+            card.innerHTML = `
+                <div class="fs-4">${firstItem.icon}</div>
+                <small class="fw-bold text-dark text-truncate" style="max-width: 80px;">${firstItem.name}</small>
+                ${areaBadge}
+                ${count > 1 ? `<span class="item-stack-badge">×${count}</span>` : ''}
             `;
 
-            trayElem.addEventListener("click", () => {
+            card.addEventListener("click", () => {
+                if (ISLAND_LEVEL < reqLvl) {
+                    const areaName = areaCat === 'ocean' ? '海洋エリア（島Lv.20以上で解放）' : '上空エリア（島Lv.50以上で解放）';
+                    showWarningToast(`⚠️ このアイテムは島Lv.${reqLvl}以上で配置可能です (${areaName})`);
+                    return;
+                }
+
                 document.querySelectorAll(".tray-item").forEach(el => el.classList.remove("selected"));
-                if (selectedTrayItem === item.id) {
+                const targetItemId = firstItem.id;
+                if (selectedTrayItem === targetItemId) {
                     selectedTrayItem = null;
                 } else {
-                    selectedTrayItem = item.id;
-                    trayElem.classList.add("selected");
+                    selectedTrayItem = targetItemId;
+                    card.classList.add("selected");
                 }
             });
 
-            itemTray.appendChild(trayElem);
+            itemTray.appendChild(card);
         });
     }
+
+    // 回転ツールバーのボタンバインド
+    const objectRotationToolbar = document.getElementById("object-rotation-toolbar");
+    const rotationItemName = document.getElementById("rotation-item-name");
+    const btnRotateCcw45 = document.getElementById("btn-rotate-ccw-45");
+    const btnRotateCw45 = document.getElementById("btn-rotate-cw-45");
+    const btnRotate180 = document.getElementById("btn-rotate-180");
+    const btnUnplaceSelected = document.getElementById("btn-unplace-selected");
+
+    function selectPlacedObject(objGroup) {
+        deselectActiveObject();
+        activeSelectedObject = objGroup;
+        activeSelectedObject.scale.set(1.15, 1.15, 1.15);
+
+        if (rotationItemName && objectRotationToolbar) {
+            rotationItemName.innerText = `選択中: ${objGroup.userData.itemName}`;
+            objectRotationToolbar.classList.remove("d-none");
+        }
+    }
+
+    function deselectActiveObject() {
+        if (activeSelectedObject) {
+            activeSelectedObject.scale.set(1, 1, 1);
+            activeSelectedObject = null;
+        }
+        if (objectRotationToolbar) {
+            objectRotationToolbar.classList.add("d-none");
+        }
+    }
+
+    btnRotateCcw45.addEventListener("click", () => {
+        if (activeSelectedObject) {
+            activeSelectedObject.rotation.y -= Math.PI / 4;
+        }
+    });
+
+    btnRotateCw45.addEventListener("click", () => {
+        if (activeSelectedObject) {
+            activeSelectedObject.rotation.y += Math.PI / 4;
+        }
+    });
+
+    btnRotate180.addEventListener("click", () => {
+        if (activeSelectedObject) {
+            activeSelectedObject.rotation.y += Math.PI;
+        }
+    });
+
+    btnUnplaceSelected.addEventListener("click", () => {
+        if (activeSelectedObject && islandData) {
+            const itemId = activeSelectedObject.userData.itemId;
+            const item = islandData.items.find(i => i.id === itemId);
+            if (item) {
+                item.is_placed = false;
+            }
+            renderPlacedItems();
+            populateItemTray();
+            deselectActiveObject();
+        }
+    });
 
     // --- 7. Edit Mode Toggle & Controls ---
     btnToggleEdit.addEventListener("click", () => {
@@ -1816,66 +2247,67 @@ document.addEventListener("DOMContentLoaded", function() {
                 btnSavePositions.innerHTML = `<i class="bi bi-check-all"></i> 保存完了！`;
                 setTimeout(() => {
                     btnSavePositions.innerHTML = `<i class="bi bi-check-lg"></i> 位置を保存`;
-                }, 2000);
+                    // 保存成功後、自動的に編集モードを終了し鑑賞モードへ復帰
+                    if (isEditMode) {
+                        btnToggleEdit.click();
+                    }
+                }, 800);
             }
         })
         .catch(err => console.error("Error saving positions:", err));
     }
 
-    // --- 8. Raycasting & User Interactions ---
+    // --- 8. Raycasting & Drag and Drop Interactions ---
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
+    let isDraggingObject = false;
 
-    function deselectActiveObject() {
-        if (activeSelectedObject) {
-            activeSelectedObject.scale.set(1, 1, 1);
-            activeSelectedObject = null;
-        }
-    }
-
-    canvas.addEventListener("click", (e) => {
+    canvas.addEventListener("pointerdown", (e) => {
         const rect = canvas.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
 
-        // A. If clicking in Edit Mode
         if (isEditMode) {
-            // Check if user selected an inventory item to place
+            // トレイから選択中のアイテムを即座に初期配置
             if (selectedTrayItem) {
-                const intersectsTerrain = raycaster.intersectObject(terrainMesh);
-                if (intersectsTerrain.length > 0) {
-                    const pt = intersectsTerrain[0].point;
-                    const maxR = getPlacementMaxRadius(ISLAND_LEVEL);
-                    const distFromCenter = Math.sqrt(pt.x * pt.x + pt.z * pt.z);
-
-                    let placeX = pt.x;
-                    let placeZ = pt.z;
-
-                    if (distFromCenter > maxR) {
-                        const scale = maxR / distFromCenter;
-                        placeX *= scale;
-                        placeZ *= scale;
+                const item = islandData.items.find(i => i.id === selectedTrayItem);
+                if (item) {
+                    const reqLvl = getItemRequiredLevel(item.item_type);
+                    if (ISLAND_LEVEL < reqLvl) {
+                        const areaName = getItemAreaCategory(item.item_type) === 'ocean' ? '海洋エリア' : '上空エリア';
+                        showWarningToast(`⚠️ このアイテムは島Lv.${reqLvl}以上で配置可能です (${areaName})`);
+                        selectedTrayItem = null;
+                        populateItemTray();
+                        return;
                     }
 
-                    const placeY = getTerrainHeight(placeX, placeZ, ISLAND_LEVEL);
+                    const intersectsTerrain = raycaster.intersectObject(terrainMesh);
+                    const intersectsOcean = raycaster.intersectObject(oceanMesh);
+                    const intersects = intersectsTerrain.length > 0 ? intersectsTerrain : intersectsOcean;
 
-                    const item = islandData.items.find(i => i.id === selectedTrayItem);
-                    if (item) {
+                    if (intersects.length > 0) {
+                        const pt = intersects[0].point;
+                        const areaCat = getItemAreaCategory(item.item_type);
+
                         item.is_placed = true;
-                        item.position_x = placeX;
-                        item.position_z = placeZ;
-                        item.position_y = placeY;
+                        item.position_x = pt.x;
+                        item.position_z = pt.z;
+                        item.position_y = areaCat === 'sky' ? 12.0 : getTerrainHeight(pt.x, pt.z, ISLAND_LEVEL);
+
                         renderPlacedItems();
                         populateItemTray();
                         selectedTrayItem = null;
+
+                        const placedGroup = placedObjectsMap.get(item.id);
+                        if (placedGroup) selectPlacedObject(placedGroup);
                     }
                 }
                 return;
             }
 
-            // Otherwise, check object selection for move/rotate
+            // 配置済みオブジェクトの選択 & ドラッグ移動開始
             const intersects = raycaster.intersectObjects(Array.from(placedObjectsMap.values()), true);
             if (intersects.length > 0) {
                 let topGroup = intersects[0].object;
@@ -1883,14 +2315,14 @@ document.addEventListener("DOMContentLoaded", function() {
                     topGroup = topGroup.parent;
                 }
 
-                deselectActiveObject();
-                activeSelectedObject = topGroup;
-                activeSelectedObject.scale.set(1.15, 1.15, 1.15); // Highlight pulse
+                selectPlacedObject(topGroup);
+                isDraggingObject = true;
+                controls.enabled = false; // ドラッグ中はカメラ移動を停止
             } else {
                 deselectActiveObject();
             }
         } else {
-            // B. Viewing Mode: Click Interaction on Creatures (Simple Reaction)
+            // 鑑賞モード: リアクション演出
             const intersects = raycaster.intersectObjects(Array.from(placedObjectsMap.values()), true);
             if (intersects.length > 0) {
                 let topGroup = intersects[0].object;
@@ -1899,10 +2331,40 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
 
                 if (topGroup.userData && topGroup.userData.isCreature) {
-                    // Creature Bounce Reaction Animation
                     triggerCreatureReaction(topGroup, e.clientX, e.clientY);
                 }
             }
+        }
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+        if (!isEditMode || !isDraggingObject || !activeSelectedObject) return;
+
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        const intersectsTerrain = raycaster.intersectObject(terrainMesh);
+        const intersectsOcean = raycaster.intersectObject(oceanMesh);
+        const intersects = intersectsTerrain.length > 0 ? intersectsTerrain : intersectsOcean;
+
+        if (intersects.length > 0) {
+            const pt = intersects[0].point;
+            const itemType = activeSelectedObject.userData.itemType;
+            const areaCat = getItemAreaCategory(itemType);
+
+            activeSelectedObject.position.x = pt.x;
+            activeSelectedObject.position.z = pt.z;
+            activeSelectedObject.position.y = areaCat === 'sky' ? 12.0 : getTerrainHeight(pt.x, pt.z, ISLAND_LEVEL);
+        }
+    });
+
+    window.addEventListener("pointerup", () => {
+        if (isDraggingObject) {
+            isDraggingObject = false;
+            controls.enabled = true; // カメラ移動の再開
         }
     });
 
