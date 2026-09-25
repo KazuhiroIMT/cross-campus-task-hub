@@ -398,17 +398,17 @@ document.addEventListener("DOMContentLoaded", function() {
     // Raycast ground plane at island surface height (y = 2.7)
     const groundRayPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -2.7);
 
-    // --- 5. Procedural 3D Mesh Builders for Items ---
+    // --- 5. Procedural 3D Mesh Builders for Items & Animals ---
+
+    // ① 自然・ガーデニング系
     function createTreeMesh() {
         const group = new THREE.Group();
-        // Trunk
         const trunkGeo = new THREE.CylinderGeometry(0.2, 0.35, 1.6, 6);
         const trunkMat = new THREE.MeshLambertMaterial({ color: 0x6e4726, flatShading: true });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = 0.8;
         trunk.castShadow = true;
         group.add(trunk);
-        // Foliage cones
         const foliageMat = new THREE.MeshLambertMaterial({ color: 0x2e8b57, flatShading: true });
         const f1 = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.8, 7), foliageMat);
         f1.position.y = 1.9;
@@ -421,16 +421,106 @@ document.addEventListener("DOMContentLoaded", function() {
         return group;
     }
 
+    function createPalmTreeMesh() {
+        const group = new THREE.Group();
+        // Curved trunk
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8b5a2b, flatShading: true });
+        for (let i = 0; i < 5; i++) {
+            const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.22 - i * 0.02, 0.25 - i * 0.02, 0.5, 7), trunkMat);
+            seg.position.set(Math.sin(i * 0.2) * 0.15, 0.25 + i * 0.45, 0);
+            seg.rotation.z = -0.1 * i;
+            seg.castShadow = true;
+            group.add(seg);
+        }
+        // Palm leaves
+        const leafMat = new THREE.MeshLambertMaterial({ color: 0x1b5e20, flatShading: true, side: THREE.DoubleSide });
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.4, 2.2, 4), leafMat);
+            leaf.position.set(Math.sin(angle) * 0.8, 2.3, Math.cos(angle) * 0.8);
+            leaf.rotation.x = Math.PI / 2.5;
+            leaf.rotation.y = angle;
+            leaf.castShadow = true;
+            group.add(leaf);
+        }
+        // Coconuts
+        const cocoMat = new THREE.MeshLambertMaterial({ color: 0x3e2723 });
+        for (let i = 0; i < 3; i++) {
+            const coco = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), cocoMat);
+            const a = (i / 3) * Math.PI * 2;
+            coco.position.set(Math.cos(a) * 0.25, 2.15, Math.sin(a) * 0.25);
+            group.add(coco);
+        }
+        return group;
+    }
+
+    function createBroadleafTreeMesh() {
+        const group = new THREE.Group();
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5c4033, flatShading: true });
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 1.8, 8), trunkMat);
+        trunk.position.y = 0.9;
+        trunk.castShadow = true;
+        group.add(trunk);
+
+        const leafMat1 = new THREE.MeshLambertMaterial({ color: 0x3a8e3a, flatShading: true });
+        const leafMat2 = new THREE.MeshLambertMaterial({ color: 0x2e7d32, flatShading: true });
+
+        const crown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.3, 1), leafMat1);
+        crown1.position.y = 2.2;
+        crown1.castShadow = true;
+        group.add(crown1);
+
+        const crown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.9, 1), leafMat2);
+        crown2.position.set(0.4, 2.7, -0.3);
+        crown2.castShadow = true;
+        group.add(crown2);
+
+        return group;
+    }
+
+    function createCherryTreeMesh() {
+        const group = new THREE.Group();
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2c22, flatShading: true });
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 1.7, 7), trunkMat);
+        trunk.position.y = 0.85;
+        trunk.castShadow = true;
+        group.add(trunk);
+
+        const pinkMat1 = new THREE.MeshLambertMaterial({ color: 0xffb7c5, flatShading: true });
+        const pinkMat2 = new THREE.MeshLambertMaterial({ color: 0xffc0cb, flatShading: true });
+        const pinkMat3 = new THREE.MeshLambertMaterial({ color: 0xff69b4, flatShading: true });
+
+        const c1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), pinkMat1);
+        c1.position.y = 2.1;
+        c1.castShadow = true;
+        group.add(c1);
+
+        const c2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8, 1), pinkMat2);
+        c2.position.set(-0.4, 2.6, 0.3);
+        c2.castShadow = true;
+        group.add(c2);
+
+        // Falling petals
+        for (let i = 0; i < 8; i++) {
+            const petal = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.12), pinkMat3);
+            const a = Math.random() * Math.PI * 2;
+            const r = Math.random() * 1.2;
+            petal.position.set(Math.cos(a) * r, 0.4 + Math.random() * 1.5, Math.sin(a) * r);
+            petal.rotation.set(Math.random(), Math.random(), Math.random());
+            group.add(petal);
+        }
+
+        return group;
+    }
+
     function createFlowerMesh() {
         const group = new THREE.Group();
-        // Stem
         const stem = new THREE.Mesh(
             new THREE.CylinderGeometry(0.05, 0.05, 0.6, 5),
             new THREE.MeshLambertMaterial({ color: 0x32cd32 })
         );
         stem.position.y = 0.3;
         group.add(stem);
-        // Petals
         const petalMat = new THREE.MeshLambertMaterial({ color: 0xff69b4, flatShading: true });
         for (let i = 0; i < 5; i++) {
             const petal = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), petalMat);
@@ -439,13 +529,196 @@ document.addEventListener("DOMContentLoaded", function() {
             petal.scale.set(1, 0.4, 1);
             group.add(petal);
         }
-        // Center
         const center = new THREE.Mesh(
             new THREE.SphereGeometry(0.12, 6, 6),
             new THREE.MeshLambertMaterial({ color: 0xffd700 })
         );
         center.position.y = 0.62;
         group.add(center);
+        return group;
+    }
+
+    function createFlowerBedMesh() {
+        const group = new THREE.Group();
+        // Wooden planter box
+        const box = new THREE.Mesh(
+            new THREE.BoxGeometry(1.8, 0.3, 1.2),
+            new THREE.MeshLambertMaterial({ color: 0x8b4513, flatShading: true })
+        );
+        box.position.y = 0.15;
+        box.castShadow = true;
+        group.add(box);
+
+        // Soil
+        const soil = new THREE.Mesh(
+            new THREE.BoxGeometry(1.65, 0.05, 1.05),
+            new THREE.MeshLambertMaterial({ color: 0x3d2314 })
+        );
+        soil.position.y = 0.31;
+        group.add(soil);
+
+        // Flowers array
+        const colors = [0xff1744, 0xffea00, 0xe040fb, 0x00e676, 0xff9100];
+        for (let x = -0.6; x <= 0.6; x += 0.4) {
+            for (let z = -0.3; z <= 0.3; z += 0.3) {
+                const cMat = new THREE.MeshLambertMaterial({ color: colors[Math.floor(Math.random() * colors.length)] });
+                const fHead = new THREE.Mesh(new THREE.DodecahedronGeometry(0.12, 0), cMat);
+                fHead.position.set(x + (Math.random() - 0.5) * 0.1, 0.45, z + (Math.random() - 0.5) * 0.1);
+                group.add(fHead);
+            }
+        }
+        return group;
+    }
+
+    function createSunflowerClusterMesh() {
+        const group = new THREE.Group();
+        const offsets = [[-0.4, -0.2], [0.3, -0.3], [-0.1, 0.3], [0.5, 0.2]];
+        const stemMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
+        const centerMat = new THREE.MeshLambertMaterial({ color: 0x3e2723 });
+        const petalMat = new THREE.MeshLambertMaterial({ color: 0xffd700, flatShading: true });
+
+        offsets.forEach(pos => {
+            const h = 0.8 + Math.random() * 0.3;
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, h, 6), stemMat);
+            stem.position.set(pos[0], h / 2, pos[1]);
+            group.add(stem);
+
+            const center = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.05, 8), centerMat);
+            center.position.set(pos[0], h, pos[1] + 0.08);
+            center.rotation.x = Math.PI / 4;
+            group.add(center);
+
+            const petalRing = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.02, 10), petalMat);
+            petalRing.position.set(pos[0], h, pos[1] + 0.06);
+            petalRing.rotation.x = Math.PI / 4;
+            group.add(petalRing);
+        });
+        return group;
+    }
+
+    function createGardenLightMesh() {
+        const group = new THREE.Group();
+        // Black metal pole
+        const poleMat = new THREE.MeshLambertMaterial({ color: 0x212121 });
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.4, 8), poleMat);
+        pole.position.y = 0.7;
+        pole.castShadow = true;
+        group.add(pole);
+
+        // Lamp head
+        const head = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.3, 6), poleMat);
+        head.position.y = 1.45;
+        group.add(head);
+
+        // Glowing glass bulb
+        const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfff59d });
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), bulbMat);
+        bulb.position.y = 1.32;
+        group.add(bulb);
+
+        // Soft Point Light
+        const light = new THREE.PointLight(0xfff59d, 1.2, 6);
+        light.position.y = 1.3;
+        group.add(light);
+
+        return group;
+    }
+
+    function createBonfireMesh() {
+        const group = new THREE.Group();
+        // Log base
+        const logMat = new THREE.MeshLambertMaterial({ color: 0x4e342e });
+        for (let i = 0; i < 4; i++) {
+            const log = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.9, 6), logMat);
+            const a = (i / 4) * Math.PI * 2;
+            log.position.set(Math.cos(a) * 0.2, 0.15, Math.sin(a) * 0.2);
+            log.rotation.y = a;
+            log.rotation.z = 0.6;
+            log.castShadow = true;
+            group.add(log);
+        }
+
+        // Flame mesh
+        const flameMat1 = new THREE.MeshBasicMaterial({ color: 0xff3d00 });
+        const flameMat2 = new THREE.MeshBasicMaterial({ color: 0xffea00 });
+
+        const flame1 = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.8, 6), flameMat1);
+        flame1.position.y = 0.45;
+        group.add(flame1);
+
+        const flame2 = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 6), flameMat2);
+        flame2.position.y = 0.5;
+        group.add(flame2);
+
+        // Warm flickering light
+        const light = new THREE.PointLight(0xff6d00, 1.6, 9);
+        light.position.y = 0.6;
+        group.add(light);
+
+        return group;
+    }
+
+    function createFountainMesh() {
+        const group = new THREE.Group();
+        const basin = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.2, 1.0, 0.4, 12),
+            new THREE.MeshLambertMaterial({ color: 0xd3d3d3, flatShading: true })
+        );
+        basin.position.y = 0.2;
+        basin.castShadow = true;
+        group.add(basin);
+
+        const water = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.0, 1.0, 0.05, 12),
+            new THREE.MeshPhongMaterial({ color: 0x00bfff, transparent: true, opacity: 0.85 })
+        );
+        water.position.y = 0.38;
+        group.add(water);
+
+        const pillar = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.2, 0.25, 0.8, 8),
+            new THREE.MeshLambertMaterial({ color: 0xc0c0c0 })
+        );
+        pillar.position.y = 0.6;
+        group.add(pillar);
+
+        // Water jet top
+        const jetMat = new THREE.MeshPhongMaterial({ color: 0xe0f7fa, transparent: true, opacity: 0.9 });
+        const jet = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.5, 8), jetMat);
+        jet.position.y = 1.15;
+        group.add(jet);
+
+        return group;
+    }
+
+    function createSmallPondMesh() {
+        const group = new THREE.Group();
+        // Stone ring border
+        const stoneMat = new THREE.MeshLambertMaterial({ color: 0x78909c, flatShading: true });
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25, 0), stoneMat);
+            stone.position.set(Math.cos(angle) * 1.3, 0.1, Math.sin(angle) * 1.0);
+            group.add(stone);
+        }
+
+        // Water surface
+        const waterMat = new THREE.MeshPhongMaterial({
+            color: 0x0288d1,
+            transparent: true,
+            opacity: 0.85,
+            shininess: 100
+        });
+        const water = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.08, 16), waterMat);
+        water.position.y = 0.08;
+        group.add(water);
+
+        // Lily pad
+        const lilyMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
+        const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.02, 8), lilyMat);
+        pad.position.set(0.4, 0.13, -0.3);
+        group.add(pad);
+
         return group;
     }
 
@@ -461,63 +734,243 @@ document.addEventListener("DOMContentLoaded", function() {
         return group;
     }
 
-    function createHouseMesh() {
+    // ② リゾート・休憩設備
+    function createWoodenBenchMesh() {
         const group = new THREE.Group();
-        // Body
-        const bodyGeo = new THREE.BoxGeometry(1.6, 1.2, 1.4);
-        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xfff8dc, flatShading: true });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.position.y = 0.6;
-        body.castShadow = true;
-        group.add(body);
-        // Roof
-        const roofGeo = new THREE.ConeGeometry(1.4, 0.9, 4);
-        const roofMat = new THREE.MeshLambertMaterial({ color: 0xb22222, flatShading: true });
-        const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.y = 1.65;
-        roof.rotation.y = Math.PI / 4;
-        roof.castShadow = true;
-        group.add(roof);
-        // Door
-        const door = new THREE.Mesh(
-            new THREE.BoxGeometry(0.4, 0.7, 0.05),
-            new THREE.MeshLambertMaterial({ color: 0x8b4513 })
-        );
-        door.position.set(0, 0.35, 0.71);
-        group.add(door);
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+        const metalMat = new THREE.MeshLambertMaterial({ color: 0x263238 });
+
+        // Seat planks
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.5), woodMat);
+        seat.position.set(0, 0.45, 0);
+        seat.castShadow = true;
+        group.add(seat);
+
+        // Backrest
+        const back = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 0.08), woodMat);
+        back.position.set(0, 0.7, -0.22);
+        back.castShadow = true;
+        group.add(back);
+
+        // Legs
+        [[-0.6, 0.22, 0.2], [0.6, 0.22, 0.2], [-0.6, 0.22, -0.2], [0.6, 0.22, -0.2]].forEach(pos => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.08), metalMat);
+            leg.position.set(pos[0], pos[1], pos[2]);
+            group.add(leg);
+        });
+
         return group;
     }
 
-    function createFountainMesh() {
+    function createHammockMesh() {
         const group = new THREE.Group();
-        // Base basin
-        const basin = new THREE.Mesh(
-            new THREE.CylinderGeometry(1.2, 1.0, 0.4, 12),
-            new THREE.MeshLambertMaterial({ color: 0xd3d3d3, flatShading: true })
-        );
-        basin.position.y = 0.2;
-        basin.castShadow = true;
-        group.add(basin);
-        // Water surface
-        const water = new THREE.Mesh(
-            new THREE.CylinderGeometry(1.0, 1.0, 0.05, 12),
-            new THREE.MeshPhongMaterial({ color: 0x00bfff, transparent: true, opacity: 0.85 })
-        );
-        water.position.y = 0.38;
-        group.add(water);
-        // Center jet pillar
-        const pillar = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.2, 0.25, 0.8, 8),
-            new THREE.MeshLambertMaterial({ color: 0xc0c0c0 })
-        );
-        pillar.position.y = 0.6;
-        group.add(pillar);
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x6d4c41, flatShading: true });
+        const clothMat = new THREE.MeshLambertMaterial({ color: 0xffe0b2, flatShading: true, side: THREE.DoubleSide });
+
+        // Support posts
+        [-1.2, 1.2].forEach(x => {
+            const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.4, 6), woodMat);
+            p1.position.set(x, 0.6, 0.2);
+            p1.rotation.z = x > 0 ? -0.2 : 0.2;
+            p1.castShadow = true;
+            group.add(p1);
+
+            const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.4, 6), woodMat);
+            p2.position.set(x, 0.6, -0.2);
+            p2.rotation.z = x > 0 ? -0.2 : 0.2;
+            p2.castShadow = true;
+            group.add(p2);
+        });
+
+        // Curved cloth
+        const cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2.0, 12, 1, true, 0, Math.PI), clothMat);
+        cloth.rotation.z = Math.PI / 2;
+        cloth.position.set(0, 0.6, 0);
+        cloth.scale.set(0.6, 1, 0.6);
+        group.add(cloth);
+
         return group;
+    }
+
+    function createBeachParasolSetMesh() {
+        const group = new THREE.Group();
+        // Parasol pole
+        const poleMat = new THREE.MeshLambertMaterial({ color: 0xd7ccc8 });
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 8), poleMat);
+        pole.position.set(-0.3, 1.1, -0.2);
+        pole.castShadow = true;
+        group.add(pole);
+
+        // Parasol top cone
+        const umbrellaMat = new THREE.MeshLambertMaterial({ color: 0xef5350, flatShading: true });
+        const umbrella = new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.6, 8), umbrellaMat);
+        umbrella.position.set(-0.3, 2.1, -0.2);
+        umbrella.castShadow = true;
+        group.add(umbrella);
+
+        // Summer bed (Lounger)
+        const frameMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        const cushionMat = new THREE.MeshLambertMaterial({ color: 0x29b6f6 });
+
+        const lounger = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.15, 1.6), frameMat);
+        lounger.position.set(0.4, 0.15, 0.1);
+        lounger.castShadow = true;
+        group.add(lounger);
+
+        const cushion = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.1, 1.55), cushionMat);
+        cushion.position.set(0.4, 0.22, 0.1);
+        group.add(cushion);
+
+        const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.12, 0.35), frameMat);
+        pillow.position.set(0.4, 0.3, -0.5);
+        group.add(pillow);
+
+        return group;
+    }
+
+    function createWoodDeckMesh() {
+        const group = new THREE.Group();
+        const deckMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+
+        const platform = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.12, 2.4), deckMat);
+        platform.position.y = 0.06;
+        platform.receiveShadow = true;
+        group.add(platform);
+
+        // Slatted lines
+        const lineMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+        for (let z = -1.0; z <= 1.0; z += 0.4) {
+            const line = new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.02, 0.02), lineMat);
+            line.position.set(0, 0.13, z);
+            group.add(line);
+        }
+
+        return group;
+    }
+
+    function createCafeTableSetMesh() {
+        const group = new THREE.Group();
+        const whiteMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f5, flatShading: true });
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0xa1887f });
+
+        // Table top
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.06, 12), whiteMat);
+        table.position.y = 0.75;
+        table.castShadow = true;
+        group.add(table);
+
+        // Table leg
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 0.72, 8), whiteMat);
+        leg.position.y = 0.36;
+        group.add(leg);
+
+        // Chairs (2 chairs)
+        [-0.8, 0.8].forEach(x => {
+            const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 8), woodMat);
+            seat.position.set(x, 0.45, 0);
+            seat.castShadow = true;
+            group.add(seat);
+
+            const cLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.42, 6), whiteMat);
+            cLeg.position.set(x, 0.21, 0);
+            group.add(cLeg);
+
+            const back = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.35), woodMat);
+            back.position.set(x + (x > 0 ? 0.2 : -0.2), 0.62, 0);
+            group.add(back);
+        });
+
+        // Coffee cups
+        const cupMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.08, 6), cupMat);
+        cup.position.set(0.1, 0.82, 0.1);
+        group.add(cup);
+
+        return group;
+    }
+
+    function createWatchtowerMesh() {
+        const group = new THREE.Group();
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x6d4c41, flatShading: true });
+        const roofMat = new THREE.MeshLambertMaterial({ color: 0x4e342e });
+
+        // 4 Main posts
+        [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]].forEach(pos => {
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.8, 6), woodMat);
+            post.position.set(pos[0], 1.4, pos[1]);
+            post.castShadow = true;
+            group.add(post);
+        });
+
+        // Platform deck
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 1.5), woodMat);
+        deck.position.y = 2.0;
+        deck.castShadow = true;
+        group.add(deck);
+
+        // Railing
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 1.4), new THREE.MeshLambertMaterial({ color: 0x5d4037 }));
+        rail.position.y = 2.25;
+        group.add(rail);
+
+        // Roof
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.8, 4), roofMat);
+        roof.position.y = 3.2;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        group.add(roof);
+
+        // Ladder
+        const ladder = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.1, 0.05), woodMat);
+        ladder.position.set(0, 1.0, 0.72);
+        ladder.rotation.x = -0.15;
+        group.add(ladder);
+
+        return group;
+    }
+
+    function createCottageMesh() {
+        const group = new THREE.Group();
+        // Body walls
+        const wallMat = new THREE.MeshLambertMaterial({ color: 0xa1887f, flatShading: true });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.5, 1.8), wallMat);
+        body.position.y = 0.75;
+        body.castShadow = true;
+        group.add(body);
+
+        // A-frame roof
+        const roofMat = new THREE.MeshLambertMaterial({ color: 0xb71c1c, flatShading: true });
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.2, 4), roofMat);
+        roof.position.y = 2.05;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        group.add(roof);
+
+        // Door
+        const door = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.8, 0.05), new THREE.MeshLambertMaterial({ color: 0x4e342e }));
+        door.position.set(0, 0.4, 0.92);
+        group.add(door);
+
+        // Windows
+        const windowMat = new THREE.MeshBasicMaterial({ color: 0xfff59d });
+        const win = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.05), windowMat);
+        win.position.set(0.6, 0.8, 0.92);
+        group.add(win);
+
+        // Chimney
+        const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.7, 0.3), new THREE.MeshLambertMaterial({ color: 0x757575 }));
+        chimney.position.set(-0.6, 2.2, -0.4);
+        group.add(chimney);
+
+        return group;
+    }
+
+    function createHouseMesh() {
+        return createCottageMesh();
     }
 
     function createShopMesh() {
         const group = new THREE.Group();
-        // Body
         const body = new THREE.Mesh(
             new THREE.BoxGeometry(1.8, 1.3, 1.5),
             new THREE.MeshLambertMaterial({ color: 0xffebcd, flatShading: true })
@@ -525,7 +978,7 @@ document.addEventListener("DOMContentLoaded", function() {
         body.position.y = 0.65;
         body.castShadow = true;
         group.add(body);
-        // Awning stripes
+
         const awningMat1 = new THREE.MeshLambertMaterial({ color: 0xff0000 });
         const awningMat2 = new THREE.MeshLambertMaterial({ color: 0xffffff });
         for (let i = 0; i < 5; i++) {
@@ -542,7 +995,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function createCastleMesh() {
         const group = new THREE.Group();
-        // Main tower body
         const castleBody = new THREE.Mesh(
             new THREE.BoxGeometry(2.0, 2.0, 2.0),
             new THREE.MeshLambertMaterial({ color: 0x708090, flatShading: true })
@@ -550,7 +1002,7 @@ document.addEventListener("DOMContentLoaded", function() {
         castleBody.position.y = 1.0;
         castleBody.castShadow = true;
         group.add(castleBody);
-        // Turrets
+
         const turretGeo = new THREE.CylinderGeometry(0.35, 0.35, 2.4, 8);
         const turretMat = new THREE.MeshLambertMaterial({ color: 0x5a6b7c, flatShading: true });
         const roofGeo = new THREE.ConeGeometry(0.45, 0.8, 8);
@@ -569,66 +1021,335 @@ document.addEventListener("DOMContentLoaded", function() {
         return group;
     }
 
-    function createAnimalMesh() {
+    // ③ 生き物（動物・マスコット） 3D メッシュ群
+    function createShibaInuMesh() {
         const group = new THREE.Group();
-        // Body (Dog / Mascot)
-        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xea9c47, flatShading: true });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.8), bodyMat);
+        const tanMat = new THREE.MeshLambertMaterial({ color: 0xe0a96d, flatShading: true });
+        const whiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+        const blackMat = new THREE.MeshLambertMaterial({ color: 0x212121 });
+
+        // Body
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.75), tanMat);
         body.position.y = 0.45;
         body.castShadow = true;
         group.add(body);
 
+        // White chest
+        const chest = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.35, 0.35), whiteMat);
+        chest.position.set(0, 0.4, 0.22);
+        group.add(chest);
+
         // Head
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), bodyMat);
-        head.position.set(0, 0.75, 0.35);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.42), tanMat);
+        head.position.set(0, 0.75, 0.32);
         head.castShadow = true;
         group.add(head);
 
         // Snout
-        const snout = new THREE.Mesh(
-            new THREE.BoxGeometry(0.25, 0.2, 0.2),
-            new THREE.MeshLambertMaterial({ color: 0xffdab9 })
-        );
-        snout.position.set(0, 0.68, 0.6);
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.2, 0.22), whiteMat);
+        snout.position.set(0, 0.68, 0.55);
         group.add(snout);
 
         // Nose
-        const nose = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.08, 0.05),
-            new THREE.MeshLambertMaterial({ color: 0x111111 })
-        );
-        nose.position.set(0, 0.72, 0.71);
+        const nose = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.05), blackMat);
+        nose.position.set(0, 0.72, 0.66);
         group.add(nose);
 
         // Ears
-        const earMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
-        const earL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.12), earMat);
-        earL.position.set(-0.24, 0.85, 0.35);
-        group.add(earL);
+        [[-0.18, 0.98, 0.32], [0.18, 0.98, 0.32]].forEach(pos => {
+            const ear = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.22, 4), tanMat);
+            ear.position.set(pos[0], pos[1], pos[2]);
+            group.add(ear);
+        });
 
-        const earR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.12), earMat);
-        earR.position.set(0.24, 0.85, 0.35);
-        group.add(earR);
-
-        // Tail
-        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.08), bodyMat);
-        tail.position.set(0, 0.6, -0.42);
-        tail.rotation.x = -0.5;
+        // Curly tail
+        const tail = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.05, 6, 8, Math.PI * 1.2), tanMat);
+        tail.position.set(0, 0.62, -0.4);
+        tail.rotation.y = Math.PI / 2;
         group.add(tail);
 
         return group;
     }
 
+    function createCalicoCatMesh() {
+        const group = new THREE.Group();
+        const whiteMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f5, flatShading: true });
+        const orangeMat = new THREE.MeshLambertMaterial({ color: 0xe67e22, flatShading: true });
+        const darkMat = new THREE.MeshLambertMaterial({ color: 0x2c3e50, flatShading: true });
+
+        // Sleek body
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.38, 0.7), whiteMat);
+        body.position.y = 0.42;
+        body.castShadow = true;
+        group.add(body);
+
+        // Calico patches
+        const patch1 = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.25, 0.3), orangeMat);
+        patch1.position.set(0, 0.48, -0.15);
+        group.add(patch1);
+
+        const patch2 = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.22, 0.25), darkMat);
+        patch2.position.set(0, 0.46, 0.15);
+        group.add(patch2);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.35, 0.35), whiteMat);
+        head.position.set(0, 0.68, 0.32);
+        head.castShadow = true;
+        group.add(head);
+
+        // Ears
+        [[-0.14, 0.88, 0.32], [0.14, 0.88, 0.32]].forEach((pos, idx) => {
+            const ear = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.18, 4), idx === 0 ? orangeMat : darkMat);
+            ear.position.set(pos[0], pos[1], pos[2]);
+            group.add(ear);
+        });
+
+        // Long tail
+        const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45, 6), orangeMat);
+        tail.position.set(0, 0.6, -0.45);
+        tail.rotation.x = 0.6;
+        group.add(tail);
+
+        return group;
+    }
+
+    function createWhiteRabbitMesh() {
+        const group = new THREE.Group();
+        const whiteMat = new THREE.MeshLambertMaterial({ color: 0xfafafa, flatShading: true });
+        const pinkMat = new THREE.MeshLambertMaterial({ color: 0xffc0cb });
+        const redEyeMat = new THREE.MeshBasicMaterial({ color: 0xe91e63 });
+
+        // Fluffy body
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), whiteMat);
+        body.position.y = 0.35;
+        body.scale.set(1, 0.9, 1.2);
+        body.castShadow = true;
+        group.add(body);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), whiteMat);
+        head.position.set(0, 0.52, 0.25);
+        head.castShadow = true;
+        group.add(head);
+
+        // Long ears
+        [[-0.1, 0.78, 0.22], [0.1, 0.78, 0.22]].forEach(pos => {
+            const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.4, 6), whiteMat);
+            ear.position.set(pos[0], pos[1], pos[2]);
+            ear.rotation.z = pos[0] > 0 ? -0.15 : 0.15;
+            group.add(ear);
+
+            const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.35, 6), pinkMat);
+            inner.position.set(pos[0], pos[1], pos[2] + 0.02);
+            inner.rotation.z = pos[0] > 0 ? -0.15 : 0.15;
+            group.add(inner);
+        });
+
+        // Eyes
+        [[-0.14, 0.56, 0.38], [0.14, 0.56, 0.38]].forEach(pos => {
+            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), redEyeMat);
+            eye.position.set(pos[0], pos[1], pos[2]);
+            group.add(eye);
+        });
+
+        // Puff tail
+        const tail = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), whiteMat);
+        tail.position.set(0, 0.32, -0.38);
+        group.add(tail);
+
+        return group;
+    }
+
+    function createCapybaraMesh() {
+        const group = new THREE.Group();
+        const brownMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+        const darkMat = new THREE.MeshLambertMaterial({ color: 0x4e342e });
+
+        // Chunky barrel body
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.55, 0.95), brownMat);
+        body.position.y = 0.5;
+        body.castShadow = true;
+        group.add(body);
+
+        // Square head
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.45, 0.5), brownMat);
+        head.position.set(0, 0.72, 0.42);
+        head.castShadow = true;
+        group.add(head);
+
+        // Flat snout
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.28, 0.2), darkMat);
+        snout.position.set(0, 0.65, 0.65);
+        group.add(snout);
+
+        // Tiny ears
+        [[-0.24, 0.92, 0.38], [0.24, 0.92, 0.38]].forEach(pos => {
+            const ear = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), darkMat);
+            ear.position.set(pos[0], pos[1], pos[2]);
+            group.add(ear);
+        });
+
+        // Short legs
+        [[-0.22, 0.15, 0.3], [0.22, 0.15, 0.3], [-0.22, 0.15, -0.3], [0.22, 0.15, -0.3]].forEach(pos => {
+            const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.3, 0.14), darkMat);
+            leg.position.set(pos[0], pos[1], pos[2]);
+            group.add(leg);
+        });
+
+        return group;
+    }
+
+    function createPenguinMesh() {
+        const group = new THREE.Group();
+        const blackMat = new THREE.MeshLambertMaterial({ color: 0x212121, flatShading: true });
+        const whiteMat = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
+        const yellowMat = new THREE.MeshLambertMaterial({ color: 0xffb300 });
+
+        // Body (Black capsule shape)
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.35, 0.8, 10), blackMat);
+        body.position.y = 0.5;
+        body.castShadow = true;
+        group.add(body);
+
+        // White belly
+        const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.72, 10, 1, false, -Math.PI / 3, (2 * Math.PI) / 3), whiteMat);
+        belly.position.set(0, 0.48, 0.04);
+        group.add(belly);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 10), blackMat);
+        head.position.y = 0.95;
+        head.castShadow = true;
+        group.add(head);
+
+        // Beak
+        const beak = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 6), yellowMat);
+        beak.position.set(0, 0.92, 0.32);
+        beak.rotation.x = Math.PI / 2;
+        group.add(beak);
+
+        // Flippers
+        [[-0.32, 0.55, 0], [0.32, 0.55, 0]].forEach(pos => {
+            const flipper = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.2), blackMat);
+            flipper.position.set(pos[0], pos[1], pos[2]);
+            flipper.rotation.z = pos[0] > 0 ? -0.2 : 0.2;
+            group.add(flipper);
+        });
+
+        // Feet
+        [[-0.14, 0.05, 0.12], [0.14, 0.05, 0.12]].forEach(pos => {
+            const foot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.06, 0.24), yellowMat);
+            foot.position.set(pos[0], pos[1], pos[2]);
+            group.add(foot);
+        });
+
+        return group;
+    }
+
+    function createSeagullMesh() {
+        const group = new THREE.Group();
+        const whiteMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f5, flatShading: true });
+        const greyMat = new THREE.MeshLambertMaterial({ color: 0x78909c, flatShading: true });
+        const yellowMat = new THREE.MeshLambertMaterial({ color: 0xffca28 });
+
+        // Body
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.55, 6), whiteMat);
+        body.position.y = 0.3;
+        body.rotation.x = Math.PI / 2.2;
+        body.castShadow = true;
+        group.add(body);
+
+        // Wings
+        [[-0.28, 0.32, 0], [0.28, 0.32, 0]].forEach(pos => {
+            const wing = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.04, 0.22), greyMat);
+            wing.position.set(pos[0], pos[1], pos[2]);
+            wing.rotation.z = pos[0] > 0 ? -0.2 : 0.2;
+            group.add(wing);
+        });
+
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), whiteMat);
+        head.position.set(0, 0.42, 0.24);
+        group.add(head);
+
+        // Beak
+        const beak = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.18, 5), yellowMat);
+        beak.position.set(0, 0.4, 0.38);
+        beak.rotation.x = Math.PI / 2;
+        group.add(beak);
+
+        return group;
+    }
+
+    function createParakeetMesh() {
+        const group = new THREE.Group();
+        const greenMat = new THREE.MeshLambertMaterial({ color: 0x00e676, flatShading: true });
+        const yellowMat = new THREE.MeshLambertMaterial({ color: 0xffea00, flatShading: true });
+        const orangeMat = new THREE.MeshLambertMaterial({ color: 0xff9100 });
+
+        // Body
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.5, 6), greenMat);
+        body.position.y = 0.3;
+        body.rotation.x = Math.PI / 2.3;
+        group.add(body);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), yellowMat);
+        head.position.set(0, 0.42, 0.22);
+        group.add(head);
+
+        // Beak
+        const beak = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.12, 5), orangeMat);
+        beak.position.set(0, 0.4, 0.34);
+        beak.rotation.x = Math.PI / 2.2;
+        group.add(beak);
+
+        // Tail feathers
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.4), greenMat);
+        tail.position.set(0, 0.2, -0.32);
+        tail.rotation.x = -0.3;
+        group.add(tail);
+
+        return group;
+    }
+
+    function createAnimalMesh() {
+        return createShibaInuMesh();
+    }
+
     function build3DMeshForItemType(type) {
         switch (type) {
             case 'tree': return createTreeMesh();
+            case 'palm_tree': return createPalmTreeMesh();
+            case 'broadleaf_tree': return createBroadleafTreeMesh();
+            case 'cherry_tree': return createCherryTreeMesh();
             case 'flower': return createFlowerMesh();
-            case 'rock': return createRockMesh();
-            case 'house': return createHouseMesh();
+            case 'flower_bed': return createFlowerBedMesh();
+            case 'sunflower_cluster': return createSunflowerClusterMesh();
+            case 'garden_light': return createGardenLightMesh();
+            case 'bonfire': return createBonfireMesh();
             case 'fountain': return createFountainMesh();
+            case 'small_pond': return createSmallPondMesh();
+            case 'rock': return createRockMesh();
+            case 'wooden_bench': return createWoodenBenchMesh();
+            case 'hammock': return createHammockMesh();
+            case 'beach_parasol_set': return createBeachParasolSetMesh();
+            case 'wood_deck': return createWoodDeckMesh();
+            case 'cafe_table_set': return createCafeTableSetMesh();
+            case 'watchtower': return createWatchtowerMesh();
+            case 'cottage': return createCottageMesh();
+            case 'house': return createHouseMesh();
             case 'shop': return createShopMesh();
             case 'castle': return createCastleMesh();
-            case 'animal': return createAnimalMesh();
+            case 'animal': return createShibaInuMesh();
+            case 'shiba_inu': return createShibaInuMesh();
+            case 'calico_cat': return createCalicoCatMesh();
+            case 'white_rabbit': return createWhiteRabbitMesh();
+            case 'capybara': return createCapybaraMesh();
+            case 'penguin': return createPenguinMesh();
+            case 'seagull': return createSeagullMesh();
+            case 'parakeet': return createParakeetMesh();
             default: return createTreeMesh();
         }
     }
@@ -645,6 +1366,12 @@ document.addEventListener("DOMContentLoaded", function() {
             .catch(err => console.error("Error loading island data:", err));
     }
 
+    const CREATURE_TYPES = ['animal', 'shiba_inu', 'calico_cat', 'white_rabbit', 'capybara', 'penguin', 'seagull', 'parakeet'];
+
+    function isCreatureType(type) {
+        return CREATURE_TYPES.includes(type);
+    }
+
     function renderPlacedItems() {
         // Clear existing placed objects
         placedObjectsMap.forEach(obj => scene.remove(obj));
@@ -659,30 +1386,53 @@ document.addEventListener("DOMContentLoaded", function() {
                 const mesh = build3DMeshForItemType(item.item_type);
                 group.add(mesh);
 
-                // Default ground position if not set
                 const posX = item.position_x || (Math.random() * 8 - 4);
                 const posZ = item.position_z || (Math.random() * 8 - 4);
-                group.position.set(posX, 2.7, posZ);
+
+                let initialY = 2.7;
+                if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
+                    initialY = 4.2; // flying
+                }
+
+                group.position.set(posX, initialY, posZ);
                 group.rotation.y = item.rotation_y || 0;
+
+                const isCreature = isCreatureType(item.item_type);
 
                 group.userData = {
                     itemId: item.id,
                     itemType: item.item_type,
                     itemName: item.name,
-                    isCreature: item.item_type === 'animal'
+                    isCreature: isCreature
                 };
 
                 scene.add(group);
                 placedObjectsMap.set(item.id, group);
 
-                if (item.item_type === 'animal') {
+                if (isCreature) {
+                    let speed = 0.025;
+                    let initialState = 'idle';
+
+                    if (item.item_type === 'shiba_inu' || item.item_type === 'animal') speed = 0.04;
+                    else if (item.item_type === 'calico_cat') speed = 0.02;
+                    else if (item.item_type === 'white_rabbit') speed = 0.035;
+                    else if (item.item_type === 'capybara') speed = 0.015;
+                    else if (item.item_type === 'penguin') speed = 0.022;
+                    else if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
+                        speed = 0.055;
+                        initialState = 'flying';
+                    }
+
                     creaturesList.push({
                         group: group,
-                        targetPos: new THREE.Vector3(posX, 2.7, posZ),
-                        state: 'idle', // 'idle' | 'walking'
+                        type: item.item_type,
+                        basePosY: initialY,
+                        targetPos: new THREE.Vector3(posX, initialY, posZ),
+                        state: initialState,
                         stateTimer: Math.random() * 3 + 2,
-                        speed: 0.03,
-                        bouncePhase: Math.random() * Math.PI * 2
+                        speed: speed,
+                        bouncePhase: Math.random() * Math.PI * 2,
+                        actionPhase: 0
                     });
                 }
             }
@@ -860,9 +1610,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     function triggerCreatureReaction(group, clientX, clientY) {
-        // Bounce up
-        let startY = 2.7;
-        let bounceHeight = 1.2;
+        let startY = group.position.y;
+        let bounceHeight = 1.5;
         let duration = 500;
         let startTime = performance.now();
 
@@ -879,10 +1628,13 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         requestAnimationFrame(animateBounce);
 
-        // Spawn Heart Effect
+        // Spawn Reaction Effects (Emojis ❤️, 🎵, ✨, 🐾, 🌟, 🎉)
+        const emojiList = ["❤️", "🎵", "✨", "🐾", "🌟", "🎉", "💖", "🎶"];
+        const randEmoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+
         const heart = document.createElement("div");
         heart.className = "reaction-heart";
-        heart.innerText = "❤️";
+        heart.innerText = randEmoji;
         heart.style.left = `${clientX}px`;
         heart.style.top = `${clientY}px`;
         document.body.appendChild(heart);
@@ -896,34 +1648,163 @@ document.addEventListener("DOMContentLoaded", function() {
         creaturesList.forEach(c => {
             c.stateTimer -= delta;
 
-            if (c.state === 'idle') {
-                if (c.stateTimer <= 0) {
-                    // Pick new random target within island radius (r <= 7.5)
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = Math.random() * 7.5;
-                    c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
-                    c.state = 'walking';
-                    c.stateTimer = Math.random() * 6 + 4;
+            // 1. Boundary check (prevent falling into ocean)
+            const currentDist = Math.sqrt(c.group.position.x * c.group.position.x + c.group.position.z * c.group.position.z);
+            if (currentDist > 8.8) {
+                // Force target towards island center
+                c.targetPos.set(
+                    c.group.position.x * -0.5,
+                    c.basePosY,
+                    c.group.position.z * -0.5
+                );
+                c.state = (c.type === 'seagull' || c.type === 'parakeet') ? 'flying' : 'walking';
+            }
+
+            // 2. State Machine & Transitions
+            if (c.stateTimer <= 0) {
+                if (c.type === 'shiba_inu' || c.type === 'animal') {
+                    if (c.state === 'idle') {
+                        const isRun = Math.random() < 0.35;
+                        c.state = isRun ? 'running' : 'walking';
+                        c.speed = isRun ? 0.065 : 0.038;
+                        const angle = Math.random() * Math.PI * 2;
+                        const radius = Math.random() * 7.5;
+                        c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                        c.stateTimer = Math.random() * 5 + 3;
+                    } else {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 4 + 2;
+                    }
+                } else if (c.type === 'calico_cat') {
+                    if (c.state === 'idle' || c.state === 'sleeping') {
+                        if (Math.random() < 0.3) {
+                            c.state = 'sleeping';
+                            c.stateTimer = Math.random() * 7 + 4;
+                        } else {
+                            c.state = 'walking';
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = Math.random() * 7.0;
+                            c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                            c.stateTimer = Math.random() * 6 + 3;
+                        }
+                    } else {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 4 + 2;
+                    }
+                } else if (c.type === 'white_rabbit') {
+                    if (c.state === 'idle') {
+                        c.state = 'hopping';
+                        const angle = Math.random() * Math.PI * 2;
+                        const radius = Math.random() * 7.2;
+                        c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                        c.stateTimer = Math.random() * 4 + 3;
+                    } else {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 3 + 2;
+                    }
+                } else if (c.type === 'capybara') {
+                    if (c.state === 'idle') {
+                        c.state = 'walking';
+                        // Look for nearby water objects (fountain or pond)
+                        let waterItem = islandData && islandData.items ? islandData.items.find(i => i.is_placed && (i.item_type === 'small_pond' || i.item_type === 'fountain')) : null;
+                        if (waterItem && Math.random() < 0.65) {
+                            c.targetPos.set(
+                                waterItem.position_x + (Math.random() - 0.5) * 2.0,
+                                2.7,
+                                waterItem.position_z + (Math.random() - 0.5) * 2.0
+                            );
+                        } else {
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = Math.random() * 6.8;
+                            c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                        }
+                        c.stateTimer = Math.random() * 7 + 4;
+                    } else {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 5 + 3;
+                    }
+                } else if (c.type === 'penguin') {
+                    if (c.state === 'idle') {
+                        c.state = 'waddling';
+                        // Coastline area (r: 7.2 ~ 9.0)
+                        const angle = Math.random() * Math.PI * 2;
+                        const radius = 7.2 + Math.random() * 1.8;
+                        c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                        c.stateTimer = Math.random() * 6 + 3;
+                    } else {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 4 + 2;
+                    }
+                } else if (c.type === 'seagull' || c.type === 'parakeet') {
+                    if (c.state === 'flying') {
+                        if (Math.random() < 0.4) {
+                            c.state = 'pecking';
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = Math.random() * 6.5;
+                            c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                            c.stateTimer = Math.random() * 4 + 2;
+                        } else {
+                            c.state = 'flying';
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = Math.random() * 8.0;
+                            c.targetPos.set(Math.cos(angle) * radius, 3.8 + Math.random() * 1.2, Math.sin(angle) * radius);
+                            c.stateTimer = Math.random() * 6 + 4;
+                        }
+                    } else {
+                        c.state = 'flying';
+                        const angle = Math.random() * Math.PI * 2;
+                        const radius = Math.random() * 8.0;
+                        c.targetPos.set(Math.cos(angle) * radius, 3.8 + Math.random() * 1.2, Math.sin(angle) * radius);
+                        c.stateTimer = Math.random() * 6 + 4;
+                    }
                 }
-            } else if (c.state === 'walking') {
+            }
+
+            // 3. Movement Execution & Procedural Animation
+            if (c.state === 'walking' || c.state === 'running' || c.state === 'hopping' || c.state === 'waddling' || c.state === 'flying' || c.state === 'pecking') {
                 const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
-                dir.y = 0;
+                if (c.state !== 'flying') dir.y = 0;
                 const dist = dir.length();
 
-                if (dist < 0.2 || c.stateTimer <= 0) {
-                    c.state = 'idle';
-                    c.stateTimer = Math.random() * 4 + 2;
+                if (dist < 0.25) {
+                    if (c.state !== 'flying') {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 3 + 2;
+                    }
                 } else {
                     dir.normalize();
                     c.group.position.addScaledVector(dir, c.speed);
-
-                    // Face walk direction
                     c.group.rotation.y = Math.atan2(dir.x, dir.z);
 
-                    // Gentle walking hop/bounce
-                    c.bouncePhase += delta * 10;
-                    c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase)) * 0.15;
+                    c.bouncePhase += delta * 12;
+
+                    if (c.state === 'hopping') {
+                        // High parabolic jump arc for rabbit
+                        c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase * 1.2)) * 0.45;
+                    } else if (c.state === 'waddling') {
+                        // Side sway for penguin
+                        c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase)) * 0.1;
+                        c.group.rotation.z = Math.sin(c.bouncePhase) * 0.18;
+                    } else if (c.state === 'flying') {
+                        // Wing flap / height wave for bird
+                        c.group.position.y = c.targetPos.y + Math.sin(c.bouncePhase * 0.8) * 0.2;
+                        c.group.rotation.z = Math.sin(c.bouncePhase * 0.5) * 0.15;
+                    } else {
+                        // Regular walking/running hop
+                        c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase)) * (c.state === 'running' ? 0.25 : 0.12);
+                        c.group.rotation.z = 0;
+                    }
                 }
+            } else if (c.state === 'idle') {
+                c.group.rotation.z = 0;
+                c.group.position.y = (c.type === 'seagull' || c.type === 'parakeet') ? c.targetPos.y : 2.7;
+                if (c.type === 'shiba_inu' || c.type === 'animal') {
+                    c.actionPhase += delta * 15;
+                    c.group.rotation.y += Math.sin(c.actionPhase) * 0.01;
+                }
+            } else if (c.state === 'sleeping') {
+                c.group.position.y = 2.55;
+                c.group.rotation.z = 0.2; // Sleeping curl tilt
             }
         });
     }

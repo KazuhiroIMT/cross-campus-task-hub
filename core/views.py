@@ -834,6 +834,10 @@ def my_island(request):
     """マイアイランド管理画面"""
     profile, _ = IslandProfile.objects.get_or_create(user=request.user)
 
+    # 初回アクセス時またはアイテム未所有時にシードデータを確保
+    from .management.commands.seed_island_items import seed_items_for_user
+    seed_items_for_user(request.user)
+
     if request.method == 'POST' and 'toggle_item_placed' in request.POST:
         item_id = request.POST.get('item_id')
         item = get_object_or_404(IslandItem, pk=item_id, user=request.user)
@@ -867,16 +871,7 @@ def gacha_page(request):
         profile.gacha_tickets -= 1
         profile.save()
 
-        ITEM_CHOICES = [
-            ('tree', '🌲 立派な樹木'),
-            ('flower', '🌸 綺麗なお花'),
-            ('rock', '🪨 風情のある大岩'),
-            ('house', '🏠 快適なコテージ'),
-            ('fountain', '⛲ 癒やしの噴水'),
-            ('shop', '🏪 賑やかなショップ'),
-            ('animal', '🐶 かわいい動物'),
-            ('castle', '🏰 ミニチュア城'),
-        ]
+        ITEM_CHOICES = [(k, v) for k, v in IslandItem.ITEM_TYPE_CHOICES]
 
         item_type, item_name = random.choice(ITEM_CHOICES)
         IslandItem.objects.create(

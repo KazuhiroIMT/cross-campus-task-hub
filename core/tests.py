@@ -325,7 +325,8 @@ class MyIslandTests(TestCase):
 
         item = IslandItem.objects.get(user=self.user)
         self.assertTrue(item.is_placed)
-        self.assertIn(item.item_type, ['tree', 'flower', 'rock', 'house', 'fountain', 'shop', 'animal', 'castle'])
+        valid_item_types = list(dict(IslandItem.ITEM_TYPE_CHOICES).keys())
+        self.assertIn(item.item_type, valid_item_types)
 
     def test_my_island_page_access(self):
         """マイアイランドページおよび表示のテスト"""
