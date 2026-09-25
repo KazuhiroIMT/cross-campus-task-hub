@@ -796,41 +796,62 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // --- 教職員マスターデータをDjangoテンプレートから直接安全に受け取る ---
-const ALL_STAFFS = [
-    {% for staff in staffs %}
-    {
-        id: "{{ staff.id }}",
-        name: "{{ staff.last_name }} {{ staff.first_name }}（{{ staff.username }}）{% if staff.staff_profile.department_group %} - {{ staff.staff_profile.department_group.name }}{% endif %}",
-        deptId: "{{ staff.staff_profile.department_group.id|default:'' }}",
-        deptName: "{{ staff.staff_profile.department_group.name|default:'' }}"
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-];
+let ALL_STAFFS = [];
+try {
+    ALL_STAFFS = [
+        {% for staff in staffs %}
+        {
+            id: "{{ staff.id }}",
+            name: "{{ staff.last_name }} {{ staff.first_name }}（{{ staff.username }}）{% if staff.staff_profile.department_group %} - {{ staff.staff_profile.department_group.name }}{% endif %}",
+            deptId: "{{ staff.staff_profile.department_group.id|default:'' }}",
+            deptName: "{{ staff.staff_profile.department_group.name|default:'' }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+} catch (e) {
+    console.warn("ALL_STAFFS init warning:", e);
+}
 
 // --- 画面読み込み時の初期化 ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Bootstrapツールチップ
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    try {
+        // Bootstrapツールチップ
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    } catch (e) {
+        console.warn("Tooltip init warning:", e);
+    }
 
-    // アコーディオン開閉状態の復元
-    restoreAccordionState('urgentTasksBody', 'urgentHeader', 'accordion_urgent_open');
-    restoreAccordionState('normalTasksBody', 'normalHeader', 'accordion_normal_open');
-    setupAccordionStorage('urgentTasksBody', 'urgentHeader', 'accordion_urgent_open');
-    setupAccordionStorage('normalTasksBody', 'normalHeader', 'accordion_normal_open');
+    try {
+        // アコーディオン開閉状態の復元
+        restoreAccordionState('urgentTasksBody', 'urgentHeader', 'accordion_urgent_open');
+        restoreAccordionState('normalTasksBody', 'normalHeader', 'accordion_normal_open');
+        setupAccordionStorage('urgentTasksBody', 'urgentHeader', 'accordion_urgent_open');
+        setupAccordionStorage('normalTasksBody', 'normalHeader', 'accordion_normal_open');
+    } catch (e) {
+        console.warn("Accordion state init warning:", e);
+    }
 
     // チェックボックス一括全選択/全解除関数
     window.toggleSelectAll = function(masterCb, className) {
-        const checkboxes = document.querySelectorAll('.' + className);
-        checkboxes.forEach(cb => cb.checked = masterCb.checked);
+        try {
+            const checkboxes = document.querySelectorAll('.' + className);
+            checkboxes.forEach(cb => cb.checked = masterCb.checked);
+        } catch (e) {
+            console.warn("toggleSelectAll warning:", e);
+        }
     };
 
-    // 教職員プルダウンの初期展開（全員表示）
-    filterStaffs();
-    // 起票モーダルを開くたびに毎回完全初期化 ▼▼▼
-    const createTaskModal = document.getElementById('createTaskModal');
-    if (createTaskModal) {
-        createTaskModal.addEventListener('show.bs.modal', resetCreateTaskModal);
+    try {
+        // 教職員プルダウンの初期展開（全員表示）
+        filterStaffs();
+        // 起票モーダルを開くたびに毎回完全初期化 ▼▼▼
+        const createTaskModal = document.getElementById('createTaskModal');
+        if (createTaskModal) {
+            createTaskModal.addEventListener('show.bs.modal', resetCreateTaskModal);
+        }
+    } catch (e) {
+        console.warn("Modal init warning:", e);
     }
 });
 
@@ -979,7 +1000,13 @@ function selectAllDepts(select) {
 }
 
 // --- 学生非同期検索 ---
-const deptClassMap = JSON.parse('{{ dept_class_map_json|escapejs|default:"{}" }}');
+let deptClassMap = {};
+try {
+    deptClassMap = JSON.parse('{{ dept_class_map_json|escapejs|default:"{}" }}');
+} catch (e) {
+    console.warn("deptClassMap parse warning:", e);
+    deptClassMap = {};
+}
 
 function onDepartmentChange() {
     const deptSelect = document.getElementById('filterDept');
@@ -1104,10 +1131,6 @@ function selectAllStudents(select) {
         }
     });
 
-    // 4. フォーカス喪失（画面キャプチャツール等に切り替わった場合）での一時ブラー
-    window.addEventListener('blur', function() {
-        applyTemporaryBlur(1500);
-    });
 })();
 {% endif %}
 </script>

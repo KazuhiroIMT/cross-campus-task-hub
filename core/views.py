@@ -116,14 +116,27 @@ def set_department_title(request, dept_id):
 def dashboard(request):
     user = request.user
 
-    # Ensure companion exists for existing users
-    companion = getattr(user, 'usercompanion', None)
-    if not companion:
-        from .models import UserCompanion
-        UserCompanion.objects.get_or_create(user=user)
+    # Safely ensure companion exists for existing users
+    companion = None
+    try:
+        companion = getattr(user, 'usercompanion', None)
+        if not companion:
+            companion, _ = UserCompanion.objects.get_or_create(user=user)
+    except Exception:
+        companion = None
 
-    island_profile, _ = IslandProfile.objects.get_or_create(user=user)
-    user_groups = user.groups.all()
+    # Safely ensure island_profile exists
+    island_profile = None
+    try:
+        island_profile, _ = IslandProfile.objects.get_or_create(user=user)
+    except Exception:
+        island_profile = None
+
+    try:
+        user_groups = user.groups.all()
+    except Exception:
+        user_groups = Group.objects.none()
+
     today = timezone.now().date()
 
     # 1. 一括ステータス変更アクションの処理
@@ -423,14 +436,21 @@ def dashboard(request):
         {k: sorted(list(v)) for k, v in dept_class_map.items()}, ensure_ascii=False
     )
 
-    graduated_companions = GraduatedCompanion.objects.filter(user=user)
+    try:
+        graduated_companions = GraduatedCompanion.objects.filter(user=user)
+    except Exception:
+        graduated_companions = []
 
     # 部署ボスの簡易表示用データ
-    user_primary_dept = user_groups.first()
+    user_primary_dept = None
     active_dept_battle = None
-    if user_primary_dept:
-        ensure_active_department_boss(user_primary_dept)
-        active_dept_battle = DepartmentBattle.objects.filter(department=user_primary_dept, status='active').first()
+    try:
+        user_primary_dept = user_groups.first() if user_groups.exists() else None
+        if user_primary_dept:
+            ensure_active_department_boss(user_primary_dept)
+            active_dept_battle = DepartmentBattle.objects.filter(department=user_primary_dept, status='active').first()
+    except Exception:
+        active_dept_battle = None
 
     context = {
         'urgent_tasks': urgent_tasks,
