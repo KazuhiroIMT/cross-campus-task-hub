@@ -742,8 +742,10 @@ class IslandItem(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='island_items', verbose_name="ユーザー")
     item_type = models.CharField("アイテム種類", max_length=50, choices=ITEM_TYPE_CHOICES)
     name = models.CharField("アイテム名", max_length=100)
-    position_x = models.IntegerField("配置位置X", default=0, null=True, blank=True)
-    position_y = models.IntegerField("配置位置Y", default=0, null=True, blank=True)
+    position_x = models.FloatField("配置位置X", default=0.0)
+    position_y = models.FloatField("配置位置Y", default=0.0)
+    position_z = models.FloatField("配置位置Z", default=0.0)
+    rotation_y = models.FloatField("Y軸回転", default=0.0)
     obtained_at = models.DateTimeField("獲得日時", auto_now_add=True)
     is_placed = models.BooleanField("配置済み", default=True)
 

@@ -958,3 +958,69 @@ def set_current_title(request):
                 messages.error(request, "未達成の実績を称号に設定することはできません。")
 
     return redirect('achievements_page')
+
+
+@login_required
+def api_get_island_data(request):
+    """島データ取得用Ajax API"""
+    user = request.user
+    profile, _ = IslandProfile.objects.get_or_create(user=user)
+    items = IslandItem.objects.filter(user=user)
+
+    items_data = []
+    for item in items:
+        items_data.append({
+            'id': item.id,
+            'name': item.name,
+            'item_type': item.item_type,
+            'icon': item.icon,
+            'position_x': item.position_x,
+            'position_y': item.position_y,
+            'position_z': item.position_z,
+            'rotation_y': item.rotation_y,
+            'is_placed': item.is_placed,
+        })
+
+    data = {
+        'island': {
+            'level': profile.level,
+            'experience': profile.experience,
+            'next_level_exp': profile.next_level_exp,
+            'exp_progress_percent': profile.exp_progress_percent,
+            'coins': profile.coins,
+            'gacha_tickets': profile.gacha_tickets,
+        },
+        'items': items_data,
+    }
+    return JsonResponse(data)
+
+
+@login_required
+def api_save_placed_items(request):
+    """配置変更非同期保存用Ajax API"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid HTTP method'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        items_payload = body.get('items', [])
+
+        user = request.user
+        user_item_ids = set(IslandItem.objects.filter(user=user).values_list('id', flat=True))
+
+        updated_count = 0
+        for item_info in items_payload:
+            item_id = item_info.get('id')
+            if item_id in user_item_ids:
+                item = IslandItem.objects.get(pk=item_id, user=user)
+                item.position_x = float(item_info.get('position_x', 0.0))
+                item.position_y = float(item_info.get('position_y', 0.0))
+                item.position_z = float(item_info.get('position_z', 0.0))
+                item.rotation_y = float(item_info.get('rotation_y', 0.0))
+                item.is_placed = bool(item_info.get('is_placed', True))
+                item.save()
+                updated_count += 1
+
+        return JsonResponse({'status': 'success', 'updated_count': updated_count})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
