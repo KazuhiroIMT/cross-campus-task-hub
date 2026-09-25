@@ -71,244 +71,283 @@
         {% endfor %}
     {% endif %}
 
-    <!-- Header Controls & Gamification Widget -->
-    <div class="row align-items-center mb-4 g-3">
-        <div class="col-lg-8">
-            <!-- Gamification Companion Widget (Moved here) -->
-            {% if user.usercompanion %}
-                {% if user.usercompanion.companion_type == 'none' %}
-                <div class="card shadow-sm border-info w-100 mb-0">
-                    <div class="card-body py-2 d-flex align-items-center justify-content-between gap-3">
-                        <div>
-                            <h6 class="card-title text-info mb-1"><i class="bi bi-star"></i> 育成キャラクターを選ぼう！</h6>
-                            <form method="post" action="{% url 'select_companion' %}">
-                                {% csrf_token %}
-                                <div class="d-flex flex-wrap gap-2">
-                                    <button type="submit" name="companion_type" value="chick" class="btn btn-outline-warning btn-sm">🐣 ひよこ</button>
-                                    <button type="submit" name="companion_type" value="robot" class="btn btn-outline-secondary btn-sm">🤖 ロボット</button>
-                                    <button type="submit" name="companion_type" value="cactus" class="btn btn-outline-success btn-sm">🌱 サボテン</button>
-                                </div>
-                            </form>
-                        </div>
-                        {% if island_profile %}
-                        <div class="border-start ps-3 flex-shrink-0 text-end">
-                            <div class="fw-bold small text-dark mb-1">
-                                🏝️ 島 Lv.{{ island_profile.level }} <span class="text-secondary fw-normal" style="font-size: 0.75rem;">({{ island_profile.experience }}/{{ island_profile.next_level_exp }} EXP)</span>
-                            </div>
-                            <div class="small text-muted mb-1" style="font-size: 0.75rem;">
-                                🏆 称号: {% if island_profile.current_title %}{{ island_profile.current_title.name }}{% else %}なし{% endif %}
-                            </div>
-                            <div class="d-flex gap-1 justify-content-end">
-                                <a href="{% url 'my_island' %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;">
-                                    島を見る
-                                </a>
-                                <a href="{% url 'achievements_page' %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
-                                    実績を見る
-                                </a>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% else %}
-                <div class="card shadow-sm border-primary w-100 mb-0">
-                    <div class="card-body d-flex align-items-center justify-content-between gap-3 py-2">
-                        <div class="d-flex align-items-center gap-3 flex-shrink-0">
-                            <div class="display-6 m-0 lh-1">{{ user.usercompanion.current_form }}</div>
-                            <div>
-                                <h6 class="mb-0">Level {{ user.usercompanion.level }}</h6>
-                                <p class="mb-0 text-muted" style="font-size: 0.75rem;">完了: {{ user.usercompanion.completed_tasks_count }}</p>
-                            </div>
-                        </div>
-                        {% if user.usercompanion.level < 4 %}
-                        <div class="flex-grow-1 px-md-3">
-                            <div class="d-flex justify-content-between mb-1" style="font-size: 0.75rem;">
-                                <span>次のレベルまで</span>
-                                <span>{{ user.usercompanion.progress_to_next_level }}%</span>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: {{ user.usercompanion.progress_to_next_level }}%"></div>
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="flex-grow-1 px-md-3 text-center text-success fw-bold d-flex flex-column align-items-center justify-content-center" style="font-size: 0.85rem;">
-                            <div><i class="bi bi-trophy-fill text-warning"></i> 最終形態到達！</div>
-                            <button type="button" class="btn btn-warning btn-sm mt-1 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#graduateModal">
-                                🎓 卒業して次のキャラを育てる
-                            </button>
-                        </div>
-                        {% endif %}
-                        {% if graduated_companions %}
-                        <div class="ms-auto flex-shrink-0">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#hallOfFameModal">
-                                🏆 殿堂入り一覧 ({{ graduated_companions.count }})
-                            </button>
-                        </div>
-                        {% endif %}
-
-                        <!-- マイアイランド & 称号 簡易サマリー -->
-                        {% if island_profile %}
-                        <div class="border-start ps-3 flex-shrink-0 text-end">
-                            <div class="fw-bold small text-dark mb-1">
-                                🏝️ 島 Lv.{{ island_profile.level }} <span class="text-secondary fw-normal" style="font-size: 0.75rem;">({{ island_profile.experience }}/{{ island_profile.next_level_exp }} EXP)</span>
-                            </div>
-                            <div class="small text-muted mb-1" style="font-size: 0.75rem;">
-                                🏆 称号: {% if island_profile.current_title %}{{ island_profile.current_title.name }}{% else %}なし{% endif %}
-                            </div>
-                            <div class="d-flex gap-1 justify-content-end">
-                                <a href="{% url 'my_island' %}" class="btn btn-outline-info btn-sm py-0 px-2" style="font-size: 0.75rem;">
-                                    島を見る
-                                </a>
-                                <a href="{% url 'achievements_page' %}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
-                                    実績を見る
-                                </a>
-                            </div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-            {% endif %}
+    <!-- Header Action Button (Business Top Priority) -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">ダッシュボード</h3>
+            <span class="text-muted small">本日の業務状況・対応予定タスク</span>
         </div>
-
-        <div class="col-lg-4 text-end">
-            <button type="button" class="btn btn-primary btn-lg fw-bold w-100 shadow-sm" style="padding: 12px 20px; font-size: 1.1rem; background: linear-gradient(135deg, #e2a33b 0%, #c48b2d 100%); border: none; color: #fff;" data-bs-toggle="modal" data-bs-target="#createTaskModal">
-                <i class="bi bi-pencil-square"></i> タスク依頼・起票
+        <div>
+            <button type="button" class="btn btn-primary btn-lg fw-bold shadow-sm px-4" style="background: linear-gradient(135deg, #e2a33b 0%, #c48b2d 100%); border: none; color: #fff;" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                <i class="bi bi-pencil-square me-1"></i> タスク依頼・起票
             </button>
         </div>
     </div>
 
-    <!-- 部署ボス 簡易サマリー表示 (タスク一覧の邪魔にならないコンパクト表示) -->
-    <div class="card shadow-sm border-0 mb-3 bg-light">
-        <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2" style="font-size: 0.85rem;">
-            {% if active_dept_battle %}
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold text-dark">⚔️ 部署ボス：{{ active_dept_battle.boss_name }}</span>
-                    <span class="badge bg-danger">HP {{ active_dept_battle.current_hp }}/{{ active_dept_battle.max_hp }}</span>
-                    <span class="text-muted d-none d-md-inline" style="font-size: 0.75rem;">(タスク完了でHP減少)</span>
-                </div>
-                <a href="{% url 'department_boss' active_dept_battle.department.id %}" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" style="font-size: 0.75rem;">
-                    討伐状況を見る
-                </a>
-            {% elif user_primary_dept %}
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted">⚔️ 部署ボス：現在挑戦中のボスはいません</span>
-                </div>
-                <a href="{% url 'department_boss' user_primary_dept.id %}" class="btn btn-outline-secondary btn-sm py-0 px-2 fw-bold" style="font-size: 0.75rem;">
-                    部署ボス画面
-                </a>
-            {% else %}
-                <div class="text-muted">⚔️ 所属部署が設定されていません</div>
-            {% endif %}
-        </div>
-    </div>
+    <form method="post" action="{% url 'dashboard' %}" id="bulkActionForm">
+        {% csrf_token %}
+        <input type="hidden" name="bulk_update_status" value="1">
 
-    <div class="row align-items-center mb-3 g-2">
-        <div class="col-lg-5 col-md-12">
-            <h4 class="fw-bold mb-0 text-secondary">
-                <i class="bi bi-card-checklist text-primary"></i> 要対応タスク一覧
-            </h4>
-        </div>
-        <div class="col-lg-7 col-md-12">
-            <form method="get" action="{% url 'dashboard' %}" class="d-flex gap-2 justify-content-lg-end">
-                <div class="input-group" style="max-width: 400px;">
+        <div class="row align-items-center mb-3 g-2">
+            <div class="col-lg-5 col-md-12">
+                <h4 class="fw-bold mb-0 text-secondary">
+                    <i class="bi bi-card-checklist text-primary"></i> 要対応タスク一覧
+                </h4>
+            </div>
+            <div class="col-lg-7 col-md-12 d-flex flex-wrap gap-2 justify-content-lg-end align-items-center">
+                <!-- ステータス一括変更コントロール -->
+                <div class="d-flex align-items-center gap-1 bg-light p-1 rounded border">
+                    <span class="small fw-bold text-muted px-1">一括変更:</span>
+                    <select name="bulk_status" class="form-select form-select-sm" style="width: auto;">
+                        <option value="open">未着手</option>
+                        <option value="in_progress">対応中</option>
+                        <option value="closed">完了</option>
+                    </select>
+                    <button type="submit" class="btn btn-outline-primary btn-sm fw-bold">適用</button>
+                </div>
+
+                <div class="input-group" style="max-width: 320px;">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                    <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="対象者名・件名・内容等で検索">
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-sm" placeholder="対象者名・件名・内容等で検索" form="searchForm">
                     {% if search_query %}
-                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">クリア</a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">クリア</a>
                     {% endif %}
-                    <button type="submit" class="btn btn-secondary">検索</button>
+                    <button type="submit" class="btn btn-secondary btn-sm" form="searchForm">検索</button>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ① 【至急対応・期日超過案件】（初期状態：閉じる） -->
-    {% if urgent_tasks %}
-    <div class="card border-danger shadow-sm mb-4">
-        <div id="urgentHeader" class="card-header bg-danger text-white fw-bold py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed"
-             data-bs-toggle="collapse" data-bs-target="#urgentTasksBody" aria-expanded="false">
-            <span>
-                <i class="bi bi-exclamation-triangle-fill"></i> 【至急】期日超過・本日中の対応案件（{{ urgent_tasks|length }}件）
-            </span>
-            <div class="small fw-normal d-flex align-items-center gap-2">
-                <span class="toggle-text-closed">▼ クリックして開く</span>
-                <span class="toggle-text-open">▲ クリックして閉じる</span>
             </div>
         </div>
-        <div id="urgentTasksBody" class="collapse">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 8%;">期日</th>
-                            <th style="width: 6%;">優先度</th>
-                            <th style="width: 12%;">ステータス</th>
-                            <th style="width: 22%;">対象者</th>
-                            <th style="width: 32%;">依頼内容 / 部署</th>
-                            <th style="width: 10%;">起票者</th>
+
+        <!-- ① 【至急対応・期日超過案件】 -->
+        {% if urgent_tasks %}
+        <div class="card border-danger shadow-sm mb-4">
+            <div id="urgentHeader" class="card-header bg-danger text-white fw-bold py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed"
+                 data-bs-toggle="collapse" data-bs-target="#urgentTasksBody" aria-expanded="false">
+                <span>
+                    <i class="bi bi-exclamation-triangle-fill"></i> 【至急】期日超過・本日中の対応案件（{{ urgent_tasks_count }}件）
+                </span>
+                <div class="small fw-normal d-flex align-items-center gap-2">
+                    <span class="toggle-text-closed">▼ クリックして開く</span>
+                    <span class="toggle-text-open">▲ クリックして閉じる</span>
+                </div>
+            </div>
+            <div id="urgentTasksBody" class="collapse">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 3%;" class="text-center">
+                                    <input type="checkbox" class="form-check-input" onclick="toggleSelectAll(this, 'urgent-checkbox')">
+                                </th>
+                                <th style="width: 8%;">期日</th>
+                                <th style="width: 6%;">優先度</th>
+                                <th style="width: 12%;">ステータス</th>
+                                <th style="width: 22%;">対象者</th>
+                                <th style="width: 32%;">依頼内容 / 部署</th>
+                                <th style="width: 10%;">起票者</th>
                             </tr>
-                    </thead>
-                    <tbody>
-                        {% for task in urgent_tasks %}
-                        <tr class="table-urgent" style="cursor: pointer;" onclick="location.href='{% url 'task_detail' task.pk %}'">
-                            <td class="fw-bold text-danger">{{ task.due_date|date:"m/d" }}</td>
-                            <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
-                            <td>
-                                <span class="badge {% if task.status == 'open' %}bg-danger{% elif task.status == 'in_progress' %}bg-warning text-dark{% else %}bg-success{% endif %}">
-                                    {{ task.get_status_display }}
-                                </span>
-                            </td>
-                            <td>{{ task.target_display }}</td>
-                            <td>
-                                <div class="d-flex align-items-center gap-1 mb-1">
-                                    <span class="badge bg-secondary">宛先: {{ task.target_group.name }}</span>
-                                    {% if task.privacy == 'sensitive' %}
-                                        <div class="mt-1">
-                                            <span class="badge bg-danger" 
-                                                data-bs-toggle="tooltip" 
-                                                data-bs-placement="top" 
-                                                data-bs-title="{% if task.target_user %}起票者・宛先担当者のみ閲覧可能{% else %}起票者・宛先部署（担当者）のみ閲覧可能{% endif %}"
-                                                style="font-size: 10px; cursor: help;"
-                                                onclick="event.stopPropagation()">
-                                                <i class="bi bi-lock-fill"></i> 機密
-                                            </span>
-                                        </div>
+                        </thead>
+                        <tbody>
+                            {% for task in urgent_tasks %}
+                            <tr class="table-urgent" style="cursor: pointer;" onclick="if(event.target.tagName !== 'INPUT') location.href='{% url 'task_detail' task.pk %}';">
+                                <td class="text-center" onclick="event.stopPropagation()">
+                                    <input type="checkbox" name="task_ids" value="{{ task.pk }}" class="form-check-input urgent-checkbox">
+                                </td>
+                                <td class="fw-bold text-danger">{{ task.due_date|date:"m/d" }}</td>
+                                <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
+                                <td>
+                                    <span class="badge {% if task.status == 'open' %}bg-danger{% elif task.status == 'in_progress' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ task.target_display }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                        <span class="badge bg-secondary">宛先: {{ task.target_group.name }}</span>
+                                        {% if task.privacy == 'sensitive' %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-danger"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    data-bs-title="{% if task.target_user %}起票者・宛先担当者のみ閲覧可能{% else %}起票者・宛先部署（担当者）のみ閲覧可能{% endif %}"
+                                                    style="font-size: 10px; cursor: help;"
+                                                    onclick="event.stopPropagation()">
+                                                    <i class="bi bi-lock-fill"></i> 機密
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="fw-bold text-dark">{{ task.title }}</div>
+                                    <small class="text-secondary">{{ task.description|truncatechars:40 }}</small>
+                                </td>
+                                <td class="small text-muted">
+                                    {% if task.created_by.last_name or task.created_by.first_name %}
+                                        {{ task.created_by.last_name|default:"" }} {{ task.created_by.first_name|default:"" }}
+                                    {% else %}
+                                        {{ task.created_by.username }}
                                     {% endif %}
-                                </div>
-                                <div class="fw-bold text-dark">{{ task.title }}</div>
-                                <small class="text-secondary">{{ task.description|truncatechars:40 }}</small>
-                            </td>
-                            <td class="small text-muted">
-                                {% if task.created_by.last_name or task.created_by.first_name %}
-                                    {{ task.created_by.last_name|default:"" }} {{ task.created_by.first_name|default:"" }}
-                                {% else %}
-                                    {{ task.created_by.username }}
-                                {% endif %}
-                            </td>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% if urgent_tasks.has_other_pages %}
+                <div class="card-footer bg-white d-flex justify-content-center py-2 border-top">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if urgent_tasks.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?urgent_page={{ urgent_tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if normal_tasks.number %}&page={{ normal_tasks.number }}{% endif %}">前へ</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">前へ</span></li>
+                            {% endif %}
+
+                            {% for num in urgent_tasks.paginator.page_range %}
+                                {% if urgent_tasks.number == num %}
+                                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                {% elif num > urgent_tasks.number|add:'-3' and num < urgent_tasks.number|add:'3' %}
+                                    <li class="page-item"><a class="page-link" href="?urgent_page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if normal_tasks.number %}&page={{ normal_tasks.number }}{% endif %}">{{ num }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if urgent_tasks.has_next %}
+                                <li class="page-item"><a class="page-link" href="?urgent_page={{ urgent_tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if normal_tasks.number %}&page={{ normal_tasks.number }}{% endif %}">次へ</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">次へ</span></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
         </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    <!-- ② 【今後の対応予定タスク】（初期状態：閉じる） -->
+        <!-- ② 【今後の対応予定タスク】 -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div id="normalHeader" class="card-header bg-white fw-bold text-dark py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed"
+                 data-bs-toggle="collapse" data-bs-target="#normalTasksBody" aria-expanded="false">
+                <div>
+                    <i class="bi bi-list-task text-primary"></i> 今後の対応予定タスク（{{ normal_tasks_count }}件）
+                </div>
+                <div class="small fw-normal text-muted d-flex align-items-center gap-2">
+                    <span class="toggle-text-closed">▼ クリックして開く</span>
+                    <span class="toggle-text-open">▲ クリックして閉じる</span>
+                </div>
+            </div>
+            <div id="normalTasksBody" class="collapse">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 3%;" class="text-center">
+                                    <input type="checkbox" class="form-check-input" onclick="toggleSelectAll(this, 'normal-checkbox')">
+                                </th>
+                                <th style="width: 8%;">期日</th>
+                                <th style="width: 6%;">優先度</th>
+                                <th style="width: 12%;">ステータス</th>
+                                <th style="width: 22%;">対象者</th>
+                                <th style="width: 32%;">依頼内容 / 部署</th>
+                                <th style="width: 10%;">起票者</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in normal_tasks %}
+                            <tr style="cursor: pointer;" onclick="if(event.target.tagName !== 'INPUT') location.href='{% url 'task_detail' task.pk %}';">
+                                <td class="text-center" onclick="event.stopPropagation()">
+                                    <input type="checkbox" name="task_ids" value="{{ task.pk }}" class="form-check-input normal-checkbox">
+                                </td>
+                                <td>{{ task.due_date|date:"m/d" }}</td>
+                                <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
+                                <td>
+                                    <span class="badge {% if task.status == 'open' %}bg-danger{% elif task.status == 'in_progress' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ task.target_display }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                        <span class="badge bg-secondary">宛先: {{ task.target_group.name }}</span>
+                                        {% if task.privacy == 'sensitive' %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-danger"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    data-bs-title="{% if task.target_user %}起票者・宛先担当者のみ閲覧可能{% else %}起票者・宛先部署（担当者）のみ閲覧可能{% endif %}"
+                                                    style="font-size: 10px; cursor: help;"
+                                                    onclick="event.stopPropagation()">
+                                                    <i class="bi bi-lock-fill"></i> 機密
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="fw-bold text-dark">{{ task.title }}</div>
+                                    <small class="text-muted">{{ task.description|truncatechars:40 }}</small>
+                                </td>
+                                <td class="small text-muted">
+                                    {% if task.created_by.last_name or task.created_by.first_name %}
+                                        {{ task.created_by.last_name|default:"" }} {{ task.created_by.first_name|default:"" }}
+                                    {% else %}
+                                        {{ task.created_by.username }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">現在対応が必要なタスクはありません。</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if normal_tasks.has_other_pages %}
+                <div class="card-footer bg-white d-flex justify-content-center py-2 border-top">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if normal_tasks.has_previous %}
+                                <li class="page-item"><a class="page-link" href="?page={{ normal_tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if urgent_tasks.number %}&urgent_page={{ urgent_tasks.number }}{% endif %}">前へ</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">前へ</span></li>
+                            {% endif %}
+
+                            {% for num in normal_tasks.paginator.page_range %}
+                                {% if normal_tasks.number == num %}
+                                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                                {% elif num > normal_tasks.number|add:'-3' and num < normal_tasks.number|add:'3' %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if urgent_tasks.number %}&urgent_page={{ urgent_tasks.number }}{% endif %}">{{ num }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if normal_tasks.has_next %}
+                                <li class="page-item"><a class="page-link" href="?page={{ normal_tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if urgent_tasks.number %}&urgent_page={{ urgent_tasks.number }}{% endif %}">次へ</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">次へ</span></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <!-- 独立検索フォーム（Submitボタン用） -->
+    <form id="searchForm" method="get" action="{% url 'dashboard' %}" class="d-none"></form>
+
+    <!-- ③ 【完了済み案件】セクション -->
     <div class="card shadow-sm border-0 mb-4">
-        <div id="normalHeader" class="card-header bg-white fw-bold text-dark py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed" 
-             data-bs-toggle="collapse" data-bs-target="#normalTasksBody" aria-expanded="false">
+        <div id="closedHeader" class="card-header bg-light fw-bold text-dark py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed"
+             data-bs-toggle="collapse" data-bs-target="#closedTasksBody" aria-expanded="false">
             <div>
-                <i class="bi bi-list-task text-primary"></i> 今後の対応予定タスク（{{ normal_tasks_count }}件）
+                <i class="bi bi-check-circle-fill text-success"></i> 完了済み案件（{{ closed_tasks_count }}件）
             </div>
             <div class="small fw-normal text-muted d-flex align-items-center gap-2">
                 <span class="toggle-text-closed">▼ クリックして開く</span>
                 <span class="toggle-text-open">▲ クリックして閉じる</span>
             </div>
         </div>
-        <div id="normalTasksBody" class="collapse">
+        <div id="closedTasksBody" class="collapse">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -317,37 +356,18 @@
                             <th style="width: 6%;">優先度</th>
                             <th style="width: 12%;">ステータス</th>
                             <th style="width: 22%;">対象者</th>
-                            <th style="width: 32%;">依頼内容 / 部署</th>
+                            <th style="width: 42%;">依頼内容 / 部署</th>
                             <th style="width: 10%;">起票者</th>
-                            </tr>
+                        </tr>
                     </thead>
                     <tbody>
-                        {% for task in normal_tasks %}
+                        {% for task in closed_tasks %}
                         <tr style="cursor: pointer;" onclick="location.href='{% url 'task_detail' task.pk %}'">
                             <td>{{ task.due_date|date:"m/d" }}</td>
                             <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
-                            <td>
-                                <span class="badge {% if task.status == 'open' %}bg-danger{% elif task.status == 'in_progress' %}bg-warning text-dark{% else %}bg-success{% endif %}">
-                                    {{ task.get_status_display }}
-                                </span>
-                            </td>
+                            <td><span class="badge bg-success">{{ task.get_status_display }}</span></td>
                             <td>{{ task.target_display }}</td>
                             <td>
-                                <div class="d-flex align-items-center gap-1 mb-1">
-                                    <span class="badge bg-secondary">宛先: {{ task.target_group.name }}</span>
-                                    {% if task.privacy == 'sensitive' %}
-                                        <div class="mt-1">
-                                            <span class="badge bg-danger" 
-                                                data-bs-toggle="tooltip" 
-                                                data-bs-placement="top" 
-                                                data-bs-title="{% if task.target_user %}起票者・宛先担当者のみ閲覧可能{% else %}起票者・宛先部署（担当者）のみ閲覧可能{% endif %}"
-                                                style="font-size: 10px; cursor: help;"
-                                                onclick="event.stopPropagation()">
-                                                <i class="bi bi-lock-fill"></i> 機密
-                                            </span>
-                                        </div>
-                                    {% endif %}
-                                </div>
                                 <div class="fw-bold text-dark">{{ task.title }}</div>
                                 <small class="text-muted">{{ task.description|truncatechars:40 }}</small>
                             </td>
@@ -358,37 +378,36 @@
                                     {{ task.created_by.username }}
                                 {% endif %}
                             </td>
-
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">現在対応が必要なタスクはありません。</td>
+                            <td colspan="6" class="text-center py-4 text-muted">完了済みの案件はありません。</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
 
-            {% if normal_tasks.has_other_pages %}
-            <div class="card-footer bg-white d-flex justify-content-center py-3 border-top">
+            {% if closed_tasks.has_other_pages %}
+            <div class="card-footer bg-white d-flex justify-content-center py-2 border-top">
                 <nav>
                     <ul class="pagination pagination-sm mb-0">
-                        {% if normal_tasks.has_previous %}
-                            <li class="page-item"><a class="page-link" href="?page={{ normal_tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">前へ</a></li>
+                        {% if closed_tasks.has_previous %}
+                            <li class="page-item"><a class="page-link" href="?closed_page={{ closed_tasks.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">前へ</a></li>
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">前へ</span></li>
                         {% endif %}
 
-                        {% for num in normal_tasks.paginator.page_range %}
-                            {% if normal_tasks.number == num %}
+                        {% for num in closed_tasks.paginator.page_range %}
+                            {% if closed_tasks.number == num %}
                                 <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                            {% elif num > normal_tasks.number|add:'-3' and num < normal_tasks.number|add:'3' %}
-                                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a></li>
+                            {% elif num > closed_tasks.number|add:'-3' and num < closed_tasks.number|add:'3' %}
+                                <li class="page-item"><a class="page-link" href="?closed_page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}">{{ num }}</a></li>
                             {% endif %}
                         {% endfor %}
 
-                        {% if normal_tasks.has_next %}
-                            <li class="page-item"><a class="page-link" href="?page={{ normal_tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">次へ</a></li>
+                        {% if closed_tasks.has_next %}
+                            <li class="page-item"><a class="page-link" href="?closed_page={{ closed_tasks.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">次へ</a></li>
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">次へ</span></li>
                         {% endif %}
@@ -396,6 +415,70 @@
                 </nav>
             </div>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- ④ モチベーション（コンパクトエリア：画面下部） -->
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body py-3 px-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-bold text-secondary small"><i class="bi bi-controller"></i> モチベーション:</span>
+
+                    <!-- キャラクター簡易情報 -->
+                    {% if user.usercompanion %}
+                        {% if user.usercompanion.companion_type != 'none' %}
+                            <div class="d-flex align-items-center gap-1 small">
+                                <span>キャラ: {{ user.usercompanion.current_form }} Lv.{{ user.usercompanion.level }}</span>
+                                {% if user.usercompanion.level >= 4 %}
+                                    <button type="button" class="btn btn-link p-0 small text-warning fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#graduateModal">卒業</button>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="small text-muted">キャラ未選択</span>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- 島レベル & 称号 -->
+                    {% if island_profile %}
+                        <div class="small">
+                            <span>🏝️ 島 Lv.{{ island_profile.level }}</span>
+                            <span class="text-muted ms-1" style="font-size: 0.75rem;">(EXP: {{ island_profile.experience }})</span>
+                            {% if island_profile.current_title %}
+                                <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">🏆 {{ island_profile.current_title.name }}</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <!-- 部署ボスHP -->
+                    {% if active_dept_battle %}
+                        <div class="small">
+                            <span>⚔️ ボス: {{ active_dept_battle.boss_name }}</span>
+                            <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">HP {{ active_dept_battle.current_hp }}/{{ active_dept_battle.max_hp }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- 各専用ページへのリンク -->
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'my_island' %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-tree"></i> 島ページ
+                    </a>
+                    <a href="{% url 'achievements_page' %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-trophy"></i> 実績を見る
+                    </a>
+                    {% if user_primary_dept %}
+                        <a href="{% url 'department_boss' user_primary_dept.id %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                            <i class="bi bi-shield-slash"></i> 部署ボス画面
+                        </a>
+                    {% endif %}
+                    {% if graduated_companions %}
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#hallOfFameModal">
+                            🏆 殿堂入り ({{ graduated_companions.count }})
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -684,6 +767,12 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreAccordionState('normalTasksBody', 'normalHeader', 'accordion_normal_open');
     setupAccordionStorage('urgentTasksBody', 'urgentHeader', 'accordion_urgent_open');
     setupAccordionStorage('normalTasksBody', 'normalHeader', 'accordion_normal_open');
+
+    // チェックボックス一括全選択/全解除関数
+    window.toggleSelectAll = function(masterCb, className) {
+        const checkboxes = document.querySelectorAll('.' + className);
+        checkboxes.forEach(cb => cb.checked = masterCb.checked);
+    };
 
     // 教職員プルダウンの初期展開（全員表示）
     filterStaffs();

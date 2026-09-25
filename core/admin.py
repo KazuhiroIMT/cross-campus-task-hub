@@ -38,19 +38,38 @@ def user_full_name_japanese(self):
 User.__str__ = user_full_name_japanese
 
 
-# 管理画面の左メニューの並び順をカスタム
+# 管理画面の左メニューの並び順をカスタム（業務関連 ➔ ゲーム・モチベーション関連）
+BUSINESS_MODELS = [
+    'タスク一覧',
+    '学生一覧',
+    '学科一覧',
+    'コース一覧',
+    'クラス一覧',
+    '担当業務一覧',
+    '教職員プロファイル一覧',
+    '所属部署一覧',
+    'ユーザー',
+    'グループ',
+]
+
+GAME_MODELS = [
+    '育成キャラクター一覧',
+    '殿堂入りキャラクター一覧',
+    'マイアイランド情報一覧',
+    '島アイテム一覧',
+    '実績・称号一覧',
+    'ユーザー獲得実績一覧',
+    'ユーザー日別タスク完了記録一覧',
+    '部署ボス討伐一覧',
+    '部署実績・称号一覧',
+    '部署獲得実績一覧',
+    '部署プロファイル一覧',
+]
+
 def custom_get_app_list(self, request, app_label=None):
     app_dict = self._build_app_dict(request, app_label)
     
-    model_order = [
-        'タスク一覧',
-        '学生一覧',
-        '学科一覧',
-        'コース一覧',
-        'クラス一覧',
-        '担当業務一覧',
-        '教職員プロファイル一覧',
-    ]
+    model_order = BUSINESS_MODELS + GAME_MODELS
     
     app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
     for app in app_list:

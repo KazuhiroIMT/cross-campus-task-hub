@@ -251,7 +251,7 @@ class Task(models.Model):
         ('low', '低'),
     ]
     STATUS_CHOICES = [
-        ('open', '未対応'),
+        ('open', '未着手'),
         ('in_progress', '対応中'),
         ('closed', '完了'),
     ]
@@ -440,7 +440,7 @@ class TaskComment(models.Model):
 class TaskStudentProgress(models.Model):
     """複数学生タスクにおける学生個別の対応進捗とメモ"""
     STATUS_CHOICES = [
-        ('open', '未対応'),
+        ('open', '未着手'),
         ('in_progress', '対応中'),
         ('closed', '完了'),
     ]

@@ -1,11 +1,67 @@
 from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
+from django.db import transaction
 from .models import (
     UserCompanion, IslandProfile, Achievement, UserAchievement,
     UserTaskCompletionDate, IslandItem, DepartmentBattle,
     DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
 )
+
+# ボス候補テンプレート（自動生成用）
+BOSS_TEMPLATES = [
+    {'boss_type': 'dragon', 'boss_name': '納期ドラゴン', 'max_hp': 1000},
+    {'boss_type': 'robot', 'boss_name': '業務整理ロボ', 'max_hp': 1200},
+    {'boss_type': 'monster', 'boss_name': '書類モンスター', 'max_hp': 1500},
+    {'boss_type': 'golem', 'boss_name': '未対応ゴーレム', 'max_hp': 2000},
+]
+
+
+def ensure_active_department_boss(department):
+    """
+    指定された部署にアクティブなボスが存在しない場合、自動的に次のボスを安全に生成する。
+    同時実行などで重複生成が起きないようトランザクションとアトミックロックを使用。
+    """
+    if not department:
+        return None
+
+    active_boss = DepartmentBattle.objects.filter(
+        department=department,
+        status='active'
+    ).first()
+
+    if active_boss:
+        return active_boss
+
+    with transaction.atomic():
+        # 再チェック（排他ロック付き）
+        active_boss = DepartmentBattle.objects.select_for_update().filter(
+            department=department,
+            status='active'
+        ).first()
+
+        if active_boss:
+            return active_boss
+
+        # 過去の討伐数に応じてボステンプレートを選択
+        defeated_count = DepartmentBattle.objects.filter(
+            department=department,
+            status='defeated'
+        ).count()
+
+        template = BOSS_TEMPLATES[defeated_count % len(BOSS_TEMPLATES)]
+        count_suffix = f" (第{defeated_count + 1}世代)" if defeated_count > 0 else ""
+
+        new_boss = DepartmentBattle.objects.create(
+            department=department,
+            boss_type=template['boss_type'],
+            boss_name=f"{template['boss_name']}{count_suffix}",
+            max_hp=template['max_hp'],
+            current_hp=template['max_hp'],
+            status='active',
+            start_date=timezone.now()
+        )
+        return new_boss
 
 # Priority damage constants
 BOSS_DAMAGE_MAP = {
@@ -300,6 +356,8 @@ def process_task_completion(task, user, request=None):
                     messages.success(request, f"🎉 {active_battle.boss_name}討伐！ ({target_dept.name})")
 
                 check_department_achievements(target_dept, request=request)
+                # ボス撃破時、自動的に次のボスを生成
+                ensure_active_department_boss(target_dept)
             else:
                 active_battle.save()
                 if request:

@@ -154,6 +154,43 @@ class GamificationAndArchiveTests(TestCase):
         self.assertContains(res_all, 'Normal Closed Task')
         self.assertContains(res_all, 'Archived Closed Task')
 
+    def test_bulk_status_change_and_rewards(self):
+        """ステータス一括変更と一括完了時のインセンティブ一回のみ付与テスト"""
+        self.client.login(username='testuser', password='password123')
+        t1 = Task.objects.create(
+            title='Bulk Task 1',
+            description='Desc',
+            target_group=self.group,
+            created_by=self.user,
+            due_date=timezone.now().date(),
+            status='open'
+        )
+        t2 = Task.objects.create(
+            title='Bulk Task 2',
+            description='Desc',
+            target_group=self.group,
+            created_by=self.user,
+            due_date=timezone.now().date(),
+            status='in_progress'
+        )
+
+        response = self.client.post('/', {
+            'bulk_update_status': '1',
+            'task_ids': [t1.id, t2.id],
+            'bulk_status': 'closed'
+        })
+        self.assertEqual(response.status_code, 302)
+
+        t1.refresh_from_db()
+        t2.refresh_from_db()
+        self.assertEqual(t1.status, 'closed')
+        self.assertEqual(t2.status, 'closed')
+        self.assertTrue(t1.reward_granted)
+        self.assertTrue(t2.reward_granted)
+
+        profile = IslandProfile.objects.get(user=self.user)
+        self.assertEqual(profile.experience, 20)  # 10 * 2
+
 
 class MyIslandTests(TestCase):
     def setUp(self):
@@ -502,7 +539,7 @@ class DepartmentBossTests(TestCase):
         self.assertEqual(battle.current_hp, 900)
 
     def test_boss_status_becomes_defeated_when_hp_reaches_zero(self):
-        """HPが0になるとstatus=defeatedになる"""
+        """HPが0になるとstatus=defeatedになり、次のボスが自動生成される"""
         battle = DepartmentBattle.objects.create(
             department=self.group1,
             boss_name='締切ゴーレム',
@@ -526,6 +563,11 @@ class DepartmentBossTests(TestCase):
         self.assertEqual(battle.current_hp, 0)
         self.assertEqual(battle.status, 'defeated')
         self.assertIsNotNone(battle.end_date)
+
+        # 自動的に新しいアクティブなボスが生成されていることを確認
+        new_active_boss = DepartmentBattle.objects.filter(department=self.group1, status='active').first()
+        self.assertIsNotNone(new_active_boss)
+        self.assertNotEqual(new_active_boss.id, battle.id)
 
         # 部署実績の解除チェック
         unlock = DepartmentAchievementUnlock.objects.filter(department=self.group1, achievement__code='DEPT_DEFEAT_1')
