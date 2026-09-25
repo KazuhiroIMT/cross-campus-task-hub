@@ -248,12 +248,15 @@ class Task(models.Model):
     PRIORITY_CHOICES = [
         ('high', '高'),
         ('mid', '中'),
+        ('medium', '中'),
         ('low', '低'),
     ]
     STATUS_CHOICES = [
         ('open', '未着手'),
+        ('todo', '未着手'),
         ('in_progress', '対応中'),
         ('closed', '完了'),
+        ('completed', '完了'),
     ]
     PRIVACY_CHOICES = [
         ('general', '一般（学内共有可）'),

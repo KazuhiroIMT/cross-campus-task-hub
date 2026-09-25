@@ -24,7 +24,7 @@
                 <i class="bi bi-house-door"></i> ダッシュボードに戻る
             </a>
         </div>
-        <span class="badge {% if task.status == 'closed' %}bg-success{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %} fs-6">
+        <span class="badge {% if task.status == 'closed' or task.status == 'completed' %}bg-success{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %} fs-6">
             {{ task.get_status_display }}
         </span>
     </div>
@@ -45,7 +45,7 @@
             <div class="d-flex align-items-center gap-1 mb-2">
                 <span class="badge bg-secondary">{{ task.target_group.name }}宛て</span>
                 <span class="badge {% if task.priority == 'high' %}bg-danger{% elif task.priority == 'mid' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                    {{ task.get_priority_display }}優先度
+                    {{ task.get_priority_display }}
                 </span>
                 {% if task.privacy == 'sensitive' %}
                     <span class="badge bg-danger"><i class="bi bi-lock-fill"></i> 機密</span>

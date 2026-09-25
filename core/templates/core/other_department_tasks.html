@@ -60,7 +60,7 @@
                         <td>{{ task.due_date|date:"m/d" }}</td>
                         <td><span class="badge badge-{{ task.priority }}">{{ task.get_priority_display }}</span></td>
                         <td>
-                            <span class="badge {% if task.status == 'open' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                            <span class="badge {% if task.status == 'open' or task.status == 'todo' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
                                 {{ task.get_status_display }}
                             </span>
                         </td>

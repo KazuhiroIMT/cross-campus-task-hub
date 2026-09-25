@@ -138,7 +138,7 @@ def dashboard(request):
                 t.status = new_status
                 t.save()
                 if new_status == 'closed' and old_status != 'closed':
-                    process_task_completion(t, user, request)
+                    process_task_completion(t, user, request=None)
                 updated_count += 1
             status_labels = {'open': '未着手', 'in_progress': '対応中', 'closed': '完了'}
             messages.success(request, f"{updated_count} 件のタスクを「{status_labels.get(new_status)}」に一括変更しました。")

@@ -146,7 +146,7 @@
 
                         <!-- 現在のステータス -->
                         <td>
-                            <span class="badge {% if task.status == 'closed' %}bg-success{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">
+                            <span class="badge {% if task.status == 'closed' or task.status == 'completed' %}bg-success{% elif task.status == 'in_progress' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">
                                 {{ task.get_status_display }}
                             </span>
                         </td>
