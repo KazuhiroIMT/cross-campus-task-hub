@@ -202,7 +202,7 @@
             <div id="island-canvas-container">
                 <!-- Mode Badge -->
                 <div id="mode-badge" class="island-mode-badge">
-                    <i class="bi bi-eye-fill text-success me-1"></i> 癒やし・鑑賞モード
+                    <i class="bi bi-eye-fill text-success me-1"></i> 癒やし・鑑賞モード (Lv. {{ island_profile.level }}: {% if island_profile.level == 1 %}小島{% elif island_profile.level <= 3 %}中型島{% else %}広大島{% endif %})
                 </div>
 
                 <!-- Top Right UI Controls -->
@@ -309,13 +309,81 @@ document.addEventListener("DOMContentLoaded", function() {
     let selectedTrayItem = null;
     let activeSelectedObject = null; // Currently selected placed object in edit mode
 
+    // --- 0. Island Level & Configuration ---
+    const ISLAND_LEVEL = parseInt("{{ island_profile.level|default:1 }}", 10) || 1;
+
+    // Radius, bounds & camera distance based on level
+    let baseIslandRadius = 9;
+    let cameraDistance = 28;
+    if (ISLAND_LEVEL === 2 || ISLAND_LEVEL === 3) {
+        baseIslandRadius = 14;
+        cameraDistance = 38;
+    } else if (ISLAND_LEVEL >= 4) {
+        baseIslandRadius = 20;
+        cameraDistance = 50;
+    }
+
+    // --- Noise & Coastline Helper Functions ---
+    function organicCoastlineRadius(angle, level) {
+        let baseR = 9;
+        if (level === 2 || level === 3) baseR = 14;
+        else if (level >= 4) baseR = 20;
+
+        // Multi-frequency noise for natural coves, bays, and capes
+        let noise = Math.sin(angle * 3) * (baseR * 0.12)
+                  + Math.cos(angle * 5 + 1.2) * (baseR * 0.08)
+                  + Math.sin(angle * 7 - 0.5) * (baseR * 0.05)
+                  + Math.cos(angle * 2.2 + 2.0) * (baseR * 0.15);
+
+        if (level >= 4) {
+            // Pronounced cape/bay features at higher level
+            noise += Math.sin(angle * 4 + 0.8) * 2.8;
+        }
+
+        return baseR + noise;
+    }
+
+    function getTerrainHeight(x, z, level) {
+        const dist = Math.sqrt(x * x + z * z);
+        const angle = Math.atan2(z, x);
+        const maxR = organicCoastlineRadius(angle, level);
+
+        if (dist > maxR) {
+            // Underwater
+            return Math.max(-1.5, (maxR - dist) * 0.8);
+        }
+
+        // Beach outer rim (sand elevation)
+        const sandWidth = 2.2 + (level >= 4 ? 1.0 : 0.5);
+        if (dist > maxR - sandWidth) {
+            const beachProgress = (maxR - dist) / sandWidth; // 0 at water, 1 at grass boundary
+            return 0.1 + beachProgress * 0.8;
+        }
+
+        // Inner grass terrain: smooth, gentle rolling hills without steep cone/hill
+        const innerRatio = (maxR - sandWidth - dist) / (maxR - sandWidth);
+        const gentleHillNoise = Math.sin(x * 0.25 + z * 0.2) * 0.35
+                              + Math.cos(x * 0.18 - z * 0.3) * 0.3
+                              + Math.sin(Math.sqrt(x * x + z * z) * 0.3) * 0.25;
+
+        // Base plateau elevation around y = 0.9 ~ 1.8
+        const baseHeight = 0.9 + innerRatio * 0.8 + gentleHillNoise;
+        return Math.max(0.8, baseHeight);
+    }
+
+    function getPlacementMaxRadius(level) {
+        if (level === 1) return 7.5;
+        if (level === 2 || level === 3) return 12.0;
+        return 17.5;
+    }
+
     // --- 1. Three.js Scene Setup ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb); // Sky blue
-    scene.fog = new THREE.FogExp2(0xa0d8ef, 0.008);
+    scene.background = new THREE.Color(0x87ceeb); // Default sky blue
+    scene.fog = new THREE.FogExp2(0xa0d8ef, 0.007);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-    camera.position.set(0, 18, 26);
+    camera.position.set(0, cameraDistance * 0.65, cameraDistance);
 
     const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
@@ -326,38 +394,185 @@ document.addEventListener("DOMContentLoaded", function() {
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera under water
-    controls.minDistance = 8;
-    controls.maxDistance = 50;
-    controls.target.set(0, 2, 0);
+    controls.maxPolarAngle = Math.PI / 2 - 0.04; // Prevent camera under water
+    controls.minDistance = 6;
+    controls.maxDistance = cameraDistance * 1.8;
+    controls.target.set(0, 1.2, 0);
 
-    // --- 2. Lighting ---
+    // --- 2. Dynamic Environment & Sky Engine ---
+    const skyGroup = new THREE.Group();
+    scene.add(skyGroup);
+
+    // Environment Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
-    sunLight.position.set(20, 40, 20);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 1024;
-    sunLight.shadow.mapSize.height = 1024;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 100;
-    const shadowD = 15;
-    sunLight.shadow.camera.left = -shadowD;
-    sunLight.shadow.camera.right = shadowD;
-    sunLight.shadow.camera.top = shadowD;
-    sunLight.shadow.camera.bottom = -shadowD;
-    scene.add(sunLight);
+    const mainLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
+    mainLight.position.set(25, 45, 25);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    mainLight.shadow.camera.near = 0.5;
+    mainLight.shadow.camera.far = 150;
+    const shadowD = baseIslandRadius * 1.4;
+    mainLight.shadow.camera.left = -shadowD;
+    mainLight.shadow.camera.right = shadowD;
+    mainLight.shadow.camera.top = shadowD;
+    mainLight.shadow.camera.bottom = -shadowD;
+    scene.add(mainLight);
 
     const hemisphereLight = new THREE.HemisphereLight(0x87ceeb, 0x3d7045, 0.4);
     scene.add(hemisphereLight);
 
+    // Sun & Moon Objects
+    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffea00 });
+    const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(2.5, 16, 16), sunMat);
+    skyGroup.add(sunMesh);
+
+    const moonMat = new THREE.MeshBasicMaterial({ color: 0xfffde7 });
+    const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 16), moonMat);
+    skyGroup.add(moonMesh);
+
+    // Night Starfield Particles
+    const starCount = 350;
+    const starGeo = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+        const u = Math.random();
+        const v = Math.random();
+        const theta = u * 2.0 * Math.PI;
+        const phi = Math.acos(2.0 * v - 1.0);
+        const r = 120 + Math.random() * 40;
+
+        starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        starPositions[i * 3 + 1] = Math.abs(r * Math.cos(phi)) + 10; // Keep stars above horizon
+        starPositions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, transparent: true, opacity: 0 });
+    const starField = new THREE.Points(starGeo, starMat);
+    scene.add(starField);
+
+    // Low-poly Clouds Group & Floating Animation
+    const cloudsList = [];
+    const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.88, flatShading: true });
+
+    function createSingleCloud() {
+        const group = new THREE.Group();
+        const puffCount = 5 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < puffCount; i++) {
+            const pSize = 1.2 + Math.random() * 1.5;
+            const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(pSize, 1), cloudMat);
+            puff.position.set(
+                (i - puffCount / 2) * 1.4 + (Math.random() - 0.5) * 0.8,
+                Math.random() * 0.6,
+                (Math.random() - 0.5) * 1.2
+            );
+            group.add(puff);
+        }
+        return group;
+    }
+
+    const cloudCount = 7 + Math.floor(baseIslandRadius / 3);
+    for (let i = 0; i < cloudCount; i++) {
+        const cloud = createSingleCloud();
+        const span = baseIslandRadius * 3.5;
+        const posX = (Math.random() - 0.5) * span;
+        const posZ = (Math.random() - 0.5) * span;
+        const posY = 18 + Math.random() * 10;
+
+        cloud.position.set(posX, posY, posZ);
+        cloud.scale.setScalar(0.8 + Math.random() * 0.6);
+        skyGroup.add(cloud);
+
+        cloudsList.push({
+            mesh: cloud,
+            speed: 0.8 + Math.random() * 1.2,
+            boundSpan: span
+        });
+    }
+
+    // Dynamic Time-of-Day Lighting Manager
+    let nightModeActive = false;
+
+    function updateTimeOfDayEnvironment() {
+        const hour = new Date().getHours();
+        let bgHex, fogHex, ambientHex, mainHex, hemiSkyHex, hemiGroundHex;
+        let sunPos, moonPos, sunVis, moonVis, starOpacity;
+
+        if (hour >= 7 && hour < 16) {
+            // Day
+            bgHex = 0x7ec0ee;
+            fogHex = 0x9be0ff;
+            ambientHex = 0xffffff;
+            mainHex = 0xfff5e6;
+            hemiSkyHex = 0x87ceeb;
+            hemiGroundHex = 0x3d7045;
+
+            sunPos = new THREE.Vector3(30, 50, 20);
+            moonPos = new THREE.Vector3(-40, -30, -20);
+            sunVis = true;
+            moonVis = false;
+            starOpacity = 0.0;
+            nightModeActive = false;
+        } else if (hour >= 16 && hour < 18.5) {
+            // Sunset / Dusk
+            bgHex = 0xfd7e14;
+            fogHex = 0xffa07a;
+            ambientHex = 0xffd8b1;
+            mainHex = 0xff6f00;
+            hemiSkyHex = 0xff7f50;
+            hemiGroundHex = 0x2e4053;
+
+            sunPos = new THREE.Vector3(45, 12, 10);
+            moonPos = new THREE.Vector3(-30, -10, -20);
+            sunVis = true;
+            moonVis = false;
+            starOpacity = 0.15;
+            nightModeActive = false;
+        } else {
+            // Night
+            bgHex = 0x0b1d3a;
+            fogHex = 0x112244;
+            ambientHex = 0x334466;
+            mainHex = 0x7799cc;
+            hemiSkyHex = 0x1a2a4a;
+            hemiGroundHex = 0x0a1525;
+
+            sunPos = new THREE.Vector3(-40, -40, -20);
+            moonPos = new THREE.Vector3(25, 45, -15);
+            sunVis = false;
+            moonVis = true;
+            starOpacity = 0.9;
+            nightModeActive = true;
+        }
+
+        scene.background.setHex(bgHex);
+        scene.fog.color.setHex(fogHex);
+        ambientLight.color.setHex(ambientHex);
+        mainLight.color.setHex(mainHex);
+        mainLight.position.copy(sunVis ? sunPos : moonPos);
+        hemisphereLight.color.setHex(hemiSkyHex);
+        hemisphereLight.groundColor.setHex(hemiGroundHex);
+
+        sunMesh.position.copy(sunPos);
+        sunMesh.visible = sunVis;
+
+        moonMesh.position.copy(moonPos);
+        moonMesh.visible = moonVis;
+
+        starMat.opacity = starOpacity;
+    }
+
+    updateTimeOfDayEnvironment();
+
     // --- 3. Ocean Water Surface Plane ---
-    const oceanGeo = new THREE.PlaneGeometry(200, 200, 32, 32);
+    const oceanSpan = baseIslandRadius * 8;
+    const oceanGeo = new THREE.PlaneGeometry(oceanSpan, oceanSpan, 40, 40);
     const oceanMat = new THREE.MeshPhongMaterial({
         color: 0x1ca3ec,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.82,
         shininess: 90,
         flatShading: true
     });
@@ -366,37 +581,107 @@ document.addEventListener("DOMContentLoaded", function() {
     oceanMesh.position.y = 0;
     scene.add(oceanMesh);
 
-    // --- 4. Island Terrain Mesh (Low-poly Sand & Grass) ---
+    // --- 4. Island Organic Terrain Mesh Generation ---
     const islandGroup = new THREE.Group();
 
-    // Sand base (larger cylinder)
-    const sandGeo = new THREE.CylinderGeometry(11, 12.5, 2.5, 24);
-    const sandMat = new THREE.MeshLambertMaterial({ color: 0xe6cb9a, flatShading: true });
-    const sandMesh = new THREE.Mesh(sandGeo, sandMat);
-    sandMesh.position.y = 0.8;
-    sandMesh.receiveShadow = true;
-    islandGroup.add(sandMesh);
+    function generateOrganicIslandGeometry(level) {
+        const maxR = baseIslandRadius + (level >= 4 ? 4.0 : 2.0);
+        const segmentsR = 32;
+        const segmentsTheta = 64;
 
-    // Grass top layer
-    const grassGeo = new THREE.CylinderGeometry(9.8, 10.5, 1.2, 24);
-    const grassMat = new THREE.MeshLambertMaterial({ color: 0x55aa44, flatShading: true });
-    const grassMesh = new THREE.Mesh(grassGeo, grassMat);
-    grassMesh.position.y = 2.1;
-    grassMesh.receiveShadow = true;
-    islandGroup.add(grassMesh);
+        const vertices = [];
+        const colors = [];
+        const indices = [];
 
-    // Central small hill
-    const hillGeo = new THREE.ConeGeometry(4.5, 1.8, 16);
-    const hillMat = new THREE.MeshLambertMaterial({ color: 0x489639, flatShading: true });
-    const hillMesh = new THREE.Mesh(hillGeo, hillMat);
-    hillMesh.position.set(0, 3.2, 0);
-    hillMesh.receiveShadow = true;
-    islandGroup.add(hillMesh);
+        const sandColor = new THREE.Color(0xe6cb9a);
+        const beachWetColor = new THREE.Color(0xd4b483);
+        const grassLightColor = new THREE.Color(0x62bd46);
+        const grassDarkColor = new THREE.Color(0x43962b);
+
+        // Center vertex (0, 0)
+        const centerH = getTerrainHeight(0, 0, level);
+        vertices.push(0, centerH, 0);
+        colors.push(grassLightColor.r, grassLightColor.g, grassLightColor.b);
+
+        // Radial concentric rings
+        for (let rIdx = 1; rIdx <= segmentsR; rIdx++) {
+            const rNorm = rIdx / segmentsR; // 0.0 to 1.0
+
+            for (let tIdx = 0; tIdx < segmentsTheta; tIdx++) {
+                const angle = (tIdx / segmentsTheta) * Math.PI * 2;
+                const coastR = organicCoastlineRadius(angle, level);
+                const currentR = coastR * rNorm;
+
+                const x = Math.cos(angle) * currentR;
+                const z = Math.sin(angle) * currentR;
+                const y = getTerrainHeight(x, z, level);
+
+                vertices.push(x, y, z);
+
+                // Vertex Color Gradient (Sand to Grass)
+                let vColor = new THREE.Color();
+                const dist = Math.sqrt(x * x + z * z);
+                const sandWidth = 2.2 + (level >= 4 ? 1.0 : 0.5);
+
+                if (dist > coastR - 0.4) {
+                    vColor.copy(beachWetColor);
+                } else if (dist > coastR - sandWidth) {
+                    const ratio = (coastR - dist) / sandWidth;
+                    vColor.copy(sandColor).lerp(grassLightColor, ratio * 0.6);
+                } else {
+                    const noiseVal = (Math.sin(x * 0.4) + Math.cos(z * 0.4)) * 0.5;
+                    vColor.copy(grassLightColor).lerp(grassDarkColor, 0.3 + noiseVal * 0.3);
+                }
+
+                colors.push(vColor.r, vColor.g, vColor.b);
+            }
+        }
+
+        // Indices for Triangles
+        for (let tIdx = 0; tIdx < segmentsTheta; tIdx++) {
+            const nextT = (tIdx + 1) % segmentsTheta;
+            indices.push(0, 1 + tIdx, 1 + nextT);
+        }
+
+        for (let rIdx = 0; rIdx < segmentsR - 1; rIdx++) {
+            const innerStart = 1 + rIdx * segmentsTheta;
+            const outerStart = 1 + (rIdx + 1) * segmentsTheta;
+
+            for (let tIdx = 0; tIdx < segmentsTheta; tIdx++) {
+                const nextT = (tIdx + 1) % segmentsTheta;
+
+                const v1 = innerStart + tIdx;
+                const v2 = innerStart + nextT;
+                const v3 = outerStart + tIdx;
+                const v4 = outerStart + nextT;
+
+                indices.push(v1, v3, v2);
+                indices.push(v2, v3, v4);
+            }
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        geo.setIndex(indices);
+        geo.computeVertexNormals();
+
+        return geo;
+    }
+
+    const terrainGeo = generateOrganicIslandGeometry(ISLAND_LEVEL);
+    const terrainMat = new THREE.MeshLambertMaterial({
+        vertexColors: true,
+        flatShading: true,
+        side: THREE.DoubleSide
+    });
+
+    const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
+    terrainMesh.receiveShadow = true;
+    terrainMesh.castShadow = true;
+    islandGroup.add(terrainMesh);
 
     scene.add(islandGroup);
-
-    // Raycast ground plane at island surface height (y = 2.7)
-    const groundRayPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -2.7);
 
     // --- 5. Procedural 3D Mesh Builders for Items & Animals ---
 
@@ -617,8 +902,9 @@ document.addEventListener("DOMContentLoaded", function() {
         group.add(bulb);
 
         // Soft Point Light
-        const light = new THREE.PointLight(0xfff59d, 1.2, 6);
+        const light = new THREE.PointLight(0xfff59d, nightModeActive ? 2.2 : 0.4, 8);
         light.position.y = 1.3;
+        light.name = "nightLight";
         group.add(light);
 
         return group;
@@ -651,8 +937,9 @@ document.addEventListener("DOMContentLoaded", function() {
         group.add(flame2);
 
         // Warm flickering light
-        const light = new THREE.PointLight(0xff6d00, 1.6, 9);
+        const light = new THREE.PointLight(0xff6d00, nightModeActive ? 2.5 : 1.0, 10);
         light.position.y = 0.6;
+        light.name = "nightLight";
         group.add(light);
 
         return group;
@@ -1386,12 +1673,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 const mesh = build3DMeshForItemType(item.item_type);
                 group.add(mesh);
 
-                const posX = item.position_x || (Math.random() * 8 - 4);
-                const posZ = item.position_z || (Math.random() * 8 - 4);
+                const maxR = getPlacementMaxRadius(ISLAND_LEVEL);
+                const posX = item.position_x !== undefined && item.position_x !== null ? item.position_x : (Math.random() * (maxR * 1.2) - maxR * 0.6);
+                const posZ = item.position_z !== undefined && item.position_z !== null ? item.position_z : (Math.random() * (maxR * 1.2) - maxR * 0.6);
 
-                let initialY = 2.7;
+                let initialY = getTerrainHeight(posX, posZ, ISLAND_LEVEL);
                 if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
-                    initialY = 4.2; // flying
+                    initialY = Math.max(initialY + 2.0, 4.5); // flying above terrain
                 }
 
                 group.position.set(posX, initialY, posZ);
@@ -1556,20 +1844,29 @@ document.addEventListener("DOMContentLoaded", function() {
         if (isEditMode) {
             // Check if user selected an inventory item to place
             if (selectedTrayItem) {
-                const targetPoint = new THREE.Vector3();
-                if (raycaster.ray.intersectPlane(groundRayPlane, targetPoint)) {
-                    // Limit radius to island bounds (r <= 8.5)
-                    const distFromCenter = Math.sqrt(targetPoint.x * targetPoint.x + targetPoint.z * targetPoint.z);
-                    if (distFromCenter > 8.5) {
-                        targetPoint.normalize().multiplyScalar(8.5);
+                const intersectsTerrain = raycaster.intersectObject(terrainMesh);
+                if (intersectsTerrain.length > 0) {
+                    const pt = intersectsTerrain[0].point;
+                    const maxR = getPlacementMaxRadius(ISLAND_LEVEL);
+                    const distFromCenter = Math.sqrt(pt.x * pt.x + pt.z * pt.z);
+
+                    let placeX = pt.x;
+                    let placeZ = pt.z;
+
+                    if (distFromCenter > maxR) {
+                        const scale = maxR / distFromCenter;
+                        placeX *= scale;
+                        placeZ *= scale;
                     }
 
-                    // Place item
+                    const placeY = getTerrainHeight(placeX, placeZ, ISLAND_LEVEL);
+
                     const item = islandData.items.find(i => i.id === selectedTrayItem);
                     if (item) {
                         item.is_placed = true;
-                        item.position_x = targetPoint.x;
-                        item.position_z = targetPoint.z;
+                        item.position_x = placeX;
+                        item.position_z = placeZ;
+                        item.position_y = placeY;
                         renderPlacedItems();
                         populateItemTray();
                         selectedTrayItem = null;
@@ -1645,31 +1942,36 @@ document.addEventListener("DOMContentLoaded", function() {
     const clock = new THREE.Clock();
 
     function updateCreatures(delta) {
+        const maxBoundRadius = getPlacementMaxRadius(ISLAND_LEVEL);
+
         creaturesList.forEach(c => {
             c.stateTimer -= delta;
 
             // 1. Boundary check (prevent falling into ocean)
             const currentDist = Math.sqrt(c.group.position.x * c.group.position.x + c.group.position.z * c.group.position.z);
-            if (currentDist > 8.8) {
-                // Force target towards island center
-                c.targetPos.set(
-                    c.group.position.x * -0.5,
-                    c.basePosY,
-                    c.group.position.z * -0.5
-                );
+            if (currentDist > maxBoundRadius) {
+                // Force target towards inner island
+                const targetX = c.group.position.x * -0.4;
+                const targetZ = c.group.position.z * -0.4;
+                const groundY = getTerrainHeight(targetX, targetZ, ISLAND_LEVEL);
+                c.targetPos.set(targetX, (c.type === 'seagull' || c.type === 'parakeet') ? groundY + 3.0 : groundY, targetZ);
                 c.state = (c.type === 'seagull' || c.type === 'parakeet') ? 'flying' : 'walking';
             }
 
             // 2. State Machine & Transitions
             if (c.stateTimer <= 0) {
+                const randRadius = Math.random() * (maxBoundRadius * 0.85);
+                const angle = Math.random() * Math.PI * 2;
+                const tX = Math.cos(angle) * randRadius;
+                const tZ = Math.sin(angle) * randRadius;
+                const tGroundY = getTerrainHeight(tX, tZ, ISLAND_LEVEL);
+
                 if (c.type === 'shiba_inu' || c.type === 'animal') {
                     if (c.state === 'idle') {
                         const isRun = Math.random() < 0.35;
                         c.state = isRun ? 'running' : 'walking';
                         c.speed = isRun ? 0.065 : 0.038;
-                        const angle = Math.random() * Math.PI * 2;
-                        const radius = Math.random() * 7.5;
-                        c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                        c.targetPos.set(tX, tGroundY, tZ);
                         c.stateTimer = Math.random() * 5 + 3;
                     } else {
                         c.state = 'idle';
@@ -1682,9 +1984,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             c.stateTimer = Math.random() * 7 + 4;
                         } else {
                             c.state = 'walking';
-                            const angle = Math.random() * Math.PI * 2;
-                            const radius = Math.random() * 7.0;
-                            c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                            c.targetPos.set(tX, tGroundY, tZ);
                             c.stateTimer = Math.random() * 6 + 3;
                         }
                     } else {
@@ -1694,9 +1994,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 } else if (c.type === 'white_rabbit') {
                     if (c.state === 'idle') {
                         c.state = 'hopping';
-                        const angle = Math.random() * Math.PI * 2;
-                        const radius = Math.random() * 7.2;
-                        c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                        c.targetPos.set(tX, tGroundY, tZ);
                         c.stateTimer = Math.random() * 4 + 3;
                     } else {
                         c.state = 'idle';
@@ -1705,18 +2003,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 } else if (c.type === 'capybara') {
                     if (c.state === 'idle') {
                         c.state = 'walking';
-                        // Look for nearby water objects (fountain or pond)
                         let waterItem = islandData && islandData.items ? islandData.items.find(i => i.is_placed && (i.item_type === 'small_pond' || i.item_type === 'fountain')) : null;
                         if (waterItem && Math.random() < 0.65) {
-                            c.targetPos.set(
-                                waterItem.position_x + (Math.random() - 0.5) * 2.0,
-                                2.7,
-                                waterItem.position_z + (Math.random() - 0.5) * 2.0
-                            );
+                            const wX = waterItem.position_x + (Math.random() - 0.5) * 2.0;
+                            const wZ = waterItem.position_z + (Math.random() - 0.5) * 2.0;
+                            c.targetPos.set(wX, getTerrainHeight(wX, wZ, ISLAND_LEVEL), wZ);
                         } else {
-                            const angle = Math.random() * Math.PI * 2;
-                            const radius = Math.random() * 6.8;
-                            c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                            c.targetPos.set(tX, tGroundY, tZ);
                         }
                         c.stateTimer = Math.random() * 7 + 4;
                     } else {
@@ -1726,10 +2019,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 } else if (c.type === 'penguin') {
                     if (c.state === 'idle') {
                         c.state = 'waddling';
-                        // Coastline area (r: 7.2 ~ 9.0)
-                        const angle = Math.random() * Math.PI * 2;
-                        const radius = 7.2 + Math.random() * 1.8;
-                        c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                        const coastR = maxBoundRadius * (0.8 + Math.random() * 0.15);
+                        const pX = Math.cos(angle) * coastR;
+                        const pZ = Math.sin(angle) * coastR;
+                        c.targetPos.set(pX, getTerrainHeight(pX, pZ, ISLAND_LEVEL), pZ);
                         c.stateTimer = Math.random() * 6 + 3;
                     } else {
                         c.state = 'idle';
@@ -1739,28 +2032,24 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (c.state === 'flying') {
                         if (Math.random() < 0.4) {
                             c.state = 'pecking';
-                            const angle = Math.random() * Math.PI * 2;
-                            const radius = Math.random() * 6.5;
-                            c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                            c.targetPos.set(tX, tGroundY, tZ);
                             c.stateTimer = Math.random() * 4 + 2;
                         } else {
                             c.state = 'flying';
-                            const angle = Math.random() * Math.PI * 2;
-                            const radius = Math.random() * 8.0;
-                            c.targetPos.set(Math.cos(angle) * radius, 3.8 + Math.random() * 1.2, Math.sin(angle) * radius);
+                            c.targetPos.set(tX, Math.max(tGroundY + 2.5, 4.5) + Math.random() * 1.5, tZ);
                             c.stateTimer = Math.random() * 6 + 4;
                         }
                     } else {
                         c.state = 'flying';
-                        const angle = Math.random() * Math.PI * 2;
-                        const radius = Math.random() * 8.0;
-                        c.targetPos.set(Math.cos(angle) * radius, 3.8 + Math.random() * 1.2, Math.sin(angle) * radius);
+                        c.targetPos.set(tX, Math.max(tGroundY + 2.5, 4.5) + Math.random() * 1.5, tZ);
                         c.stateTimer = Math.random() * 6 + 4;
                     }
                 }
             }
 
-            // 3. Movement Execution & Procedural Animation
+            // 3. Movement Execution & Dynamic Elevation Following
+            const groundY = getTerrainHeight(c.group.position.x, c.group.position.z, ISLAND_LEVEL);
+
             if (c.state === 'walking' || c.state === 'running' || c.state === 'hopping' || c.state === 'waddling' || c.state === 'flying' || c.state === 'pecking') {
                 const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
                 if (c.state !== 'flying') dir.y = 0;
@@ -1779,32 +2068,28 @@ document.addEventListener("DOMContentLoaded", function() {
                     c.bouncePhase += delta * 12;
 
                     if (c.state === 'hopping') {
-                        // High parabolic jump arc for rabbit
-                        c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase * 1.2)) * 0.45;
+                        c.group.position.y = groundY + Math.abs(Math.sin(c.bouncePhase * 1.2)) * 0.45;
                     } else if (c.state === 'waddling') {
-                        // Side sway for penguin
-                        c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase)) * 0.1;
+                        c.group.position.y = groundY + Math.abs(Math.sin(c.bouncePhase)) * 0.1;
                         c.group.rotation.z = Math.sin(c.bouncePhase) * 0.18;
                     } else if (c.state === 'flying') {
-                        // Wing flap / height wave for bird
                         c.group.position.y = c.targetPos.y + Math.sin(c.bouncePhase * 0.8) * 0.2;
                         c.group.rotation.z = Math.sin(c.bouncePhase * 0.5) * 0.15;
                     } else {
-                        // Regular walking/running hop
-                        c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase)) * (c.state === 'running' ? 0.25 : 0.12);
+                        c.group.position.y = groundY + Math.abs(Math.sin(c.bouncePhase)) * (c.state === 'running' ? 0.25 : 0.12);
                         c.group.rotation.z = 0;
                     }
                 }
             } else if (c.state === 'idle') {
                 c.group.rotation.z = 0;
-                c.group.position.y = (c.type === 'seagull' || c.type === 'parakeet') ? c.targetPos.y : 2.7;
+                c.group.position.y = (c.type === 'seagull' || c.type === 'parakeet') ? c.targetPos.y : groundY;
                 if (c.type === 'shiba_inu' || c.type === 'animal') {
                     c.actionPhase += delta * 15;
                     c.group.rotation.y += Math.sin(c.actionPhase) * 0.01;
                 }
             } else if (c.state === 'sleeping') {
-                c.group.position.y = 2.55;
-                c.group.rotation.z = 0.2; // Sleeping curl tilt
+                c.group.position.y = groundY - 0.1;
+                c.group.rotation.z = 0.2;
             }
         });
     }
@@ -1825,7 +2110,15 @@ document.addEventListener("DOMContentLoaded", function() {
         oceanGeo.computeVertexNormals();
         posAttr.needsUpdate = true;
 
-        // Update creatures AI
+        // Animate Clouds Drifting Slow
+        cloudsList.forEach(c => {
+            c.mesh.position.x += delta * c.speed;
+            if (c.mesh.position.x > c.boundSpan / 2) {
+                c.mesh.position.x = -c.boundSpan / 2;
+            }
+        });
+
+        // Update creatures AI & elevation
         updateCreatures(delta);
 
         controls.update();
