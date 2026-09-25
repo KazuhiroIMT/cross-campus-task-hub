@@ -8,6 +8,117 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+
+    <!-- Three.js and OrbitControls via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        #island-canvas-container {
+            position: relative;
+            width: 100%;
+            height: 520px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            background: #87ceeb;
+        }
+        #three-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .island-ui-overlay {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 10;
+        }
+        .island-mode-badge {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1d3557;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .item-tray {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 10px 16px;
+            display: flex;
+            gap: 12px;
+            max-width: 90%;
+            overflow-x: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .tray-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            cursor: pointer;
+            min-width: 72px;
+            transition: all 0.2s ease;
+        }
+        .tray-item:hover {
+            background: #e2f2ee;
+            border-color: #2f8f7b;
+            transform: translateY(-2px);
+        }
+        .tray-item.selected {
+            background: #2f8f7b;
+            color: white;
+            border-color: #226a5a;
+        }
+        .tray-item.selected small {
+            color: white !important;
+        }
+        .edit-controls-toast {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background: rgba(29, 53, 87, 0.9);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        /* Click Reaction Heart Effect */
+        .reaction-heart {
+            position: absolute;
+            font-size: 24px;
+            pointer-events: none;
+            animation: floatUpFade 1.2s ease-out forwards;
+            z-index: 100;
+        }
+        @keyframes floatUpFade {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.6); }
+            50% { transform: translate(-50%, -100%) scale(1.3); }
+            100% { opacity: 0; transform: translate(-50%, -160%) scale(1); }
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -21,7 +132,7 @@
     </div>
 </nav>
 
-<div class="container py-4" style="max-width: 960px;">
+<div class="container py-4" style="max-width: 1000px;">
 
     {% if messages %}
         {% for message in messages %}
@@ -37,8 +148,8 @@
         <div class="card-body p-4">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div>
-                    <h3 class="fw-bold mb-1"><i class="bi bi-tsunami text-info"></i> マイアイランド</h3>
-                    <p class="text-muted small mb-0">仕事の合間に少し眺める、あなたの小さな個人島空間です。</p>
+                    <h3 class="fw-bold mb-1"><i class="bi bi-tsunami text-info"></i> リアル3Dマイアイランド</h3>
+                    <p class="text-muted small mb-0">日々の業務の合間に癒やされる、あなたのリアルな3D箱庭空間です。</p>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{% url 'gacha_page' %}" class="btn btn-primary btn-sm fw-bold shadow-sm">
@@ -81,34 +192,47 @@
         </div>
     </div>
 
-    <!-- 島のビジュアル（配置済みアイテム表示エリア） -->
+    <!-- 3D リアル箱庭ビューポート -->
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-white fw-bold py-3 d-flex justify-content-between align-items-center">
-            <span>🏝️ 配置済みの島 ({{ placed_items.count }}件)</span>
-            <small class="text-muted font-normal">取得したアイテムを島に飾っています</small>
+            <span>🏝️ 3Dアイランド空間</span>
+            <small class="text-muted font-normal">ドラッグで視点回転、スクロールでズームできます</small>
         </div>
-        <div class="card-body p-4 text-center" style="background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 60%, #86efac 100%); min-height: 220px; border-radius: 0 0 8px 8px;">
-            {% if placed_items %}
-                <div class="d-flex flex-wrap justify-content-center align-items-center gap-4 py-4">
-                    {% for item in placed_items %}
-                        <div class="p-3 bg-white bg-opacity-75 rounded-4 shadow-sm text-center border" style="min-width: 90px;">
-                            <div class="display-5 mb-1">{{ item.icon }}</div>
-                            <small class="fw-bold text-dark d-block">{{ item.name }}</small>
-                        </div>
-                    {% endfor %}
+        <div class="card-body p-0">
+            <div id="island-canvas-container">
+                <!-- Mode Badge -->
+                <div id="mode-badge" class="island-mode-badge">
+                    <i class="bi bi-eye-fill text-success me-1"></i> 癒やし・鑑賞モード
                 </div>
-            {% else %}
-                <div class="py-5 text-secondary">
-                    <i class="bi bi-tree fs-1 d-block mb-2"></i>
-                    <p class="mb-2">まだ島に配置されたアイテムがありません。</p>
-                    <a href="{% url 'gacha_page' %}" class="btn btn-sm btn-primary">ガチャを引いてアイテムを獲得しよう！</a>
+
+                <!-- Top Right UI Controls -->
+                <div class="island-ui-overlay d-flex gap-2">
+                    <button id="btn-toggle-edit" class="btn btn-light btn-sm fw-bold shadow-sm rounded-pill px-3">
+                        <i class="bi bi-pencil-square text-primary"></i> 模様替え（配置変更）
+                    </button>
+                    <button id="btn-save-positions" class="btn btn-success btn-sm fw-bold shadow-sm rounded-pill px-3 d-none">
+                        <i class="bi bi-check-lg"></i> 位置を保存
+                    </button>
                 </div>
-            {% endif %}
+
+                <!-- Toast instructions for edit mode -->
+                <div id="edit-instructions" class="edit-controls-toast d-none">
+                    トレイのアイテムを選択して島の上をクリックで配置／配置済みオブジェクトを選択して移動・回転
+                </div>
+
+                <!-- Item Tray (Edit Mode) -->
+                <div id="item-tray" class="item-tray d-none">
+                    <!-- Dynamic items will be populated by JS -->
+                </div>
+
+                <!-- Canvas -->
+                <canvas id="three-canvas"></canvas>
+            </div>
         </div>
     </div>
 
-    <!-- 所有アイテム一覧 & 配置切替 -->
-    <div class="card shadow-sm border-0">
+    <!-- 所有アイテム一覧 & 配置切替テーブル -->
+    <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white fw-bold py-3">
             📦 所有コレクションアイテム一覧 ({{ items.count }}件)
         </div>
@@ -166,5 +290,678 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- 3D Island Engine Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const container = document.getElementById("island-canvas-container");
+    const canvas = document.getElementById("three-canvas");
+    const btnToggleEdit = document.getElementById("btn-toggle-edit");
+    const btnSavePositions = document.getElementById("btn-save-positions");
+    const modeBadge = document.getElementById("mode-badge");
+    const itemTray = document.getElementById("item-tray");
+    const editInstructions = document.getElementById("edit-instructions");
+
+    let isEditMode = false;
+    let islandData = null;
+    let placedObjectsMap = new Map(); // itemId -> THREE.Group
+    let creaturesList = []; // List of creatures with AI state
+    let selectedTrayItem = null;
+    let activeSelectedObject = null; // Currently selected placed object in edit mode
+
+    // --- 1. Three.js Scene Setup ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // Sky blue
+    scene.fog = new THREE.FogExp2(0xa0d8ef, 0.008);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 18, 26);
+
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera under water
+    controls.minDistance = 8;
+    controls.maxDistance = 50;
+    controls.target.set(0, 2, 0);
+
+    // --- 2. Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff5e6, 0.9);
+    sunLight.position.set(20, 40, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 100;
+    const shadowD = 15;
+    sunLight.shadow.camera.left = -shadowD;
+    sunLight.shadow.camera.right = shadowD;
+    sunLight.shadow.camera.top = shadowD;
+    sunLight.shadow.camera.bottom = -shadowD;
+    scene.add(sunLight);
+
+    const hemisphereLight = new THREE.HemisphereLight(0x87ceeb, 0x3d7045, 0.4);
+    scene.add(hemisphereLight);
+
+    // --- 3. Ocean Water Surface Plane ---
+    const oceanGeo = new THREE.PlaneGeometry(200, 200, 32, 32);
+    const oceanMat = new THREE.MeshPhongMaterial({
+        color: 0x1ca3ec,
+        transparent: true,
+        opacity: 0.8,
+        shininess: 90,
+        flatShading: true
+    });
+    const oceanMesh = new THREE.Mesh(oceanGeo, oceanMat);
+    oceanMesh.rotation.x = -Math.PI / 2;
+    oceanMesh.position.y = 0;
+    scene.add(oceanMesh);
+
+    // --- 4. Island Terrain Mesh (Low-poly Sand & Grass) ---
+    const islandGroup = new THREE.Group();
+
+    // Sand base (larger cylinder)
+    const sandGeo = new THREE.CylinderGeometry(11, 12.5, 2.5, 24);
+    const sandMat = new THREE.MeshLambertMaterial({ color: 0xe6cb9a, flatShading: true });
+    const sandMesh = new THREE.Mesh(sandGeo, sandMat);
+    sandMesh.position.y = 0.8;
+    sandMesh.receiveShadow = true;
+    islandGroup.add(sandMesh);
+
+    // Grass top layer
+    const grassGeo = new THREE.CylinderGeometry(9.8, 10.5, 1.2, 24);
+    const grassMat = new THREE.MeshLambertMaterial({ color: 0x55aa44, flatShading: true });
+    const grassMesh = new THREE.Mesh(grassGeo, grassMat);
+    grassMesh.position.y = 2.1;
+    grassMesh.receiveShadow = true;
+    islandGroup.add(grassMesh);
+
+    // Central small hill
+    const hillGeo = new THREE.ConeGeometry(4.5, 1.8, 16);
+    const hillMat = new THREE.MeshLambertMaterial({ color: 0x489639, flatShading: true });
+    const hillMesh = new THREE.Mesh(hillGeo, hillMat);
+    hillMesh.position.set(0, 3.2, 0);
+    hillMesh.receiveShadow = true;
+    islandGroup.add(hillMesh);
+
+    scene.add(islandGroup);
+
+    // Raycast ground plane at island surface height (y = 2.7)
+    const groundRayPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -2.7);
+
+    // --- 5. Procedural 3D Mesh Builders for Items ---
+    function createTreeMesh() {
+        const group = new THREE.Group();
+        // Trunk
+        const trunkGeo = new THREE.CylinderGeometry(0.2, 0.35, 1.6, 6);
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x6e4726, flatShading: true });
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 0.8;
+        trunk.castShadow = true;
+        group.add(trunk);
+        // Foliage cones
+        const foliageMat = new THREE.MeshLambertMaterial({ color: 0x2e8b57, flatShading: true });
+        const f1 = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.8, 7), foliageMat);
+        f1.position.y = 1.9;
+        f1.castShadow = true;
+        group.add(f1);
+        const f2 = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.5, 7), foliageMat);
+        f2.position.y = 2.7;
+        f2.castShadow = true;
+        group.add(f2);
+        return group;
+    }
+
+    function createFlowerMesh() {
+        const group = new THREE.Group();
+        // Stem
+        const stem = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.05, 0.6, 5),
+            new THREE.MeshLambertMaterial({ color: 0x32cd32 })
+        );
+        stem.position.y = 0.3;
+        group.add(stem);
+        // Petals
+        const petalMat = new THREE.MeshLambertMaterial({ color: 0xff69b4, flatShading: true });
+        for (let i = 0; i < 5; i++) {
+            const petal = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), petalMat);
+            const angle = (i / 5) * Math.PI * 2;
+            petal.position.set(Math.cos(angle) * 0.2, 0.6, Math.sin(angle) * 0.2);
+            petal.scale.set(1, 0.4, 1);
+            group.add(petal);
+        }
+        // Center
+        const center = new THREE.Mesh(
+            new THREE.SphereGeometry(0.12, 6, 6),
+            new THREE.MeshLambertMaterial({ color: 0xffd700 })
+        );
+        center.position.y = 0.62;
+        group.add(center);
+        return group;
+    }
+
+    function createRockMesh() {
+        const group = new THREE.Group();
+        const rockGeo = new THREE.DodecahedronGeometry(0.8, 1);
+        const rockMat = new THREE.MeshLambertMaterial({ color: 0x808080, flatShading: true });
+        const rock = new THREE.Mesh(rockGeo, rockMat);
+        rock.position.y = 0.5;
+        rock.scale.set(1.2, 0.8, 1.0);
+        rock.castShadow = true;
+        group.add(rock);
+        return group;
+    }
+
+    function createHouseMesh() {
+        const group = new THREE.Group();
+        // Body
+        const bodyGeo = new THREE.BoxGeometry(1.6, 1.2, 1.4);
+        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xfff8dc, flatShading: true });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.6;
+        body.castShadow = true;
+        group.add(body);
+        // Roof
+        const roofGeo = new THREE.ConeGeometry(1.4, 0.9, 4);
+        const roofMat = new THREE.MeshLambertMaterial({ color: 0xb22222, flatShading: true });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.y = 1.65;
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        group.add(roof);
+        // Door
+        const door = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.7, 0.05),
+            new THREE.MeshLambertMaterial({ color: 0x8b4513 })
+        );
+        door.position.set(0, 0.35, 0.71);
+        group.add(door);
+        return group;
+    }
+
+    function createFountainMesh() {
+        const group = new THREE.Group();
+        // Base basin
+        const basin = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.2, 1.0, 0.4, 12),
+            new THREE.MeshLambertMaterial({ color: 0xd3d3d3, flatShading: true })
+        );
+        basin.position.y = 0.2;
+        basin.castShadow = true;
+        group.add(basin);
+        // Water surface
+        const water = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.0, 1.0, 0.05, 12),
+            new THREE.MeshPhongMaterial({ color: 0x00bfff, transparent: true, opacity: 0.85 })
+        );
+        water.position.y = 0.38;
+        group.add(water);
+        // Center jet pillar
+        const pillar = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.2, 0.25, 0.8, 8),
+            new THREE.MeshLambertMaterial({ color: 0xc0c0c0 })
+        );
+        pillar.position.y = 0.6;
+        group.add(pillar);
+        return group;
+    }
+
+    function createShopMesh() {
+        const group = new THREE.Group();
+        // Body
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(1.8, 1.3, 1.5),
+            new THREE.MeshLambertMaterial({ color: 0xffebcd, flatShading: true })
+        );
+        body.position.y = 0.65;
+        body.castShadow = true;
+        group.add(body);
+        // Awning stripes
+        const awningMat1 = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+        const awningMat2 = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        for (let i = 0; i < 5; i++) {
+            const stripe = new THREE.Mesh(
+                new THREE.BoxGeometry(0.35, 0.1, 0.6),
+                i % 2 === 0 ? awningMat1 : awningMat2
+            );
+            stripe.position.set(-0.7 + i * 0.35, 1.25, 0.9);
+            stripe.rotation.x = 0.2;
+            group.add(stripe);
+        }
+        return group;
+    }
+
+    function createCastleMesh() {
+        const group = new THREE.Group();
+        // Main tower body
+        const castleBody = new THREE.Mesh(
+            new THREE.BoxGeometry(2.0, 2.0, 2.0),
+            new THREE.MeshLambertMaterial({ color: 0x708090, flatShading: true })
+        );
+        castleBody.position.y = 1.0;
+        castleBody.castShadow = true;
+        group.add(castleBody);
+        // Turrets
+        const turretGeo = new THREE.CylinderGeometry(0.35, 0.35, 2.4, 8);
+        const turretMat = new THREE.MeshLambertMaterial({ color: 0x5a6b7c, flatShading: true });
+        const roofGeo = new THREE.ConeGeometry(0.45, 0.8, 8);
+        const roofMat = new THREE.MeshLambertMaterial({ color: 0x8b0000 });
+
+        [[-0.9, -0.9], [0.9, -0.9], [-0.9, 0.9], [0.9, 0.9]].forEach(pos => {
+            const t = new THREE.Mesh(turretGeo, turretMat);
+            t.position.set(pos[0], 1.2, pos[1]);
+            t.castShadow = true;
+            group.add(t);
+
+            const r = new THREE.Mesh(roofGeo, roofMat);
+            r.position.set(pos[0], 2.8, pos[1]);
+            group.add(r);
+        });
+        return group;
+    }
+
+    function createAnimalMesh() {
+        const group = new THREE.Group();
+        // Body (Dog / Mascot)
+        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xea9c47, flatShading: true });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.8), bodyMat);
+        body.position.y = 0.45;
+        body.castShadow = true;
+        group.add(body);
+
+        // Head
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), bodyMat);
+        head.position.set(0, 0.75, 0.35);
+        head.castShadow = true;
+        group.add(head);
+
+        // Snout
+        const snout = new THREE.Mesh(
+            new THREE.BoxGeometry(0.25, 0.2, 0.2),
+            new THREE.MeshLambertMaterial({ color: 0xffdab9 })
+        );
+        snout.position.set(0, 0.68, 0.6);
+        group.add(snout);
+
+        // Nose
+        const nose = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.08, 0.05),
+            new THREE.MeshLambertMaterial({ color: 0x111111 })
+        );
+        nose.position.set(0, 0.72, 0.71);
+        group.add(nose);
+
+        // Ears
+        const earMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 });
+        const earL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.12), earMat);
+        earL.position.set(-0.24, 0.85, 0.35);
+        group.add(earL);
+
+        const earR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.12), earMat);
+        earR.position.set(0.24, 0.85, 0.35);
+        group.add(earR);
+
+        // Tail
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.08), bodyMat);
+        tail.position.set(0, 0.6, -0.42);
+        tail.rotation.x = -0.5;
+        group.add(tail);
+
+        return group;
+    }
+
+    function build3DMeshForItemType(type) {
+        switch (type) {
+            case 'tree': return createTreeMesh();
+            case 'flower': return createFlowerMesh();
+            case 'rock': return createRockMesh();
+            case 'house': return createHouseMesh();
+            case 'fountain': return createFountainMesh();
+            case 'shop': return createShopMesh();
+            case 'castle': return createCastleMesh();
+            case 'animal': return createAnimalMesh();
+            default: return createTreeMesh();
+        }
+    }
+
+    // --- 6. Fetch & Render Placed Items ---
+    function loadIslandData() {
+        fetch("{% url 'api_get_island_data' %}")
+            .then(res => res.json())
+            .then(data => {
+                islandData = data;
+                renderPlacedItems();
+                populateItemTray();
+            })
+            .catch(err => console.error("Error loading island data:", err));
+    }
+
+    function renderPlacedItems() {
+        // Clear existing placed objects
+        placedObjectsMap.forEach(obj => scene.remove(obj));
+        placedObjectsMap.clear();
+        creaturesList = [];
+
+        if (!islandData || !islandData.items) return;
+
+        islandData.items.forEach(item => {
+            if (item.is_placed) {
+                const group = new THREE.Group();
+                const mesh = build3DMeshForItemType(item.item_type);
+                group.add(mesh);
+
+                // Default ground position if not set
+                const posX = item.position_x || (Math.random() * 8 - 4);
+                const posZ = item.position_z || (Math.random() * 8 - 4);
+                group.position.set(posX, 2.7, posZ);
+                group.rotation.y = item.rotation_y || 0;
+
+                group.userData = {
+                    itemId: item.id,
+                    itemType: item.item_type,
+                    itemName: item.name,
+                    isCreature: item.item_type === 'animal'
+                };
+
+                scene.add(group);
+                placedObjectsMap.set(item.id, group);
+
+                if (item.item_type === 'animal') {
+                    creaturesList.push({
+                        group: group,
+                        targetPos: new THREE.Vector3(posX, 2.7, posZ),
+                        state: 'idle', // 'idle' | 'walking'
+                        stateTimer: Math.random() * 3 + 2,
+                        speed: 0.03,
+                        bouncePhase: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+        });
+    }
+
+    function populateItemTray() {
+        itemTray.innerHTML = "";
+        if (!islandData || !islandData.items) return;
+
+        islandData.items.forEach(item => {
+            const trayElem = document.createElement("div");
+            trayElem.className = `tray-item ${item.is_placed ? 'opacity-50' : ''}`;
+            trayElem.dataset.itemId = item.id;
+            trayElem.innerHTML = `
+                <div class="fs-4">${item.icon}</div>
+                <small class="fw-bold text-dark text-truncate" style="max-width: 80px;">${item.name}</small>
+                <small class="text-secondary" style="font-size: 0.7rem;">${item.is_placed ? '配置中' : '未配置'}</small>
+            `;
+
+            trayElem.addEventListener("click", () => {
+                document.querySelectorAll(".tray-item").forEach(el => el.classList.remove("selected"));
+                if (selectedTrayItem === item.id) {
+                    selectedTrayItem = null;
+                } else {
+                    selectedTrayItem = item.id;
+                    trayElem.classList.add("selected");
+                }
+            });
+
+            itemTray.appendChild(trayElem);
+        });
+    }
+
+    // --- 7. Edit Mode Toggle & Controls ---
+    btnToggleEdit.addEventListener("click", () => {
+        isEditMode = !isEditMode;
+        if (isEditMode) {
+            modeBadge.innerHTML = `<i class="bi bi-pencil-fill text-warning me-1"></i> 模様替え（配置・移動モード）`;
+            btnToggleEdit.className = "btn btn-outline-secondary btn-sm fw-bold shadow-sm rounded-pill px-3";
+            btnSavePositions.classList.remove("d-none");
+            itemTray.classList.remove("d-none");
+            editInstructions.classList.remove("d-none");
+        } else {
+            modeBadge.innerHTML = `<i class="bi bi-eye-fill text-success me-1"></i> 癒やし・鑑賞モード`;
+            btnToggleEdit.className = "btn btn-light btn-sm fw-bold shadow-sm rounded-pill px-3";
+            btnSavePositions.classList.add("d-none");
+            itemTray.classList.add("d-none");
+            editInstructions.classList.add("d-none");
+            selectedTrayItem = null;
+            deselectActiveObject();
+        }
+    });
+
+    btnSavePositions.addEventListener("click", savePositionsToBackend);
+
+    function savePositionsToBackend() {
+        const payload = [];
+        islandData.items.forEach(item => {
+            const group = placedObjectsMap.get(item.id);
+            if (group) {
+                payload.push({
+                    id: item.id,
+                    position_x: parseFloat(group.position.x.toFixed(2)),
+                    position_y: parseFloat(group.position.y.toFixed(2)),
+                    position_z: parseFloat(group.position.z.toFixed(2)),
+                    rotation_y: parseFloat(group.rotation.y.toFixed(2)),
+                    is_placed: true
+                });
+            } else {
+                payload.push({
+                    id: item.id,
+                    position_x: item.position_x,
+                    position_y: item.position_y,
+                    position_z: item.position_z,
+                    rotation_y: item.rotation_y,
+                    is_placed: false
+                });
+            }
+        });
+
+        fetch("{% url 'api_save_placed_items' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ items: payload })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success') {
+                btnSavePositions.innerHTML = `<i class="bi bi-check-all"></i> 保存完了！`;
+                setTimeout(() => {
+                    btnSavePositions.innerHTML = `<i class="bi bi-check-lg"></i> 位置を保存`;
+                }, 2000);
+            }
+        })
+        .catch(err => console.error("Error saving positions:", err));
+    }
+
+    // --- 8. Raycasting & User Interactions ---
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function deselectActiveObject() {
+        if (activeSelectedObject) {
+            activeSelectedObject.scale.set(1, 1, 1);
+            activeSelectedObject = null;
+        }
+    }
+
+    canvas.addEventListener("click", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        // A. If clicking in Edit Mode
+        if (isEditMode) {
+            // Check if user selected an inventory item to place
+            if (selectedTrayItem) {
+                const targetPoint = new THREE.Vector3();
+                if (raycaster.ray.intersectPlane(groundRayPlane, targetPoint)) {
+                    // Limit radius to island bounds (r <= 8.5)
+                    const distFromCenter = Math.sqrt(targetPoint.x * targetPoint.x + targetPoint.z * targetPoint.z);
+                    if (distFromCenter > 8.5) {
+                        targetPoint.normalize().multiplyScalar(8.5);
+                    }
+
+                    // Place item
+                    const item = islandData.items.find(i => i.id === selectedTrayItem);
+                    if (item) {
+                        item.is_placed = true;
+                        item.position_x = targetPoint.x;
+                        item.position_z = targetPoint.z;
+                        renderPlacedItems();
+                        populateItemTray();
+                        selectedTrayItem = null;
+                    }
+                }
+                return;
+            }
+
+            // Otherwise, check object selection for move/rotate
+            const intersects = raycaster.intersectObjects(Array.from(placedObjectsMap.values()), true);
+            if (intersects.length > 0) {
+                let topGroup = intersects[0].object;
+                while (topGroup.parent && topGroup.parent !== scene) {
+                    topGroup = topGroup.parent;
+                }
+
+                deselectActiveObject();
+                activeSelectedObject = topGroup;
+                activeSelectedObject.scale.set(1.15, 1.15, 1.15); // Highlight pulse
+            } else {
+                deselectActiveObject();
+            }
+        } else {
+            // B. Viewing Mode: Click Interaction on Creatures (Simple Reaction)
+            const intersects = raycaster.intersectObjects(Array.from(placedObjectsMap.values()), true);
+            if (intersects.length > 0) {
+                let topGroup = intersects[0].object;
+                while (topGroup.parent && topGroup.parent !== scene) {
+                    topGroup = topGroup.parent;
+                }
+
+                if (topGroup.userData && topGroup.userData.isCreature) {
+                    // Creature Bounce Reaction Animation
+                    triggerCreatureReaction(topGroup, e.clientX, e.clientY);
+                }
+            }
+        }
+    });
+
+    function triggerCreatureReaction(group, clientX, clientY) {
+        // Bounce up
+        let startY = 2.7;
+        let bounceHeight = 1.2;
+        let duration = 500;
+        let startTime = performance.now();
+
+        function animateBounce(time) {
+            let elapsed = time - startTime;
+            let progress = elapsed / duration;
+            if (progress < 1) {
+                let yOffset = Math.sin(progress * Math.PI) * bounceHeight;
+                group.position.y = startY + yOffset;
+                requestAnimationFrame(animateBounce);
+            } else {
+                group.position.y = startY;
+            }
+        }
+        requestAnimationFrame(animateBounce);
+
+        // Spawn Heart Effect
+        const heart = document.createElement("div");
+        heart.className = "reaction-heart";
+        heart.innerText = "❤️";
+        heart.style.left = `${clientX}px`;
+        heart.style.top = `${clientY}px`;
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1200);
+    }
+
+    // --- 9. Autonomous Creature Wander AI & Render Loop ---
+    const clock = new THREE.Clock();
+
+    function updateCreatures(delta) {
+        creaturesList.forEach(c => {
+            c.stateTimer -= delta;
+
+            if (c.state === 'idle') {
+                if (c.stateTimer <= 0) {
+                    // Pick new random target within island radius (r <= 7.5)
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = Math.random() * 7.5;
+                    c.targetPos.set(Math.cos(angle) * radius, 2.7, Math.sin(angle) * radius);
+                    c.state = 'walking';
+                    c.stateTimer = Math.random() * 6 + 4;
+                }
+            } else if (c.state === 'walking') {
+                const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
+                dir.y = 0;
+                const dist = dir.length();
+
+                if (dist < 0.2 || c.stateTimer <= 0) {
+                    c.state = 'idle';
+                    c.stateTimer = Math.random() * 4 + 2;
+                } else {
+                    dir.normalize();
+                    c.group.position.addScaledVector(dir, c.speed);
+
+                    // Face walk direction
+                    c.group.rotation.y = Math.atan2(dir.x, dir.z);
+
+                    // Gentle walking hop/bounce
+                    c.bouncePhase += delta * 10;
+                    c.group.position.y = 2.7 + Math.abs(Math.sin(c.bouncePhase)) * 0.15;
+                }
+            }
+        });
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+
+        // Ocean subtle wave animation
+        const time = clock.getElapsedTime();
+        const posAttr = oceanGeo.attributes.position;
+        for (let i = 0; i < posAttr.count; i++) {
+            const u = posAttr.getX(i);
+            const v = posAttr.getY(i);
+            const z = Math.sin(u * 0.5 + time * 2) * 0.15 + Math.cos(v * 0.5 + time * 1.5) * 0.15;
+            posAttr.setZ(i, z);
+        }
+        oceanGeo.computeVertexNormals();
+        posAttr.needsUpdate = true;
+
+        // Update creatures AI
+        updateCreatures(delta);
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    // Window resize handler
+    window.addEventListener("resize", () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // Start engine
+    loadIslandData();
+    animate();
+});
+</script>
 </body>
 </html>
