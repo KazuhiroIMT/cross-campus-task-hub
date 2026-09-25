@@ -38,43 +38,82 @@ def user_full_name_japanese(self):
 User.__str__ = user_full_name_japanese
 
 
-# 管理画面の左メニューの並び順をカスタム（業務関連 ➔ ゲーム・モチベーション関連）
-BUSINESS_MODELS = [
-    'タスク一覧',
-    '学生一覧',
-    '学科一覧',
-    'コース一覧',
-    'クラス一覧',
-    '担当業務一覧',
-    '教職員プロファイル一覧',
-    '所属部署一覧',
-    'ユーザー',
-    'グループ',
+# 管理画面トップのモデル一覧を業務データとゲーム関連データに分離
+BUSINESS_MODEL_NAMES = [
+    'Task',
+    'Student',
+    'Department',
+    'Course',
+    'SchoolClass',
+    'StaffProfile',
+    'StaffDuty',
+    'DepartmentGroup',
 ]
 
-GAME_MODELS = [
-    '育成キャラクター一覧',
-    '殿堂入りキャラクター一覧',
-    'マイアイランド情報一覧',
-    '島アイテム一覧',
-    '実績・称号一覧',
-    'ユーザー獲得実績一覧',
-    'ユーザー日別タスク完了記録一覧',
-    '部署ボス討伐一覧',
-    '部署実績・称号一覧',
-    '部署獲得実績一覧',
-    '部署プロファイル一覧',
+GAMIFICATION_MODEL_NAMES = [
+    'UserCompanion',
+    'GraduatedCompanion',
+    'Achievement',
+    'UserAchievement',
+    'UserTaskCompletionDate',
+    'IslandProfile',
+    'IslandItem',
+    'DepartmentBattle',
+    'DepartmentAchievement',
+    'DepartmentAchievementUnlock',
+    'DepartmentProfile',
 ]
 
 def custom_get_app_list(self, request, app_label=None):
     app_dict = self._build_app_dict(request, app_label)
-    
-    model_order = BUSINESS_MODELS + GAME_MODELS
-    
-    app_list = sorted(app_dict.values(), key=lambda x: x['name'].lower())
-    for app in app_list:
-        if app['app_label'] == 'core':
-            app['models'].sort(key=lambda x: model_order.index(x['name']) if x['name'] in model_order else 999)
+    if not app_dict:
+        return []
+
+    # 全モデルのディクショナリ（object_name ➔ model dict）を収集
+    model_by_objname = {}
+    for app in app_dict.values():
+        for m in app['models']:
+            model_by_objname[m['object_name']] = m
+
+    business_models = []
+    for name in BUSINESS_MODEL_NAMES:
+        if name in model_by_objname:
+            business_models.append(model_by_objname[name])
+
+    gamification_models = []
+    for name in GAMIFICATION_MODEL_NAMES:
+        if name in model_by_objname:
+            gamification_models.append(model_by_objname[name])
+
+    # その他未分類（authのUser/Groupなどがあれば業務データ側に追加）
+    handled_names = set(BUSINESS_MODEL_NAMES + GAMIFICATION_MODEL_NAMES)
+    other_models = []
+    for name, m in model_by_objname.items():
+        if name not in handled_names:
+            other_models.append(m)
+
+    if other_models:
+        business_models.extend(other_models)
+
+    app_list = []
+    if business_models:
+        app_list.append({
+            'name': '【学内業務・タスク管理】',
+            'app_label': 'business_tasks',
+            'app_url': '',
+            'has_module_perms': True,
+            'models': business_models,
+        })
+
+    if gamification_models:
+        app_list.append({
+            'name': '【ゲーミフィケーション・拠点】',
+            'app_label': 'gamification_base',
+            'app_url': '',
+            'has_module_perms': True,
+            'models': gamification_models,
+        })
+
     return app_list
 
 AdminSite.get_app_list = custom_get_app_list
@@ -790,6 +829,13 @@ class TaskAdmin(admin.ModelAdmin):
         count = old_closed.update(is_archived=True)
         self.message_user(request, f"3ヶ月以上前に完了したタスク {count} 件を一括アーカイブしました。", messages.SUCCESS)
 
+
+# --- 担当業務マスタ ---
+@admin.register(StaffDuty)
+class StaffDutyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'department_group')
+    list_filter = ('department_group',)
+    search_fields = ('name', 'department_group__name')
 
 # --- 所属部署（親）と担当業務（子）のネスト管理 ---
 class StaffDutyInline(admin.TabularInline):

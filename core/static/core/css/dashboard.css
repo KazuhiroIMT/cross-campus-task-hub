@@ -261,6 +261,7 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 /* --- 優先度バッジ --- */
 .badge-high { background-color: var(--color-rust); color: #fff; }
 .badge-mid { background-color: var(--color-amber); color: var(--color-ink); }
+.badge-medium { background-color: var(--color-amber); color: var(--color-ink); }
 .badge-low { background-color: var(--color-bg-soft); color: var(--color-ink-soft); border: 1px solid var(--color-border); }
 
 /* --- 状態バッジ(Bootstrapユーティリティを .badge スコープ限定で上書き) --- */
