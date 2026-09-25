@@ -602,3 +602,64 @@ class DepartmentBossTests(TestCase):
         # 他部署詳細の閲覧拒否（PermissionDenied: 403）
         forbidden_res = self.client.get(f'/department/{self.group1.id}/boss/')
         self.assertEqual(forbidden_res.status_code, 403)
+
+
+class DashboardFailSafeTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='freshuser', password='password123', is_staff=True)
+        self.client = Client()
+
+    def test_dashboard_renders_with_zero_data(self):
+        """DBデータやタスク・キャラが0件であってもダッシュボードが正常に200でレンダリングされ、枠組みが表示される"""
+        self.client.login(username='freshuser', password='password123')
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+
+        # 必須のベースUI要素が存在することを検証
+        self.assertContains(response, 'Cross-Campus Task Hub')
+        self.assertContains(response, '要対応タスク一覧')
+        self.assertContains(response, '今後の対応予定タスク（0件）')
+        self.assertContains(response, '現在対応が必要なタスクはありません。')
+        self.assertContains(response, 'モチベーション:')
+
+        # アコーディオン本体が初期状態から展開状態 (collapse show) であることを検証
+        self.assertContains(response, 'id="normalTasksBody" class="collapse show"')
+        self.assertContains(response, 'id="normalHeader"')
+        self.assertContains(response, 'aria-expanded="true"')
+
+        # フェールセーフ用の表示保障CSSが含まれることを検証
+        self.assertContains(response, 'opacity: 1 !important')
+        self.assertContains(response, 'display: block !important')
+
+    def test_dashboard_renders_with_urgent_and_normal_tasks(self):
+        """至急タスクおよび通常タスクが存在する場合に正しく展開状態でレンダリングされる"""
+        group = Group.objects.create(name='教務課')
+        self.user.groups.add(group)
+
+        today = timezone.now().date()
+        Task.objects.create(
+            title='Urgent Task 1',
+            description='Urgent Desc',
+            target_group=group,
+            created_by=self.user,
+            due_date=today,
+            status='open'
+        )
+        Task.objects.create(
+            title='Normal Task 1',
+            description='Normal Desc',
+            target_group=group,
+            created_by=self.user,
+            due_date=today + timedelta(days=2),
+            status='open'
+        )
+
+        self.client.login(username='freshuser', password='password123')
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Urgent Task 1')
+        self.assertContains(response, 'Normal Task 1')
+        self.assertContains(response, 'id="urgentTasksBody" class="collapse show"')
+        self.assertContains(response, 'id="normalTasksBody" class="collapse show"')
