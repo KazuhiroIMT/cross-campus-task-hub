@@ -47,6 +47,22 @@
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 
+/* --- Fail-safe rendering rules --- */
+html, body {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.container-fluid {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.collapse.show {
+  display: block !important;
+}
+
 /* --- ベース --- */
 body {
   background-color: var(--color-bg);

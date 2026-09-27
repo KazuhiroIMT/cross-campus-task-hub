@@ -141,86 +141,95 @@ def dashboard(request):
 
     # 1. 一括ステータス変更アクションの処理
     if request.method == 'POST' and 'bulk_update_status' in request.POST:
-        selected_task_ids = request.POST.getlist('task_ids')
-        new_status = request.POST.get('bulk_status')
-        if selected_task_ids and new_status in ['open', 'in_progress', 'closed']:
-            target_tasks = get_accessible_tasks(user).filter(pk__in=selected_task_ids)
-            updated_count = 0
-            for t in target_tasks:
-                old_status = t.status
-                t.status = new_status
-                t.save()
-                if new_status == 'closed' and old_status != 'closed':
-                    process_task_completion(t, user, request=None)
-                updated_count += 1
-            status_labels = {'open': '未着手', 'in_progress': '対応中', 'closed': '完了'}
-            messages.success(request, f"{updated_count} 件のタスクを「{status_labels.get(new_status)}」に一括変更しました。")
+        try:
+            selected_task_ids = request.POST.getlist('task_ids')
+            new_status = request.POST.get('bulk_status')
+            if selected_task_ids and new_status in ['open', 'in_progress', 'closed']:
+                target_tasks = get_accessible_tasks(user).filter(pk__in=selected_task_ids)
+                updated_count = 0
+                for t in target_tasks:
+                    old_status = t.status
+                    t.status = new_status
+                    t.save()
+                    if new_status == 'closed' and old_status != 'closed':
+                        process_task_completion(t, user, request=None)
+                    updated_count += 1
+                status_labels = {'open': '未着手', 'in_progress': '対応中', 'closed': '完了'}
+                messages.success(request, f"{updated_count} 件のタスクを「{status_labels.get(new_status)}」に一括変更しました。")
+                return redirect('dashboard')
+        except Exception as e:
+            messages.error(request, f"ステータスの更新中にエラーが発生しました: {e}")
             return redirect('dashboard')
 
     # 2. 閲覧可能な全アクティブタスクを取得
-    accessible_tasks = (
-        get_accessible_tasks(user)
-        .filter(is_archived=False)
-        .select_related(
-            'target_group', 'created_by', 'assigned_user', 'target_user'
+    try:
+        accessible_tasks = (
+            get_accessible_tasks(user)
+            .filter(is_archived=False)
+            .select_related(
+                'target_group', 'created_by', 'assigned_user', 'target_user'
+            )
+            .prefetch_related('students', 'target_users', 'target_groups')
         )
-        .prefetch_related('students', 'target_users', 'target_groups')
-    )
 
-    # 自分宛て、自分担当、または「個人指定のない自部署宛て案件」のみをダッシュボードに表示
-    my_tasks = accessible_tasks.filter(
-        Q(assigned_user=user)
-        | Q(target_user=user)
-        | Q(target_users=user)
-        | Q(target_group__in=user_groups)
-        | Q(target_groups__in=user_groups)
-    ).distinct()
+        # 自分宛て、自分担当、または「個人指定のない自部署宛て案件」のみをダッシュボードに表示
+        my_tasks = accessible_tasks.filter(
+            Q(assigned_user=user)
+            | Q(target_user=user)
+            | Q(target_users=user)
+            | Q(target_group__in=user_groups)
+            | Q(target_groups__in=user_groups)
+        ).distinct()
+    except Exception:
+        my_tasks = Task.objects.none()
 
     # フリーワード検索
     search_query = request.GET.get('q', '').strip()
     if search_query:
-        import unicodedata
-        import re
+        try:
+            import unicodedata
+            import re
 
-        # 1. 検索ワードの正規化（半角カナを全角に統一し「ﾋﾞｼﾞﾈｽ」等に対応）
-        norm_q = unicodedata.normalize('NFKC', search_query)
+            # 1. 検索ワードの正規化（半角カナを全角に統一し「ﾋﾞｼﾞﾈｽ」等に対応）
+            norm_q = unicodedata.normalize('NFKC', search_query)
 
-        # 2. テキスト項目全般への検索条件（タイトル、内容、学生、担当者、部署など）
-        # ※外部キー項目は __name を追加して文字列として検索
-        search_condition = (
-            Q(title__icontains=norm_q) |
-            Q(description__icontains=norm_q) |
-            Q(completion_note__icontains=norm_q) |
-            Q(students__name__icontains=norm_q) |
-            Q(students__student_id__icontains=norm_q) |
-            Q(students__furigana__icontains=norm_q) |
-            Q(students__nickname__icontains=norm_q) |
-            Q(students__department__name__icontains=norm_q) |
-            Q(students__school_class__name__icontains=norm_q) |
-            Q(target_user__first_name__icontains=norm_q) |
-            Q(target_user__last_name__icontains=norm_q) |
-            Q(target_user__username__icontains=norm_q) |
-            Q(target_users__first_name__icontains=norm_q) |
-            Q(target_users__last_name__icontains=norm_q) |
-            Q(target_users__username__icontains=norm_q) |
-            Q(assigned_user__first_name__icontains=norm_q) |
-            Q(assigned_user__last_name__icontains=norm_q) |
-            Q(assigned_user__username__icontains=norm_q) |
-            Q(created_by__first_name__icontains=norm_q) |
-            Q(created_by__last_name__icontains=norm_q) |
-            Q(created_by__username__icontains=norm_q) |
-            Q(target_group__name__icontains=norm_q) |
-            Q(target_groups__name__icontains=norm_q)
-        )
+            # 2. テキスト項目全般への検索条件（タイトル、内容、学生、担当者、部署など）
+            search_condition = (
+                Q(title__icontains=norm_q) |
+                Q(description__icontains=norm_q) |
+                Q(completion_note__icontains=norm_q) |
+                Q(students__name__icontains=norm_q) |
+                Q(students__student_id__icontains=norm_q) |
+                Q(students__furigana__icontains=norm_q) |
+                Q(students__nickname__icontains=norm_q) |
+                Q(students__department__name__icontains=norm_q) |
+                Q(students__school_class__name__icontains=norm_q) |
+                Q(target_user__first_name__icontains=norm_q) |
+                Q(target_user__last_name__icontains=norm_q) |
+                Q(target_user__username__icontains=norm_q) |
+                Q(target_users__first_name__icontains=norm_q) |
+                Q(target_users__last_name__icontains=norm_q) |
+                Q(target_users__username__icontains=norm_q) |
+                Q(assigned_user__first_name__icontains=norm_q) |
+                Q(assigned_user__last_name__icontains=norm_q) |
+                Q(assigned_user__username__icontains=norm_q) |
+                Q(created_by__first_name__icontains=norm_q) |
+                Q(created_by__last_name__icontains=norm_q) |
+                Q(created_by__username__icontains=norm_q) |
+                Q(target_group__name__icontains=norm_q) |
+                Q(target_groups__name__icontains=norm_q)
+            )
 
-        # 3. 日付検索対応（「9/22」や「9-22」を月・日に分解して検索）
-        match = re.fullmatch(r'(\d{1,2})[/.-](\d{1,2})', norm_q)
-        if match:
-            m, d = int(match.group(1)), int(match.group(2))
-            search_condition |= Q(due_date__month=m, due_date__day=d)
-            search_condition |= Q(created_at__month=m, created_at__day=d)
+            # 3. 日付検索対応（「9/22」や「9-22」を月・日に分解して検索）
+            match = re.fullmatch(r'(\d{1,2})[/.-](\d{1,2})', norm_q)
+            if match:
+                m, d = int(match.group(1)), int(match.group(2))
+                search_condition |= Q(due_date__month=m, due_date__day=d)
+                search_condition |= Q(created_at__month=m, created_at__day=d)
 
-        my_tasks = my_tasks.filter(search_condition).distinct()
+            my_tasks = my_tasks.filter(search_condition).distinct()
+        except Exception:
+            pass
 
     from django.db.models import Case, When, Value, IntegerField
 
@@ -232,36 +241,45 @@ def dashboard(request):
         output_field=IntegerField(),
     )
 
-    # 未完了案件と完了済み案件を分離
-    active_my_tasks = my_tasks.exclude(status='closed')
-    closed_my_tasks_qs = my_tasks.filter(status='closed').order_by('-updated_at')
+    try:
+        # 未完了案件と完了済み案件を分離
+        active_my_tasks = my_tasks.exclude(status='closed')
+        closed_my_tasks_qs = my_tasks.filter(status='closed').order_by('-updated_at')
 
-    urgent_tasks_qs = active_my_tasks.filter(due_date__lte=today).annotate(
-        priority_rank=priority_order
-    ).order_by('due_date', 'priority_rank')
+        urgent_tasks_qs = active_my_tasks.filter(due_date__lte=today).annotate(
+            priority_rank=priority_order
+        ).order_by('due_date', 'priority_rank')
 
-    normal_tasks_qs = active_my_tasks.filter(due_date__gt=today).annotate(
-        priority_rank=priority_order
-    ).order_by('due_date', 'priority_rank')
+        normal_tasks_qs = active_my_tasks.filter(due_date__gt=today).annotate(
+            priority_rank=priority_order
+        ).order_by('due_date', 'priority_rank')
 
-    urgent_tasks_count = urgent_tasks_qs.count()
-    normal_tasks_count = normal_tasks_qs.count()
-    closed_tasks_count = closed_my_tasks_qs.count()
+        urgent_tasks_count = urgent_tasks_qs.count()
+        normal_tasks_count = normal_tasks_qs.count()
+        closed_tasks_count = closed_my_tasks_qs.count()
 
-    # 至急タスクの10件単位ページネーション
-    urgent_paginator = Paginator(urgent_tasks_qs, 10)
-    urgent_page_number = request.GET.get('urgent_page')
-    urgent_tasks = urgent_paginator.get_page(urgent_page_number)
+        # 至急タスクの10件単位ページネーション
+        urgent_paginator = Paginator(urgent_tasks_qs, 10)
+        urgent_page_number = request.GET.get('urgent_page')
+        urgent_tasks = urgent_paginator.get_page(urgent_page_number)
 
-    # 今後予定タスクの10件単位ページネーション
-    normal_paginator = Paginator(normal_tasks_qs, 10)
-    normal_page_number = request.GET.get('page')
-    normal_tasks = normal_paginator.get_page(normal_page_number)
+        # 今後予定タスクの10件単位ページネーション
+        normal_paginator = Paginator(normal_tasks_qs, 10)
+        normal_page_number = request.GET.get('page')
+        normal_tasks = normal_paginator.get_page(normal_page_number)
 
-    # 完了済み案件の10件単位ページネーション
-    closed_paginator = Paginator(closed_my_tasks_qs, 10)
-    closed_page_number = request.GET.get('closed_page')
-    closed_tasks = closed_paginator.get_page(closed_page_number)
+        # 完了済み案件の10件単位ページネーション
+        closed_paginator = Paginator(closed_my_tasks_qs, 10)
+        closed_page_number = request.GET.get('closed_page')
+        closed_tasks = closed_paginator.get_page(closed_page_number)
+    except Exception:
+        empty_paginator = Paginator(Task.objects.none(), 10)
+        urgent_tasks = empty_paginator.get_page(1)
+        normal_tasks = empty_paginator.get_page(1)
+        closed_tasks = empty_paginator.get_page(1)
+        urgent_tasks_count = 0
+        normal_tasks_count = 0
+        closed_tasks_count = 0
 
     # タスク起票処理
     if request.method == 'POST' and 'create_task' in request.POST:
@@ -401,40 +419,51 @@ def dashboard(request):
             return redirect('dashboard')
 
     # 外部キーから名前を取得
-    staffs = (
-        User.objects.filter(is_active=True)
-        .select_related('staff_profile__department_group')
-        .prefetch_related('staff_profile__duties')
-        .order_by('username')
-    )
-    groups = Group.objects.all().order_by('name')
+    try:
+        staffs = (
+            User.objects.filter(is_active=True)
+            .select_related('staff_profile__department_group')
+            .prefetch_related('staff_profile__duties')
+            .order_by('username')
+        )
+    except Exception:
+        staffs = User.objects.none()
 
-    # 学科・クラスの文字列マップを構築
-    students_for_map = Student.objects.filter(is_active=True).values(
-        'department__name', 'school_class__name'
-    )
+    try:
+        groups = Group.objects.all().order_by('name')
+    except Exception:
+        groups = Group.objects.none()
 
-    departments = sorted(
-        list(
-            set(
-                s['department__name']
-                for s in students_for_map
-                if s['department__name']
+    try:
+        # 学科・クラスの文字列マップを構築
+        students_for_map = Student.objects.filter(is_active=True).values(
+            'department__name', 'school_class__name'
+        )
+
+        departments = sorted(
+            list(
+                set(
+                    s['department__name']
+                    for s in students_for_map
+                    if s['department__name']
+                )
             )
         )
-    )
-    dept_class_map = {}
-    for st in students_for_map:
-        d_name = st['department__name']
-        c_name = st['school_class__name']
-        if d_name and c_name:
-            dept_class_map.setdefault(d_name, set()).add(c_name)
+        dept_class_map = {}
+        for st in students_for_map:
+            d_name = st['department__name']
+            c_name = st['school_class__name']
+            if d_name and c_name:
+                dept_class_map.setdefault(d_name, set()).add(c_name)
 
-    import json
+        import json
 
-    dept_class_map_json = json.dumps(
-        {k: sorted(list(v)) for k, v in dept_class_map.items()}, ensure_ascii=False
-    )
+        dept_class_map_json = json.dumps(
+            {k: sorted(list(v)) for k, v in dept_class_map.items()}, ensure_ascii=False
+        )
+    except Exception:
+        departments = []
+        dept_class_map_json = "{}"
 
     try:
         graduated_companions = GraduatedCompanion.objects.filter(user=user)

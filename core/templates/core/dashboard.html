@@ -40,6 +40,13 @@
             vertical-align: middle;
         }
 
+        /* Fail-safe guaranteed display */
+        html, body {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+
     {% if not user.is_superuser %}
         /* テキスト選択無効化 */
         body, input, textarea, select, button {
@@ -53,14 +60,6 @@
         .screen-protected-blur {
             filter: blur(15px) !important;
             transition: filter 0.1s ease !important;
-        }
-
-        /* 印刷無効化 */
-        @media print {
-            html, body {
-                display: none !important;
-                visibility: hidden !important;
-            }
         }
     </style>
     {% endif %}
@@ -146,8 +145,8 @@
         <!-- ① 【至急対応・期日超過案件】 -->
         {% if urgent_tasks %}
         <div class="card border-danger shadow-sm mb-4">
-            <div id="urgentHeader" class="card-header bg-danger text-white fw-bold py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed"
-                 data-bs-toggle="collapse" data-bs-target="#urgentTasksBody" aria-expanded="false">
+            <div id="urgentHeader" class="card-header bg-danger text-white fw-bold py-3 d-flex justify-content-between align-items-center collapse-toggle"
+                 data-bs-toggle="collapse" data-bs-target="#urgentTasksBody" aria-expanded="true">
                 <span>
                     <i class="bi bi-exclamation-triangle-fill"></i> 【至急】期日超過・本日中の対応案件（{{ urgent_tasks_count }}件）
                 </span>
@@ -156,7 +155,7 @@
                     <span class="toggle-text-open">▲ クリックして閉じる</span>
                 </div>
             </div>
-            <div id="urgentTasksBody" class="collapse">
+            <div id="urgentTasksBody" class="collapse show">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
@@ -251,8 +250,8 @@
 
         <!-- ② 【今後の対応予定タスク】 -->
         <div class="card shadow-sm border-0 mb-4">
-            <div id="normalHeader" class="card-header bg-white fw-bold text-dark py-3 d-flex justify-content-between align-items-center collapse-toggle collapsed"
-                 data-bs-toggle="collapse" data-bs-target="#normalTasksBody" aria-expanded="false">
+            <div id="normalHeader" class="card-header bg-white fw-bold text-dark py-3 d-flex justify-content-between align-items-center collapse-toggle"
+                 data-bs-toggle="collapse" data-bs-target="#normalTasksBody" aria-expanded="true">
                 <div>
                     <i class="bi bi-list-task text-primary"></i> 今後の対応予定タスク（{{ normal_tasks_count }}件）
                 </div>
@@ -261,7 +260,7 @@
                     <span class="toggle-text-open">▲ クリックして閉じる</span>
                 </div>
             </div>
-            <div id="normalTasksBody" class="collapse">
+            <div id="normalTasksBody" class="collapse show">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
@@ -908,7 +907,11 @@ function restoreAccordionState(bodyId, headerId, storageKey) {
     const bodyEl = document.getElementById(bodyId);
     const headerEl = document.getElementById(headerId);
     if (!bodyEl || !headerEl) return;
-    if (sessionStorage.getItem(storageKey) === 'true') {
+    if (sessionStorage.getItem(storageKey) === 'false') {
+        bodyEl.classList.remove('show');
+        headerEl.classList.add('collapsed');
+        headerEl.setAttribute('aria-expanded', 'false');
+    } else {
         bodyEl.classList.add('show');
         headerEl.classList.remove('collapsed');
         headerEl.setAttribute('aria-expanded', 'true');
