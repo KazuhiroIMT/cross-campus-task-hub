@@ -22,31 +22,9 @@
 {{ block.super }}
 
 {% if not request.user.is_superuser %}
-<style>
-    /* 一般ユーザー限定のテキスト選択無効化 */
-    body, input, textarea, select, button {
-        -webkit-user-select: none !important;
-        -moz-user-select: none !important;
-        -ms-user-select: none !important;
-        user-select: none !important;
-    }
-
-    /* 画面ブラー */
-    .screen-protected-blur {
-        filter: blur(15px) !important;
-        transition: filter 0.1s ease !important;
-    }
-
-    /* 印刷無効化 */
-    @media print {
-        html, body {
-            display: none !important;
-            visibility: hidden !important;
-        }
-    }
-</style>
 <script>
 (function() {
+    document.body.classList.add('user-protected');
     document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
     let blurTimer = null;
     function applyTemporaryBlur(duration = 2000) {

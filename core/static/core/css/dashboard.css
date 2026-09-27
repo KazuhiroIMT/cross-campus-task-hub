@@ -100,12 +100,37 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
   border-color: rgba(242, 239, 228, 0.45);
   border-radius: var(--radius-pill);
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap !important;
 }
 .navbar .btn-outline-light:hover,
 .navbar .btn-outline-light:focus {
   background-color: var(--color-amber);
   border-color: var(--color-amber);
   color: var(--color-pine-dark);
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+  .navbar .ms-auto {
+    margin-left: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 8px !important;
+    padding-bottom: 4px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .navbar .ms-auto > * {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
 }
 
 /* --- 検索・見出しエリア --- */
@@ -249,7 +274,38 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 .card-footer.bg-white { background-color: var(--color-surface) !important; border-top: 1px solid var(--color-border); }
 
 /* --- テーブル --- */
+.table-responsive {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.table-responsive > .table {
+  min-width: 680px;
+}
+
 .table { color: var(--color-ink); margin-bottom: 0; }
+.table th,
+.table td {
+  white-space: nowrap !important;
+}
+
+.table td .fw-bold.text-dark {
+  white-space: normal;
+  word-break: break-word;
+  min-width: 140px;
+  max-width: 280px;
+}
+
+.table td small.text-muted,
+.table td small.text-secondary {
+  display: block;
+  white-space: normal;
+  word-break: break-word;
+  min-width: 140px;
+  max-width: 280px;
+}
+
 .table thead.table-light th {
   background-color: var(--color-pine-soft);
   color: var(--color-pine-dark);
@@ -339,7 +395,10 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 /* --- ツールチップ(機密ラベル) --- */
 .badge.bg-danger[data-bs-toggle="tooltip"] i { margin-right: 2px; }
 
-/* --- アコーディオン開閉トグルの文字色 --- */
+/* --- アコーディオン開閉トグルの文字色 ＆ 表示切り替え --- */
+.collapse-toggle.collapsed .toggle-text-open { display: none !important; }
+.collapse-toggle:not(.collapsed) .toggle-text-closed { display: none !important; }
+
 .collapse-toggle .toggle-text-closed,
 .collapse-toggle .toggle-text-open {
   color: var(--color-ink-soft);
