@@ -12,59 +12,8 @@
     
     <!-- 外部化したダッシュボード用カスタムCSSを読み込み -->
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
-
-    <style>
-        /* Character Idle Animations */
-        @keyframes charBreathing {
-            0%, 100% { transform: translateY(0px) scale(1.0); }
-            50% { transform: translateY(-8px) scale(1.05); }
-        }
-        @keyframes charFloating {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-12px) rotate(3deg); }
-        }
-
-        .animated-character-avatar {
-            display: inline-block;
-            font-size: 4.5rem;
-            animation: charBreathing 2.8s ease-in-out infinite, charFloating 4s ease-in-out infinite;
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
-            user-select: none;
-            line-height: 1;
-        }
-
-        .motivation-avatar-mini {
-            display: inline-block;
-            animation: charBreathing 2.5s ease-in-out infinite;
-            font-size: 1.25rem;
-            vertical-align: middle;
-        }
-
-        /* Fail-safe guaranteed display */
-        html, body {
-            opacity: 1 !important;
-            visibility: visible !important;
-            display: block !important;
-        }
-
-    {% if not user.is_superuser %}
-        /* テキスト選択無効化 */
-        body, input, textarea, select, button {
-            -webkit-user-select: none !important;
-            -moz-user-select: none !important;
-            -ms-user-select: none !important;
-            user-select: none !important;
-        }
-
-        /* 画面ブラー（キー検知時等） */
-        .screen-protected-blur {
-            filter: blur(15px) !important;
-            transition: filter 0.1s ease !important;
-        }
-    </style>
-    {% endif %}
 </head>
-<body>
+<body{% if not user.is_superuser %} class="user-protected"{% endif %}>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm px-4 py-2">
     <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">

@@ -428,3 +428,52 @@ body { background-color: var(--color-bg) !important; }
 
 /* 案件詳細ヘッダーの優先度・機密バッジは fs-6 で少し大きめ表示されるため余白を調整 */
 .badge.fs-6 { padding: 0.5em 0.9em; }
+
+/* ==========================================================================
+   キャラクターアニメーション & セキュリティ保護スタイル (外部化)
+   ========================================================================== */
+
+/* Character Idle Animations */
+@keyframes charBreathing {
+  0%, 100% { transform: translateY(0px) scale(1.0); }
+  50% { transform: translateY(-8px) scale(1.05); }
+}
+
+@keyframes charFloating {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(3deg); }
+}
+
+.animated-character-avatar {
+  display: inline-block;
+  font-size: 4.5rem;
+  animation: charBreathing 2.8s ease-in-out infinite, charFloating 4s ease-in-out infinite;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+  user-select: none;
+  line-height: 1;
+}
+
+.motivation-avatar-mini {
+  display: inline-block;
+  animation: charBreathing 2.5s ease-in-out infinite;
+  font-size: 1.25rem;
+  vertical-align: middle;
+}
+
+/* 一般ユーザー向けセキュリティ保護スタイル */
+body.user-protected,
+body.user-protected input,
+body.user-protected textarea,
+body.user-protected select,
+body.user-protected button {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* 画面ブラー（キー検知時等） */
+.screen-protected-blur {
+  filter: blur(15px) !important;
+  transition: filter 0.1s ease !important;
+}
