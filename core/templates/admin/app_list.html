@@ -1,0 +1,70 @@
+{% load i18n %}
+
+{% if app_list %}
+  {% for app in app_list %}
+    <details class="admin-app-group module{% if app.app_url in request.path|urlencode %} current-app{% endif %}" open>
+      <summary class="admin-app-summary">
+        <span class="admin-app-title">{{ app.name }}</span>
+      </summary>
+      <table class="admin-app-table">
+        <thead class="visually-hidden">
+          <tr>
+            <th scope="col">{% translate 'Model name' %}</th>
+            <th scope="col">{% translate 'Add link' %}</th>
+            <th scope="col">{% translate 'Change or view list link' %}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for model in app.models %}
+          {% with model_name=model.object_name|lower %}
+            <tr class="model-{{ model_name }}{% if model.admin_url in request.path|urlencode %} current-model{% endif %}">
+              <th scope="row" id="{{ app.app_label }}-{{ model_name }}">
+                {% if model.admin_url %}
+                  <a href="{{ model.admin_url }}"{% if model.admin_url in request.path|urlencode %} aria-current="page"{% endif %}>{{ model.name }}</a>
+                {% else %}
+                  {{ model.name }}
+                {% endif %}
+              </th>
+
+              {% if model.add_url %}
+                <td class="action-cell"><a href="{{ model.add_url }}" class="addlink" aria-describedby="{{ app.app_label }}-{{ model_name }}">{% translate 'Add' %}</a></td>
+              {% else %}
+                <td class="action-cell"></td>
+              {% endif %}
+
+              {% if model.admin_url and show_changelinks %}
+                {% if model.view_only %}
+                  <td class="action-cell"><a href="{{ model.admin_url }}" class="viewlink" aria-describedby="{{ app.app_label }}-{{ model_name }}">{% translate 'View' %}</a></td>
+                {% else %}
+                  <td class="action-cell"><a href="{{ model.admin_url }}" class="changelink" aria-describedby="{{ app.app_label }}-{{ model_name }}">{% translate 'Change' %}</a></td>
+                {% endif %}
+              {% elif show_changelinks %}
+                <td class="action-cell"></td>
+              {% endif %}
+            </tr>
+          {% endwith %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% endfor %}
+{% else %}
+  <p>{% translate 'You don’t have permission to view or edit anything.' %}</p>
+{% endif %}
+
+<script>
+(function() {
+  function adjustAdminAccordion() {
+    if (window.innerWidth <= 768) {
+      document.querySelectorAll('details.admin-app-group').forEach(function(el) {
+        el.removeAttribute('open');
+      });
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', adjustAdminAccordion);
+  } else {
+    adjustAdminAccordion();
+  }
+})();
+</script>
