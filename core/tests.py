@@ -628,9 +628,8 @@ class DashboardFailSafeTests(TestCase):
         self.assertContains(response, 'id="normalHeader"')
         self.assertContains(response, 'aria-expanded="true"')
 
-        # フェールセーフ用の表示保障CSSが含まれることを検証
-        self.assertContains(response, 'opacity: 1 !important')
-        self.assertContains(response, 'display: block !important')
+        # フェールセーフ用の表示保障CSS（外部ファイル）が読み込まれることを検証
+        self.assertContains(response, 'core/css/dashboard.css')
 
     def test_dashboard_renders_with_urgent_and_normal_tasks(self):
         """至急タスクおよび通常タスクが存在する場合に正しく展開状態でレンダリングされる"""
