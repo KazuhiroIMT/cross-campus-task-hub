@@ -387,6 +387,29 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
 }
 
 @media screen and (max-width: 768px) {
+    .object-tools,
+    ul.object-tools {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+        list-style: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        float: none !important;
+    }
+    .object-tools li {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+    }
+    .object-tools a.button,
+    .object-tools a.addlink,
+    .object-tools a.import-link {
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+
     #main, #container, .main {
         display: block !important;
         flex-direction: column !important;
@@ -434,6 +457,7 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
     }
     #nav-sidebar,
     .change-list #nav-sidebar,
+    body.change-list #nav-sidebar,
     body.shifted #nav-sidebar,
     #nav-sidebar[aria-expanded="true"],
     #nav-sidebar[aria-expanded="false"] {
@@ -450,6 +474,7 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
         transform: none !important;
         z-index: auto !important;
         box-shadow: none !important;
+        float: none !important;
     }
 }
 
@@ -641,6 +666,7 @@ a.section:hover,
 }
 
 .paginator a,
+.paginator span,
 .paginator .this-page,
 .paginator a:link,
 .paginator a:visited {
@@ -656,9 +682,9 @@ a.section:hover,
     box-sizing: border-box !important;
 }
 
+.paginator a,
 .paginator a:link,
-.paginator a:visited,
-.paginator a {
+.paginator a:visited {
     background-color: var(--admin-navy) !important;
     color: #ffffff !important;
     border: 1px solid var(--admin-navy) !important;
