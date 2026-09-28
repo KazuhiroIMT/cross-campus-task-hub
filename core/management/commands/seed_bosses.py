@@ -30,8 +30,11 @@ def create_placeholder_png(width=200, height=200, color=(220, 50, 50)):
     return png_sig + ihdr_chunk + idat_chunk + iend_chunk
 
 
+from core.services import BOSS_TEMPLATES, RANDOM_BOSS_TEMPLATES, ensure_active_department_boss, ensure_initial_department_achievements
+
+
 class Command(BaseCommand):
-    help = "20段階ドラゴンボスマスタの初期化・シードコマンド"
+    help = "30段階ドラゴン・ランダムボス・休憩演出マスタの初期化・シードコマンド"
 
     def handle(self, *args, **options):
         # 1. 物理的な画像アセットディレクトリおよび画像の生成確認
@@ -39,16 +42,27 @@ class Command(BaseCommand):
         boss_img_dir = os.path.join(base_dir, 'core', 'static', 'core', 'images', 'bosses')
         os.makedirs(boss_img_dir, exist_ok=True)
 
+        all_templates = BOSS_TEMPLATES + RANDOM_BOSS_TEMPLATES + [
+            {'image_path': 'core/images/bosses/recess.png', 'color': (50, 180, 120)}
+        ]
+
         created_count = 0
-        for template in BOSS_TEMPLATES:
+        for template in all_templates:
             file_name = os.path.basename(template['image_path'])
             file_path = os.path.join(boss_img_dir, file_name)
             if not os.path.exists(file_path):
-                lvl = template['boss_level']
-                r = min(255, 100 + lvl * 7)
-                g = max(0, 180 - lvl * 8)
-                b = max(0, 50 + (lvl % 5) * 30)
-                png_bytes = create_placeholder_png(width=200, height=200, color=(r, g, b))
+                lvl = template.get('boss_level', 1)
+                if 'color' in template:
+                    color = template['color']
+                elif template.get('boss_type') == 'random_boss':
+                    color = (200, 160, 40)
+                else:
+                    r = min(255, 100 + lvl * 5)
+                    g = max(0, 180 - lvl * 5)
+                    b = max(0, 50 + (lvl % 5) * 30)
+                    color = (r, g, b)
+
+                png_bytes = create_placeholder_png(width=200, height=200, color=color)
                 with open(file_path, 'wb') as f:
                     f.write(png_bytes)
                 created_count += 1

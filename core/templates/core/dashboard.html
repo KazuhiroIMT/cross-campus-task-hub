@@ -344,8 +344,13 @@
                     <!-- 部署ボスHP -->
                     {% if active_dept_battle %}
                         <div class="small">
-                            <span>⚔️ ボス: {{ active_dept_battle.boss_name }}</span>
-                            <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">HP {{ active_dept_battle.current_hp }}/{{ active_dept_battle.max_hp }}</span>
+                            {% if active_dept_battle.status == 'recess' %}
+                                <span class="text-success fw-bold">☕ 本日の討伐完了（休憩中）</span>
+                                <span class="badge bg-success ms-1" style="font-size: 0.7rem;">また明日！</span>
+                            {% else %}
+                                <span>⚔️ ボス: {{ active_dept_battle.boss_name }}</span>
+                                <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">HP {{ active_dept_battle.current_hp }}/{{ active_dept_battle.max_hp }}</span>
+                            {% endif %}
                         </div>
                     {% endif %}
                 </div>

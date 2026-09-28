@@ -609,10 +609,10 @@ class DepartmentBossTests(TestCase):
         self.assertEqual(battle.status, 'defeated')
         self.assertIsNotNone(battle.end_date)
 
-        # 自動的に新しいアクティブなボスが生成されていることを確認
-        new_active_boss = DepartmentBattle.objects.filter(department=self.group1, status='active').first()
-        self.assertIsNotNone(new_active_boss)
-        self.assertNotEqual(new_active_boss.id, battle.id)
+        # 当日は討伐完了のため即時次回ボスは出現せず、休憩中(recess)レコードが生成されることを確認
+        recess_boss = DepartmentBattle.objects.filter(department=self.group1, status='recess').first()
+        self.assertIsNotNone(recess_boss)
+        self.assertNotEqual(recess_boss.id, battle.id)
 
         # 部署実績の解除チェック
         unlock = DepartmentAchievementUnlock.objects.filter(department=self.group1, achievement__code='DEPT_DEFEAT_1')
@@ -648,13 +648,20 @@ class DepartmentBossTests(TestCase):
         self.assertEqual(forbidden_res.status_code, 403)
 
     def test_seed_bosses_command(self):
-        """seed_bossesコマンドの実行・画像アセットおよび初期ボスの生成テスト"""
+        """seed_bossesコマンドの実行・画像アセット（1〜30, random_boss_01~03, recess.png）および初期ボスの生成テスト"""
         call_command('seed_bosses')
 
         boss_img_dir = os.path.join(settings.BASE_DIR, 'core', 'static', 'core', 'images', 'bosses')
-        for i in range(1, 21):
+        for i in range(1, 31):
             file_path = os.path.join(boss_img_dir, f'dragon_{i:02d}.png')
-            self.assertTrue(os.path.exists(file_path))
+            self.assertTrue(os.path.exists(file_path), f"Missing image: dragon_{i:02d}.png")
+
+        for i in range(1, 4):
+            file_path = os.path.join(boss_img_dir, f'random_boss_{i:02d}.png')
+            self.assertTrue(os.path.exists(file_path), f"Missing image: random_boss_{i:02d}.png")
+
+        recess_path = os.path.join(boss_img_dir, 'recess.png')
+        self.assertTrue(os.path.exists(recess_path), "Missing image: recess.png")
 
         active_boss = DepartmentBattle.objects.filter(department=self.group1, status='active').first()
         self.assertIsNotNone(active_boss)
@@ -677,12 +684,156 @@ class DepartmentBossTests(TestCase):
         self.assertContains(res, 'コドモドラゴ')
 
     def test_department_battle_image_path_property(self):
-        """DepartmentBattle.image_path プロパティの正当性テスト"""
-        b1 = DepartmentBattle(boss_name='コドモドラゴ（未着手タスクの幼体）')
+        """DepartmentBattle.image_path プロパティの正当性テスト（30種ドラゴン + 3種ランダムボス + 休憩中）"""
+        b1 = DepartmentBattle(boss_name='コドモドラゴ（未着手タスクの幼体）', boss_level=1)
         self.assertEqual(b1.image_path, 'core/images/bosses/dragon_01.png')
 
-        b20 = DepartmentBattle(boss_name='アビス・エンドライン（完全納期崩壊を司る絶対の深淵古龍）')
-        self.assertEqual(b20.image_path, 'core/images/bosses/dragon_20.png')
+        b30 = DepartmentBattle(boss_name='ラグナロク・タスクマザー（全タスクの根源にして終焉の神龍）', boss_level=30)
+        self.assertEqual(b30.image_path, 'core/images/bosses/dragon_30.png')
+
+        rb1 = DepartmentBattle(boss_name='はぐれタスクキング（幻のレアモンスター）', boss_type='random_boss')
+        self.assertEqual(rb1.image_path, 'core/images/bosses/random_boss_01.png')
+
+        recess_b = DepartmentBattle(boss_name='本日の討伐完了（休憩中）', status='recess')
+        self.assertEqual(recess_b.image_path, 'core/images/bosses/recess.png')
+
+    def test_same_day_recess_and_next_day_boss_spawn(self):
+        """討伐当日は休憩中（recess.png）状態となり、翌日以降のアクセス時に次Lvボスが出現する"""
+        today = timezone.localdate()
+        battle = DepartmentBattle.objects.create(
+            department=self.group1,
+            boss_type='dragon',
+            boss_level=1,
+            boss_name='コドモドラゴ（未着手タスクの幼体）',
+            max_hp=100,
+            current_hp=100,
+            status='active'
+        )
+
+        task = Task.objects.create(
+            title='Defeat Lv1 Task',
+            description='Desc',
+            target_group=self.group1,
+            created_by=self.user1,
+            due_date=today,
+            priority='high',
+            status='open'
+        )
+
+        process_task_completion(task, self.user1)
+
+        # 撃破直後は当日のためrecess状態のレコードが存在することを確認
+        battle.refresh_from_db()
+        self.assertEqual(battle.status, 'defeated')
+
+        recess_battle = DepartmentBattle.objects.filter(department=self.group1, status='recess').first()
+        self.assertIsNotNone(recess_battle)
+        self.assertEqual(recess_battle.image_path, 'core/images/bosses/recess.png')
+        self.assertEqual(recess_battle.last_defeated_date, today)
+
+        # 画面アクセスでも「本日の討伐完了（休憩中）」が表示される
+        self.client.login(username='sales_user', password='password123')
+        res_today = self.client.get(f'/department/{self.group1.id}/boss/')
+        self.assertEqual(res_today.status_code, 200)
+        self.assertContains(res_today, '本日の討伐完了！（休憩中）')
+
+        # 日付を翌日に偽装して ensure_active_department_boss を呼び出す
+        # recess レコードの last_defeated_date を過去日に変更
+        recess_battle.last_defeated_date = today - timedelta(days=1)
+        recess_battle.save()
+
+        dept_prof = DepartmentProfile.objects.get(department=self.group1)
+        dept_prof.last_defeated_date = today - timedelta(days=1)
+        dept_prof.save()
+
+        res_next_day = self.client.get(f'/department/{self.group1.id}/boss/')
+        self.assertEqual(res_next_day.status_code, 200)
+
+        # Lv.2 のボス（メモリーワイバーン）が全快状態(HP 2500)でアクティブ化していることを確認
+        next_boss = DepartmentBattle.objects.filter(department=self.group1, status='active').first()
+        self.assertIsNotNone(next_boss)
+        self.assertEqual(next_boss.boss_level, 2)
+        self.assertIn('メモリーワイバーン', next_boss.boss_name)
+        self.assertEqual(next_boss.current_hp, next_boss.max_hp)
+
+    def test_lv30_boss_defeat_titles_and_loop_mode(self):
+        """Lv.30ボス撃破時に「巨龍の征服者」「タスクの覇王」称号が付与され周回モードへ移行する"""
+        today = timezone.localdate()
+
+        # 29体討伐済みに設定
+        for i in range(1, 30):
+            DepartmentBattle.objects.create(
+                department=self.group1,
+                boss_type='dragon',
+                boss_level=i,
+                boss_name=f'Boss Lv.{i}',
+                max_hp=100,
+                current_hp=0,
+                status='defeated',
+                last_defeated_date=today - timedelta(days=30-i)
+            )
+
+        lv30_battle = DepartmentBattle.objects.create(
+            department=self.group1,
+            boss_type='dragon',
+            boss_level=30,
+            boss_name='ラグナロク・タスクマザー（全タスクの根源にして終焉の神龍）',
+            max_hp=100,
+            current_hp=100,
+            status='active'
+        )
+
+        task = Task.objects.create(
+            title='Final Lv30 Task',
+            description='Desc',
+            target_group=self.group1,
+            created_by=self.user1,
+            due_date=today,
+            priority='high',
+            status='open'
+        )
+
+        process_task_completion(task, self.user1)
+
+        dept_prof = DepartmentProfile.objects.get(department=self.group1)
+        self.assertTrue(dept_prof.is_loop_mode)
+
+        # 特殊称号の獲得を確認
+        unlock_conqueror = DepartmentAchievementUnlock.objects.filter(
+            department=self.group1,
+            achievement__code='DEPT_DRAGON_CONQUEROR'
+        ).exists()
+        self.assertTrue(unlock_conqueror)
+
+        unlock_haou = DepartmentAchievementUnlock.objects.filter(
+            department=self.group1,
+            achievement__code='DEPT_TASK_HAOU'
+        ).exists()
+        self.assertTrue(unlock_haou)
+
+        # 翌日アクセス時の周回モード抽選テスト（全33種から完全ランダム）
+        dept_prof.last_defeated_date = today - timedelta(days=1)
+        dept_prof.save()
+
+        recess_battle = DepartmentBattle.objects.filter(department=self.group1, status='recess').first()
+        if recess_battle:
+            recess_battle.last_defeated_date = today - timedelta(days=1)
+            recess_battle.save()
+
+        self.client.login(username='sales_user', password='password123')
+        res_loop = self.client.get(f'/department/{self.group1.id}/boss/')
+        self.assertEqual(res_loop.status_code, 200)
+
+        loop_boss = DepartmentBattle.objects.filter(department=self.group1, status='active').first()
+        self.assertIsNotNone(loop_boss)
+        if loop_boss.boss_type == 'random_boss':
+            self.assertEqual(loop_boss.max_hp, 7777)
+
+    def test_random_boss_fixed_hp_7777(self):
+        """ランダムボスのHPが一律で7777に設定される"""
+        from core.services import RANDOM_BOSS_TEMPLATES
+        for template in RANDOM_BOSS_TEMPLATES:
+            self.assertEqual(template['max_hp'], 7777)
 
 
 class DashboardFailSafeTests(TestCase):

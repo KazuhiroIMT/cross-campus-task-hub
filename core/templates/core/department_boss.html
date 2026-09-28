@@ -7,108 +7,7 @@
     {% load static %}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        /* Dragon Animation Keyframes */
-        @keyframes dragonIdleBreathing {
-            0%, 100% { transform: translateY(0px) scale(1.0); }
-            50% { transform: translateY(-14px) scale(1.04); }
-        }
-
-        @keyframes smokeRise {
-            0% { opacity: 0.8; transform: translate(0, 0) scale(0.6); }
-            100% { opacity: 0; transform: translate(-25px, -45px) scale(1.8); }
-        }
-
-        @keyframes dragonHitFlash {
-            0%, 100% { filter: none; transform: translate(0, 0); }
-            20% { filter: brightness(2) drop-shadow(0 0 25px #ff1744); transform: translate(-12px, 6px) rotate(-5deg); }
-            40% { filter: brightness(1.8) drop-shadow(0 0 20px #ff9100); transform: translate(12px, -6px) rotate(5deg); }
-            60% { filter: brightness(1.4); transform: translate(-6px, 3px); }
-            80% { filter: brightness(1.2); transform: translate(4px, -1px); }
-        }
-
-        @keyframes dragonDefeatLightBurst {
-            0% { opacity: 1; transform: scale(1) rotate(0deg); filter: brightness(1); }
-            50% { opacity: 0.85; transform: scale(1.4) rotate(15deg); filter: brightness(3) drop-shadow(0 0 50px #ffd700); }
-            100% { opacity: 0; transform: scale(0.0) rotate(45deg); filter: brightness(5); }
-        }
-
-        @keyframes damageFloat {
-            0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
-            30% { opacity: 1; transform: translate(-50%, -30px) scale(1.4); }
-            100% { opacity: 0; transform: translate(-50%, -75px) scale(1.0); }
-        }
-
-        .dragon-stage-wrapper {
-            position: relative;
-            display: inline-block;
-            padding: 30px;
-        }
-
-        .dragon-live-avatar {
-            font-size: 7.0rem;
-            display: inline-block;
-            animation: dragonIdleBreathing 3s ease-in-out infinite;
-            user-select: none;
-            filter: drop-shadow(0 12px 25px rgba(0,0,0,0.35));
-            transition: transform 0.2s ease, filter 0.2s ease;
-            line-height: 1;
-        }
-
-        .boss-image-live {
-            max-width: 180px;
-            max-height: 180px;
-            object-fit: contain;
-            animation: dragonIdleBreathing 3s ease-in-out infinite;
-            user-select: none;
-            filter: drop-shadow(0 12px 25px rgba(0,0,0,0.35));
-            transition: transform 0.2s ease, filter 0.2s ease;
-        }
-
-        .smoke-puff-1 {
-            position: absolute;
-            top: 25%;
-            left: 20%;
-            font-size: 1.8rem;
-            animation: smokeRise 2.2s ease-out infinite;
-            pointer-events: none;
-        }
-
-        .smoke-puff-2 {
-            position: absolute;
-            top: 30%;
-            right: 20%;
-            font-size: 1.6rem;
-            animation: smokeRise 2.6s ease-out infinite 0.8s;
-            pointer-events: none;
-        }
-
-        .dragon-hit-anim {
-            animation: dragonHitFlash 0.5s ease-in-out !important;
-        }
-
-        .dragon-defeat-anim {
-            animation: dragonDefeatLightBurst 2.0s forwards !important;
-        }
-
-        .damage-pop-text {
-            position: absolute;
-            color: #ff1744;
-            font-size: 2.5rem;
-            font-weight: 900;
-            text-shadow: 0 0 10px #ffffff, 2px 2px 0px #000000;
-            pointer-events: none;
-            animation: damageFloat 1.2s ease-out forwards;
-            z-index: 100;
-        }
-
-        .victory-banner-box {
-            background: linear-gradient(135deg, #ffe082 0%, #ffb300 100%);
-            color: #3e2723;
-            border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(255, 179, 0, 0.4);
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'core/css/bosses.css' %}">
 </head>
 <body class="bg-light">
 
@@ -141,6 +40,11 @@
             <span class="badge bg-secondary mb-2" style="font-size: 0.9rem;">{{ department.name }}</span>
             <h2 class="fw-bold text-dark mb-1">🛡️ 部署協力型ボス討伐</h2>
             <p class="text-muted small mb-0">部署メンバー全員で日常のタスクを完了し、協力してボスを討伐しましょう！</p>
+            {% if dept_profile.is_loop_mode %}
+                <div class="mt-2">
+                    <span class="badge bg-danger text-white border shadow-sm px-3 py-1"><i class="bi bi-arrow-repeat"></i> 周回（カオス）モード進行中</span>
+                </div>
+            {% endif %}
             {% if dept_profile.current_title %}
                 <div class="mt-2">
                     <span class="badge bg-warning text-dark border"><i class="bi bi-award-fill"></i> 部署称号: {{ dept_profile.current_title.name }}</span>
@@ -149,18 +53,39 @@
         </div>
     </div>
 
-    <!-- アクティブボス表示 -->
+    <!-- ボス表示エリア -->
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
-            <span>⚔️ 現在挑戦中のボス</span>
-            {% if active_battle %}
-                <span class="badge bg-danger">戦闘中</span>
+            <span>⚔️ 部署ボスの状況</span>
+            {% if active_battle and active_battle.status == 'recess' %}
+                <span class="badge bg-success"><i class="bi bi-cup-hot-fill me-1"></i> 本日は休憩中</span>
+            {% elif active_battle %}
+                <span class="badge bg-danger"><i class="bi bi-fire me-1"></i> 戦闘中</span>
             {% else %}
                 <span class="badge bg-secondary">平和</span>
             {% endif %}
         </div>
         <div class="card-body p-4 text-center position-relative">
-            {% if active_battle %}
+            {% if active_battle and active_battle.status == 'recess' %}
+                <!-- 討伐後の当日休憩演出 -->
+                <div class="dragon-stage-wrapper">
+                    <img src="{% static 'core/images/bosses/recess.png' %}"
+                         alt="本日は休憩中"
+                         class="recess-image-live"
+                         id="recessImg"
+                         onerror="this.style.display='none'; document.getElementById('recessFallback').style.display='inline-block';">
+                    <div id="recessFallback" class="p-4 border rounded bg-light text-success fw-bold fs-2 shadow-sm my-3" style="display: none;">
+                        ☕ 休憩中 (recess.png)
+                    </div>
+                </div>
+
+                <div class="recess-banner-box p-4 my-3">
+                    <h3 class="fw-bold mb-2">🎉 本日の討伐完了！（休憩中）</h3>
+                    <p class="mb-1 fs-6">本日分のボス討伐に見事成功しました！本日はゆっくり休みましょう。</p>
+                    <p class="mb-0 fw-bold text-success"><i class="bi bi-clock-history me-1"></i> 明日（日付変更後）に次のボスが出現します！また明日挑戦しましょう。</p>
+                </div>
+
+            {% elif active_battle %}
                 <!-- Animated Live Dragon Graphic -->
                 <div class="dragon-stage-wrapper" id="dragonStage">
                     <span class="smoke-puff-1">💨</span>
@@ -177,7 +102,14 @@
                     </span>
                 </div>
 
-                <h3 class="fw-bold mb-1 text-dark" id="bossNameTitle">{{ active_battle.boss_name }}</h3>
+                <h3 class="fw-bold mb-1 text-dark" id="bossNameTitle">
+                    {% if active_battle.boss_level > 0 %}
+                        <span class="badge bg-danger fs-6 align-middle me-1">Lv.{{ active_battle.boss_level }}</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark fs-6 align-middle me-1">レア</span>
+                    {% endif %}
+                    {{ active_battle.boss_name }}
+                </h3>
 
                 <div class="row justify-content-center my-3">
                     <div class="col-md-8">
@@ -196,7 +128,7 @@
                     </div>
                 </div>
 
-                <!-- Simulation & Interactive Attack Test Buttons -->
+                <!-- Interactive Attack Simulation Test Buttons -->
                 <div class="d-flex justify-content-center gap-2 mb-3">
                     <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(100, '【高優先度タスク完了!】')">
                         ⚔️ 高優先度撃破 (-100)
@@ -210,7 +142,7 @@
                 <div id="victoryBanner" class="victory-banner-box p-4 my-3 d-none">
                     <div class="display-3 mb-2">🎉 👑 ✨</div>
                     <h3 class="fw-bold mb-1">討伐成功！ 部署の勝利！</h3>
-                    <p class="mb-0 font-bold">部署メンバー全員の協力によりボスを撃破しました！次の世代のボスが解放されます。</p>
+                    <p class="mb-0 font-bold">本日分ボスの撃破に成功しました！明日、次のボスが挑んできます。</p>
                 </div>
 
                 <div class="alert alert-info py-2 small d-inline-block px-4 mb-0">
@@ -220,7 +152,7 @@
                 <div class="py-4 text-muted">
                     <div class="fs-1 mb-2">🕊️</div>
                     <p class="mb-0 fw-bold">現在、進行中のボス討伐はありません。</p>
-                    <small>管理者によって新しいボスが設定されると討伐が始まります。</small>
+                    <small>明日になると新しいボスが出現します。</small>
                 </div>
             {% endif %}
         </div>
@@ -244,7 +176,7 @@
                                 </div>
                             </div>
                             <span class="badge bg-success rounded-pill px-3 py-2">
-                                🎉 討伐完了 ({{ battle.end_date|date:"Y/m/d" }})
+                                🎉 討伐完了 ({% if battle.last_defeated_date %}{{ battle.last_defeated_date|date:"Y/m/d" }}{% else %}{{ battle.end_date|date:"Y/m/d" }}{% endif %})
                             </span>
                         </li>
                     {% endfor %}
