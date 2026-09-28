@@ -498,6 +498,11 @@ def dashboard(request):
         'island_profile': island_profile,
         'user_primary_dept': user_primary_dept,
         'active_dept_battle': active_dept_battle,
+        'department_boss': active_dept_battle,
+        'active_battle': active_dept_battle,
+        'boss': active_dept_battle,
+        'boss_hp': active_dept_battle.current_hp if active_dept_battle else 0,
+        'boss_max_hp': active_dept_battle.max_hp if active_dept_battle else 0,
     }
     return render(request, 'core/dashboard.html', context)
 

@@ -260,11 +260,16 @@ button[data-bs-target="#createTaskModal"]:hover {
   color: #FFFFFF !important;
 }
 
-/* 通常カードヘッダー */
+/* 通常カードヘッダー ＆ ダークカードヘッダー */
 .card-header.bg-white {
   background-color: var(--color-surface) !important;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-ink);
+}
+.card-header.bg-dark {
+  background-color: var(--color-ink) !important;
+  border-bottom: 1px solid var(--color-border);
+  color: #FFFFFF !important;
 }
 
 .card-header.collapse-toggle {
