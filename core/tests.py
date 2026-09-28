@@ -43,6 +43,10 @@ class GamificationAndArchiveTests(TestCase):
         self.assertEqual(graduated.companion_type, 'chick')
         self.assertEqual(graduated.completed_tasks_count, 25)
 
+    def test_task_admin_list_per_page(self):
+        from core.admin import TaskAdmin
+        self.assertEqual(TaskAdmin.list_per_page, 10)
+
     def test_task_archiving(self):
         task = Task.objects.create(
             title='Test Task',
@@ -327,7 +331,7 @@ class MyIslandTests(TestCase):
         self.assertEqual(IslandItem.objects.filter(user=self.user).count(), 1)
 
         item = IslandItem.objects.get(user=self.user)
-        self.assertTrue(item.is_placed)
+        self.assertFalse(item.is_placed)
         valid_item_types = list(dict(IslandItem.ITEM_TYPE_CHOICES).keys())
         self.assertIn(item.item_type, valid_item_types)
 
@@ -338,6 +342,43 @@ class MyIslandTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'マイアイランド')
         self.assertContains(res, 'Lv. 1')
+
+    def test_gacha_unplaced_and_level_restricted_placement(self):
+        """ガチャで獲得したアイテムは未配置になり、レベル不足時の手動配置は拒否される"""
+        profile = IslandProfile.objects.get(user=self.user)
+        profile.gacha_tickets = 1
+        profile.level = 1
+        profile.save()
+
+        self.client.login(username='islanduser', password='password123')
+
+        res = self.client.post('/island/gacha/')
+        self.assertEqual(res.status_code, 302)
+
+        item = IslandItem.objects.filter(user=self.user).last()
+        self.assertFalse(item.is_placed)
+
+        ocean_item = IslandItem.objects.create(
+            user=self.user,
+            item_type='yacht',
+            name='豪華なリゾートヨット',
+            is_placed=False
+        )
+
+        res_place_fail = self.client.post('/island/', {'toggle_item_placed': '1', 'item_id': ocean_item.id})
+        self.assertEqual(res_place_fail.status_code, 302)
+
+        ocean_item.refresh_from_db()
+        self.assertFalse(ocean_item.is_placed)
+
+        profile.level = 20
+        profile.save()
+
+        res_place_success = self.client.post('/island/', {'toggle_item_placed': '1', 'item_id': ocean_item.id})
+        self.assertEqual(res_place_success.status_code, 302)
+
+        ocean_item.refresh_from_db()
+        self.assertTrue(ocean_item.is_placed)
 
 
 class AchievementTests(TestCase):

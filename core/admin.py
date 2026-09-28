@@ -798,6 +798,7 @@ class StudentAdmin(admin.ModelAdmin):
 class TaskAdmin(admin.ModelAdmin):
     change_list_template = "admin/core/task/change_list.html"
     list_display = ('title', 'target_type', 'display_target_groups', 'priority', 'status', 'due_date', 'is_archived')
+    list_per_page = 10
     list_filter = ('is_archived', 'status', 'priority', 'target_groups', 'privacy')
     search_fields = ('title', 'description')
     date_hierarchy = 'due_date'

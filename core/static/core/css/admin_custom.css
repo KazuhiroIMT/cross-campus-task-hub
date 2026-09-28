@@ -387,6 +387,11 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
 }
 
 @media screen and (max-width: 768px) {
+    #main, #container, .main {
+        display: block !important;
+        flex-direction: column !important;
+        width: 100% !important;
+    }
     #header {
         position: relative !important;
         height: auto !important;
@@ -424,8 +429,28 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
         line-height: 1.5 !important;
         padding: 10px 16px !important;
     }
+    #toggle-nav-sidebar {
+        display: none !important;
+    }
     #nav-sidebar {
+        position: static !important;
+        left: auto !important;
         top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--admin-border) !important;
+        transition: none !important;
+        transform: none !important;
+        z-index: auto !important;
+        box-shadow: none !important;
+    }
+    body.shifted #nav-sidebar,
+    #nav-sidebar[aria-expanded="true"] {
+        left: auto !important;
+        position: static !important;
+        width: 100% !important;
     }
 }
 
