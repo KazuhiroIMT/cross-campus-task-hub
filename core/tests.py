@@ -1,7 +1,10 @@
 from django.test import TestCase, Client
 from django.contrib.auth.models import User, Group
+from django.core.management import call_command
 from django.utils import timezone
 from datetime import timedelta
+import os
+from django.conf import settings
 from core.models import (
     UserCompanion, GraduatedCompanion, Task, DepartmentGroup,
     IslandProfile, IslandItem, Achievement, UserAchievement,
@@ -602,6 +605,43 @@ class DepartmentBossTests(TestCase):
         # 他部署詳細の閲覧拒否（PermissionDenied: 403）
         forbidden_res = self.client.get(f'/department/{self.group1.id}/boss/')
         self.assertEqual(forbidden_res.status_code, 403)
+
+    def test_seed_bosses_command(self):
+        """seed_bossesコマンドの実行・画像アセットおよび初期ボスの生成テスト"""
+        call_command('seed_bosses')
+
+        boss_img_dir = os.path.join(settings.BASE_DIR, 'core', 'static', 'core', 'images', 'bosses')
+        for i in range(1, 21):
+            file_path = os.path.join(boss_img_dir, f'dragon_{i:02d}.png')
+            self.assertTrue(os.path.exists(file_path))
+
+        active_boss = DepartmentBattle.objects.filter(department=self.group1, status='active').first()
+        self.assertIsNotNone(active_boss)
+        self.assertIn('コドモドラゴ', active_boss.boss_name)
+        self.assertEqual(active_boss.max_hp, 1000)
+
+    def test_department_boss_auto_assignment_when_none_exists(self):
+        """ボス未割り当て時にdepartment_boss画面アクセスで自動的にLv.1コドモドラゴが生成・割り当てられる"""
+        DepartmentBattle.objects.filter(department=self.group1).delete()
+        self.assertFalse(DepartmentBattle.objects.filter(department=self.group1, status='active').exists())
+
+        self.client.login(username='sales_user', password='password123')
+        res = self.client.get(f'/department/{self.group1.id}/boss/')
+        self.assertEqual(res.status_code, 200)
+
+        active_boss = DepartmentBattle.objects.filter(department=self.group1, status='active').first()
+        self.assertIsNotNone(active_boss)
+        self.assertIn('コドモドラゴ', active_boss.boss_name)
+        self.assertEqual(active_boss.max_hp, 1000)
+        self.assertContains(res, 'コドモドラゴ')
+
+    def test_department_battle_image_path_property(self):
+        """DepartmentBattle.image_path プロパティの正当性テスト"""
+        b1 = DepartmentBattle(boss_name='コドモドラゴ（未着手タスクの幼体）')
+        self.assertEqual(b1.image_path, 'core/images/bosses/dragon_01.png')
+
+        b20 = DepartmentBattle(boss_name='アビス・エンドライン（完全納期崩壊を司る絶対の深淵古龍）')
+        self.assertEqual(b20.image_path, 'core/images/bosses/dragon_20.png')
 
 
 class DashboardFailSafeTests(TestCase):
