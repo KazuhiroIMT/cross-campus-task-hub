@@ -310,200 +310,69 @@
     <!-- 独立検索フォーム（Submitボタン用） -->
     <form id="searchForm" method="get" action="{% url 'dashboard' %}" class="d-none"></form>
 
-    <!-- ゲーミフィケーション集約エリア（画面最下部・フッター直上） -->
-    <div class="gamification-section card border-0 shadow-sm p-4 mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                <i class="bi bi-controller text-primary"></i> ゲーミフィケーション・拠点エリア
-            </h5>
-            <span class="badge bg-secondary text-muted" style="font-size: 0.75rem;">業務息抜き・モチベーション</span>
-        </div>
+    <!-- ゲーミフィケーション集約エリア（画面最下部・フッター直上、1行モチベーションバー） -->
+    <div class="gamification-section card border-0 shadow-sm p-3 mb-4 bg-light">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="fw-bold text-secondary small"><i class="bi bi-controller"></i> モチベーション:</span>
 
-        <!-- モチベーションバー（コンパクトエリア） -->
-        <div class="card border-0 mb-3 bg-light">
-            <div class="card-body py-3 px-4">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="fw-bold text-secondary small"><i class="bi bi-controller"></i> モチベーション:</span>
-
-                        <!-- キャラクター簡易情報 -->
-                        {% if user.usercompanion %}
-                            {% if user.usercompanion.companion_type != 'none' %}
-                                <div class="d-flex align-items-center gap-1 small">
-                                    <span>キャラ: <span class="motivation-avatar-mini">{{ user.usercompanion.current_form }}</span> Lv.{{ user.usercompanion.level }} <span class="badge bg-info text-dark" style="font-size: 0.68rem;">{{ user.usercompanion.stage_name }}</span></span>
-                                    {% if user.usercompanion.level >= 10 %}
-                                        <button type="button" class="btn btn-link p-0 small text-warning fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#graduateModal">卒業</button>
-                                    {% endif %}
-                                </div>
-                            {% else %}
-                                <span class="small text-muted">キャラ未選択</span>
+                <!-- キャラクター簡易情報 -->
+                {% if user.usercompanion %}
+                    {% if user.usercompanion.companion_type != 'none' %}
+                        <div class="d-flex align-items-center gap-1 small">
+                            <span>キャラ: <span class="motivation-avatar-mini">{{ user.usercompanion.current_form }}</span> Lv.{{ user.usercompanion.level }} <span class="badge bg-info text-dark" style="font-size: 0.68rem;">{{ user.usercompanion.stage_name }}</span></span>
+                            {% if user.usercompanion.level >= 10 %}
+                                <button type="button" class="btn btn-link p-0 small text-warning fw-bold ms-1" data-bs-toggle="modal" data-bs-target="#graduateModal">卒業</button>
                             {% endif %}
-                        {% endif %}
-
-                        <!-- 島レベル & 称号 -->
-                        {% if island_profile %}
-                            <div class="small">
-                                <span>🏝️ 島 Lv.{{ island_profile.level }}</span>
-                                <span class="text-muted ms-1" style="font-size: 0.75rem;">(EXP: {{ island_profile.experience }})</span>
-                                {% if island_profile.current_title %}
-                                    <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">🏆 {{ island_profile.current_title.name }}</span>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-
-                        <!-- 部署ボスHP -->
-                        {% if active_dept_battle %}
-                            <div class="small">
-                                {% if active_dept_battle.status == 'recess' %}
-                                    <span class="text-success fw-bold">☕ 本日の討伐完了（休憩中）</span>
-                                    <span class="badge bg-success ms-1" style="font-size: 0.7rem;">また明日！</span>
-                                {% else %}
-                                    <span>⚔️ ボス: {{ active_dept_battle.boss_name }}</span>
-                                    <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">HP {{ active_dept_battle.current_hp }}/{{ active_dept_battle.max_hp }}</span>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- 各専用ページへのリンク -->
-                    <div class="d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-primary btn-sm py-1 px-2 fw-bold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#viewCharacterModal">
-                            👤 キャラを見る
-                        </button>
-                        <a href="{% url 'my_island' %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
-                            <i class="bi bi-tree"></i> 島ページ
-                        </a>
-                        <a href="{% url 'achievements_page' %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
-                            <i class="bi bi-trophy"></i> 実績を見る
-                        </a>
-                        {% if user_primary_dept %}
-                            <a href="{% url 'department_boss' user_primary_dept.id %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
-                                <i class="bi bi-shield-slash"></i> 部署ボス画面
-                            </a>
-                        {% endif %}
-                        {% if graduated_companions %}
-                            <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#hallOfFameModal">
-                                🏆 殿堂入り ({{ graduated_companions.count }})
-                            </button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 部署協力型ボス討伐表示エリア -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-2">
-                    <span>🛡️ 部署協力型ボス討伐</span>
-                    {% if user_primary_dept %}
-                        <span class="badge bg-secondary" style="font-size: 0.8rem;">{{ user_primary_dept.name }}</span>
-                    {% endif %}
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    {% if active_dept_battle and active_dept_battle.status == 'recess' %}
-                        <span class="badge bg-success"><i class="bi bi-cup-hot-fill me-1"></i> 本日は休憩中</span>
-                    {% elif active_dept_battle %}
-                        <span class="badge bg-danger"><i class="bi bi-fire me-1"></i> 戦闘中</span>
+                        </div>
                     {% else %}
-                        <span class="badge bg-secondary">平和</span>
+                        <span class="small text-muted">キャラ未選択</span>
                     {% endif %}
-                    {% if user_primary_dept %}
-                        <a href="{% url 'department_boss' user_primary_dept.id %}" class="btn btn-outline-light btn-sm ms-2" style="font-size: 0.75rem;">
-                            詳細画面へ <i class="bi bi-arrow-right"></i>
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="card-body p-4 text-center position-relative">
-                {% if active_dept_battle and active_dept_battle.status == 'recess' %}
-                    <!-- 討伐後の当日休憩演出 -->
-                    <div class="dragon-stage-wrapper">
-                        <img src="{% static 'core/images/bosses/recess.png' %}"
-                             alt="本日は休憩中"
-                             class="recess-image-live"
-                             id="recessImg"
-                             onerror="this.style.display='none'; document.getElementById('recessFallback').style.display='inline-block';">
-                        <div id="recessFallback" class="p-4 border rounded bg-light text-success fw-bold fs-2 shadow-sm my-3" style="display: none;">
-                            ☕ 休憩中 (recess.png)
-                        </div>
-                    </div>
+                {% endif %}
 
-                    <div class="recess-banner-box p-4 my-3">
-                        <h3 class="fw-bold mb-2">🎉 本日の討伐完了！（休憩中）</h3>
-                        <p class="mb-1 fs-6">本日分のボス討伐に見事成功しました！本日はゆっくり休みましょう。</p>
-                        <p class="mb-0 fw-bold text-success"><i class="bi bi-clock-history me-1"></i> 明日（日付変更後）に次のボスが出現します！また明日挑戦しましょう。</p>
-                    </div>
-
-                {% elif active_dept_battle %}
-                    <!-- Animated Live Dragon Graphic -->
-                    <div class="dragon-stage-wrapper" id="dragonStage">
-                        <span class="smoke-puff-1">💨</span>
-                        <span class="smoke-puff-2">🔥</span>
-                        {% if active_dept_battle.image_path %}
-                            <img src="{% static active_dept_battle.image_path %}"
-                                 alt="{{ active_dept_battle.boss_name }}"
-                                 class="boss-image-live"
-                                 id="dragonAvatarImg"
-                                 onerror="this.style.display='none'; document.getElementById('dragonAvatarFallback').style.display='inline-block';">
+                <!-- 島レベル & 称号 -->
+                {% if island_profile %}
+                    <div class="small">
+                        <span>🏝️ 島 Lv.{{ island_profile.level }}</span>
+                        <span class="text-muted ms-1" style="font-size: 0.75rem;">(EXP: {{ island_profile.experience }})</span>
+                        {% if island_profile.current_title %}
+                            <span class="badge bg-secondary ms-1" style="font-size: 0.7rem;">🏆 {{ island_profile.current_title.name }}</span>
                         {% endif %}
-                        <span class="dragon-live-avatar" id="dragonAvatarFallback" style="{% if active_dept_battle.image_path %}display: none;{% endif %}">
-                            <i class="bi bi-fire text-danger me-1"></i>{{ active_dept_battle.icon }}
-                        </span>
                     </div>
+                {% endif %}
 
-                    <h3 class="fw-bold mb-1 text-dark" id="bossNameTitle">
-                        {% if active_dept_battle.boss_level > 0 %}
-                            <span class="badge bg-danger fs-6 align-middle me-1">Lv.{{ active_dept_battle.boss_level }}</span>
+                <!-- 部署ボスHP -->
+                {% if active_dept_battle %}
+                    <div class="small">
+                        {% if active_dept_battle.status == 'recess' %}
+                            <span class="text-success fw-bold">☕ 本日の討伐完了（休憩中）</span>
+                            <span class="badge bg-success ms-1" style="font-size: 0.7rem;">また明日！</span>
                         {% else %}
-                            <span class="badge bg-warning text-dark fs-6 align-middle me-1">レア</span>
+                            <span>⚔️ ボス: {{ active_dept_battle.boss_name }}</span>
+                            <span class="badge bg-danger ms-1" style="font-size: 0.7rem;">HP {{ active_dept_battle.current_hp }}/{{ active_dept_battle.max_hp }}</span>
                         {% endif %}
-                        {{ active_dept_battle.boss_name }}
-                    </h3>
+                    </div>
+                {% endif %}
+            </div>
 
-                    <div class="row justify-content-center my-3">
-                        <div class="col-md-8">
-                            <div class="d-flex justify-content-between small text-muted mb-1 fw-bold">
-                                <span>HP</span>
-                                <span id="hpText">{{ active_dept_battle.current_hp }} / {{ active_dept_battle.max_hp }}</span>
-                            </div>
-                            <div class="progress shadow-sm" style="height: 26px; border-radius: 13px; background: #e9ecef;">
-                                <div id="hpProgressBar"
-                                     class="progress-bar progress-bar-striped progress-bar-animated bg-danger fw-bold fs-6"
-                                     role="progressbar"
-                                     style="width: {{ active_dept_battle.hp_percent }}%; transition: width 0.6s ease;">
-                                    {{ active_dept_battle.hp_percent }}%
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Interactive Attack Simulation Test Buttons -->
-                    <div class="d-flex justify-content-center gap-2 mb-3">
-                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(100, '【高優先度タスク完了!】')">
-                            ⚔️ 高優先度撃破 (-100)
-                        </button>
-                        <button type="button" class="btn btn-outline-warning btn-sm text-dark fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(50, '【中優先度タスク完了!】')">
-                            ⚔️ 中優先度撃破 (-50)
-                        </button>
-                    </div>
-
-                    <!-- Defeat Victory Banner (Hidden by default until HP reaches 0) -->
-                    <div id="victoryBanner" class="victory-banner-box p-4 my-3 d-none">
-                        <div class="display-3 mb-2">🎉 👑 ✨</div>
-                        <h3 class="fw-bold mb-1">討伐成功！ 部署の勝利！</h3>
-                        <p class="mb-0 font-bold">本日分ボスの撃破に成功しました！明日、次のボスが挑んできます。</p>
-                    </div>
-
-                    <div class="alert alert-info py-2 small d-inline-block px-4 mb-0">
-                        💡 「部署メンバーがタスクをクローズするたびにリアルタイムでダメージが与えられます」
-                    </div>
-                {% else %}
-                    <div class="py-4 text-muted">
-                        <div class="fs-1 mb-2">🕊️</div>
-                        <p class="mb-0 fw-bold">現在、進行中のボス討伐はありません。</p>
-                        <small>明日になると新しいボスが出現します。</small>
-                    </div>
+            <!-- 各専用ページへのリンク -->
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-primary btn-sm py-1 px-2 fw-bold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#viewCharacterModal">
+                    👤 キャラを見る
+                </button>
+                <a href="{% url 'my_island' %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                    🏝️ 島ページ
+                </a>
+                <a href="{% if user_primary_dept %}{% url 'department_boss' user_primary_dept.id %}{% else %}{% url 'department_boss_my' %}{% endif %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                    ⚔️ ボス討伐戦
+                </a>
+                <a href="{% url 'achievements_page' %}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                    🏆 実績を見る
+                </a>
+                {% if graduated_companions %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#hallOfFameModal">
+                        🏆 殿堂入り ({{ graduated_companions.count }})
+                    </button>
                 {% endif %}
             </div>
         </div>

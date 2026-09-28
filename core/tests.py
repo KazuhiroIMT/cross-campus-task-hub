@@ -896,7 +896,7 @@ class DashboardFailSafeTests(TestCase):
         self.assertContains(response, 'id="normalTasksBody" class="collapse show"')
 
     def test_dashboard_renders_department_boss_card(self):
-        """ダッシュボードに部署ボスセクション（画像・HPゲージ・ステータス・操作ボタン）が正常にレンダリングされる"""
+        """ダッシュボードのモチベーションバーに部署ボス簡易情報（HP・ステータス・画面遷移ボタン）が正常にレンダリングされ、詳細画面でボスカードが全機能表示される"""
         group = Group.objects.create(name='営業部')
         self.user.groups.add(group)
 
@@ -912,13 +912,17 @@ class DashboardFailSafeTests(TestCase):
         response = self.client.get('/')
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, '部署協力型ボス討伐')
+        self.assertContains(response, 'ボス討伐戦')
         self.assertContains(response, '納期ドラゴン')
-        self.assertContains(response, 'HP')
-        self.assertContains(response, '750 / 1000')
-        self.assertContains(response, '高優先度撃破')
-        self.assertContains(response, 'dragonStage')
-        self.assertContains(response, 'core/css/bosses.css')
+        self.assertContains(response, 'HP 750/1000')
+
+        # 専用画面で詳細ボスカードがレンダリングされることを検証
+        boss_page_res = self.client.get(f'/department/{group.id}/boss/')
+        self.assertEqual(boss_page_res.status_code, 200)
+        self.assertContains(boss_page_res, '部署協力型ボス討伐')
+        self.assertContains(boss_page_res, '納期ドラゴン')
+        self.assertContains(boss_page_res, '高優先度撃破')
+        self.assertContains(boss_page_res, 'dragonStage')
 
         # 当日休憩状態の表示テスト
         battle.status = 'recess'
@@ -927,5 +931,7 @@ class DashboardFailSafeTests(TestCase):
 
         response_recess = self.client.get('/')
         self.assertEqual(response_recess.status_code, 200)
-        self.assertContains(response_recess, '本日の討伐完了！（休憩中）')
-        self.assertContains(response_recess, 'recess.png')
+        self.assertContains(response_recess, '本日の討伐完了（休憩中）')
+
+        boss_recess_res = self.client.get(f'/department/{group.id}/boss/')
+        self.assertContains(boss_recess_res, 'recess.png')
