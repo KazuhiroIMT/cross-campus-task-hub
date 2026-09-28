@@ -8,7 +8,9 @@ from .models import (
     DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
 )
 
-# ドラゴンボス20段階マスタ設計（業務・タスクモチーフ）
+import random
+
+# ドラゴンボス30段階マスタ設計（業務・タスクモチーフ）
 BOSS_TEMPLATES = [
     {'boss_level': 1,  'boss_type': 'dragon', 'boss_name': 'コドモドラゴ（未着手タスクの幼体）', 'max_hp': 1000, 'image_path': 'core/images/bosses/dragon_01.png'},
     {'boss_level': 2,  'boss_type': 'dragon', 'boss_name': 'メモリーワイバーン（連絡漏れの使い魔）', 'max_hp': 2500, 'image_path': 'core/images/bosses/dragon_02.png'},
@@ -30,59 +32,119 @@ BOSS_TEMPLATES = [
     {'boss_level': 18, 'boss_type': 'dragon', 'boss_name': 'インシデント・ドゥーム（緊急事態対応の獄炎竜）', 'max_hp': 190000, 'image_path': 'core/images/bosses/dragon_18.png'},
     {'boss_level': 19, 'boss_type': 'dragon', 'boss_name': '終末のタスクカタストロフィ（学期末総決算の破壊竜）', 'max_hp': 230000, 'image_path': 'core/images/bosses/dragon_19.png'},
     {'boss_level': 20, 'boss_type': 'dragon', 'boss_name': 'アビス・エンドライン（完全納期崩壊を司る絶対の深淵古龍）', 'max_hp': 300000, 'image_path': 'core/images/bosses/dragon_20.png'},
+    {'boss_level': 21, 'boss_type': 'dragon', 'boss_name': '新学期ラッシュドラゴン（新年度準備の始動竜）', 'max_hp': 350000, 'image_path': 'core/images/bosses/dragon_21.png'},
+    {'boss_level': 22, 'boss_type': 'dragon', 'boss_name': '予算査定バハムート（財政逼迫の金竜）', 'max_hp': 400000, 'image_path': 'core/images/bosses/dragon_22.png'},
+    {'boss_level': 23, 'boss_type': 'dragon', 'boss_name': '監査襲来ファブニル（証跡要求の漆黒竜）', 'max_hp': 460000, 'image_path': 'core/images/bosses/dragon_23.png'},
+    {'boss_level': 24, 'boss_type': 'dragon', 'boss_name': '大規模障害レヴィアタン（インフラ停止の水龍）', 'max_hp': 530000, 'image_path': 'core/images/bosses/dragon_24.png'},
+    {'boss_level': 25, 'boss_type': 'dragon', 'boss_name': '年次総括ヴリトラ（年間業務集大成の巨竜）', 'max_hp': 600000, 'image_path': 'core/images/bosses/dragon_25.png'},
+    {'boss_level': 26, 'boss_type': 'dragon', 'boss_name': '超過勤務オメガドラゴン（限界突破の極光竜）', 'max_hp': 680000, 'image_path': 'core/images/bosses/dragon_26.png'},
+    {'boss_level': 27, 'boss_type': 'dragon', 'boss_name': '無限再提出ニーズヘッグ（永久ループの蝕竜）', 'max_hp': 770000, 'image_path': 'core/images/bosses/dragon_27.png'},
+    {'boss_level': 28, 'boss_type': 'dragon', 'boss_name': '絶対絶命バハムート・アルファ（破滅的納期の覇竜）', 'max_hp': 870000, 'image_path': 'core/images/bosses/dragon_28.png'},
+    {'boss_level': 29, 'boss_type': 'dragon', 'boss_name': 'カオスデッドライン（時空崩壊の暗黒竜）', 'max_hp': 980000, 'image_path': 'core/images/bosses/dragon_29.png'},
+    {'boss_level': 30, 'boss_type': 'dragon', 'boss_name': 'ラグナロク・タスクマザー（全タスクの根源にして終焉の神龍）', 'max_hp': 1200000, 'image_path': 'core/images/bosses/dragon_30.png'},
+]
+
+# ランダムボス3種（HPは一律 7777）
+RANDOM_BOSS_TEMPLATES = [
+    {'boss_level': 0, 'boss_type': 'random_boss', 'boss_name': 'はぐれタスクキング（幻のレアモンスター）', 'max_hp': 7777, 'image_path': 'core/images/bosses/random_boss_01.png'},
+    {'boss_level': 0, 'boss_type': 'random_boss', 'boss_name': 'ラッキー・ゴールドゴーザ（黄金の気まぐれ魔神）', 'max_hp': 7777, 'image_path': 'core/images/bosses/random_boss_02.png'},
+    {'boss_level': 0, 'boss_type': 'random_boss', 'boss_name': 'カオス・タスクチェンジ（変幻自在の混沌獣）', 'max_hp': 7777, 'image_path': 'core/images/bosses/random_boss_03.png'},
 ]
 
 
 def ensure_active_department_boss(department):
     """
-    指定された部署にアクティブなボスが存在しない場合、自動的に次のボスを安全に生成する。
-    同時実行などで重複生成が起きないようトランザクションとアトミックロックを使用。
+    指定された部署にアクティブなボス（または休憩中）が存在しない場合、自動的に次のボスを安全に生成する。
+    ・当日討伐済みの場合は即時出現させず、「recess」状態（recess.png）を維持。
+    ・日付が変わった（翌日以降）アクセス時に新しいボスを出現。
+    ・周回モード時は全33種（通常30＋ランダム3）から完全ランダム選出。
     """
     if not department:
         return None
 
+    today = timezone.localdate()
+    dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
+
+    # 1. 進行中(active) または 休憩中(recess) のレコードを確認
     active_boss = DepartmentBattle.objects.filter(
         department=department,
-        status='active'
+        status__in=['active', 'recess']
     ).first()
 
     if active_boss:
-        defeated_count = DepartmentBattle.objects.filter(
+        # 休憩中レコードが存在する場合、日付が変わったか判定
+        if active_boss.status == 'recess':
+            if active_boss.last_defeated_date and active_boss.last_defeated_date == today:
+                return active_boss  # 当日中は休憩中を継続
+            # 翌日になったので、recess レコードを defeated に変更して次ボス生成へ進む
+            active_boss.status = 'defeated'
+            active_boss.save(update_fields=['status'])
+        else:
+            return active_boss
+
+    # 2. 当日既にボスを撃破済みで、まだ active / recess が無い場合（直接訪問等）
+    last_defeated_date = dept_profile.last_defeated_date
+    if not last_defeated_date:
+        last_defeated_boss = DepartmentBattle.objects.filter(
             department=department,
             status='defeated'
-        ).count()
-        template = BOSS_TEMPLATES[defeated_count % len(BOSS_TEMPLATES)]
-        raw_template_name = template['boss_name'].split('（')[0]
-        if raw_template_name in active_boss.boss_name:
-            if active_boss.current_hp == active_boss.max_hp and active_boss.max_hp != template['max_hp']:
-                active_boss.max_hp = template['max_hp']
-                active_boss.current_hp = template['max_hp']
-                active_boss.save(update_fields=['max_hp', 'current_hp'])
-        return active_boss
+        ).order_by('-end_date', '-id').first()
+        if last_defeated_boss and last_defeated_boss.last_defeated_date:
+            last_defeated_date = last_defeated_boss.last_defeated_date
+
+    if last_defeated_date == today:
+        # 当日撃破済みの場合は休憩中(recess)レコードを生成・返却
+        recess_boss = DepartmentBattle.objects.create(
+            department=department,
+            boss_type='recess',
+            boss_level=0,
+            boss_name='本日の討伐完了（休憩中）',
+            max_hp=0,
+            current_hp=0,
+            status='recess',
+            last_defeated_date=today,
+            start_date=timezone.now()
+        )
+        return recess_boss
 
     with transaction.atomic():
         # 再チェック（排他ロック付き）
         active_boss = DepartmentBattle.objects.select_for_update().filter(
             department=department,
-            status='active'
+            status__in=['active', 'recess']
         ).first()
 
         if active_boss:
-            return active_boss
+            if active_boss.status == 'recess':
+                if active_boss.last_defeated_date and active_boss.last_defeated_date == today:
+                    return active_boss
+                active_boss.status = 'defeated'
+                active_boss.save(update_fields=['status'])
+            else:
+                return active_boss
 
-        # 過去の討伐数に応じてボステンプレートを選択
-        defeated_count = DepartmentBattle.objects.filter(
-            department=department,
-            status='defeated'
-        ).count()
+        # 次に出現させるボステンプレートの選定
+        if dept_profile.is_loop_mode:
+            # 周回（カオス）モード: 全33種（通常30 + ランダム3）から完全ランダム選出
+            all_options = BOSS_TEMPLATES + RANDOM_BOSS_TEMPLATES
+            template = random.choice(all_options)
+            boss_level = template.get('boss_level', 0)
+        else:
+            # 通常進行（Lv.1 ～ Lv.30）
+            defeated_count = DepartmentBattle.objects.filter(
+                department=department,
+                status='defeated'
+            ).exclude(boss_type='recess').count()
 
-        template = BOSS_TEMPLATES[defeated_count % len(BOSS_TEMPLATES)]
-        count_suffix = f" (第{defeated_count + 1}世代)" if defeated_count > 0 else ""
+            level_index = min(defeated_count, len(BOSS_TEMPLATES) - 1)
+            template = BOSS_TEMPLATES[level_index]
+            boss_level = template['boss_level']
 
         new_boss = DepartmentBattle.objects.create(
             department=department,
             boss_type=template['boss_type'],
-            boss_name=f"{template['boss_name']}{count_suffix}",
+            boss_level=boss_level,
+            boss_name=template['boss_name'],
             max_hp=template['max_hp'],
             current_hp=template['max_hp'],
             status='active',
@@ -121,6 +183,20 @@ def ensure_initial_department_achievements():
             'description': '部署でボスを累計10体討伐する',
             'requirement_type': 'DEFEAT_COUNT',
             'requirement_value': 10,
+        },
+        {
+            'code': 'DEPT_DRAGON_CONQUEROR',
+            'name': '巨龍の征服者',
+            'description': 'Lv.30の最終ボスドラゴンを撃破する',
+            'requirement_type': 'SPECIAL',
+            'requirement_value': 30,
+        },
+        {
+            'code': 'DEPT_TASK_HAOU',
+            'name': 'タスクの覇王',
+            'description': '全てのドラゴンボスを討伐し周回モードへと到達する',
+            'requirement_type': 'SPECIAL',
+            'requirement_value': 30,
         },
     ]
 
@@ -374,16 +450,48 @@ def process_task_completion(task, user, request=None):
             active_battle.current_hp -= damage
 
             if active_battle.current_hp <= 0:
+                today = timezone.localdate()
                 active_battle.current_hp = 0
                 active_battle.status = 'defeated'
                 active_battle.end_date = timezone.now()
+                active_battle.last_defeated_date = today
                 active_battle.save()
 
-                if request:
-                    messages.success(request, f"🎉 {active_battle.boss_name}討伐！ ({target_dept.name})")
+                dept_profile, _ = DepartmentProfile.objects.get_or_create(department=target_dept)
+                dept_profile.last_defeated_date = today
 
+                if request:
+                    messages.success(request, f"🎉 {active_battle.boss_name}討伐！ ({target_dept.name}) 本日の討伐が完了しました！")
+
+                # Lv.30 ボス撃破時の処理（称号付与 & 周回モード移行）
+                if active_battle.boss_level == 30 and active_battle.boss_type == 'dragon':
+                    dept_profile.is_loop_mode = True
+
+                    # 称号付与（巨龍の征服者 / タスクの覇王）
+                    ensure_initial_department_achievements()
+                    conqueror_ach = DepartmentAchievement.objects.filter(code='DEPT_DRAGON_CONQUEROR').first()
+                    haou_ach = DepartmentAchievement.objects.filter(code='DEPT_TASK_HAOU').first()
+
+                    if conqueror_ach:
+                        DepartmentAchievementUnlock.objects.get_or_create(
+                            department=target_dept,
+                            achievement=conqueror_ach
+                        )
+                    if haou_ach:
+                        DepartmentAchievementUnlock.objects.get_or_create(
+                            department=target_dept,
+                            achievement=haou_ach
+                        )
+                        if not dept_profile.current_title:
+                            dept_profile.current_title = haou_ach
+
+                    if request:
+                        messages.success(request, f"🏆 祝・全30段階ボス制覇！特別称号「巨龍の征服者」「タスクの覇王」が解放され、周回（カオス）モードへ移行しました！")
+
+                dept_profile.save()
                 check_department_achievements(target_dept, request=request)
-                # ボス撃破時、自動的に次のボスを生成
+
+                # 当日討伐完了のため、本日は休憩中(recess)状態を生成・維持する
                 ensure_active_department_boss(target_dept)
             else:
                 active_battle.save()

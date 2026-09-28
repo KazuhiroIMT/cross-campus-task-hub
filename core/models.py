@@ -1021,12 +1021,14 @@ class GraduatedCompanion(models.Model):
 class DepartmentBattle(models.Model):
     STATUS_CHOICES = [
         ('active', '進行中'),
+        ('recess', '本日の討伐完了（休憩中）'),
         ('defeated', '討伐完了'),
         ('expired', '期限切れ'),
     ]
 
     BOSS_ICONS = {
         'dragon': '🐉',
+        'random_boss': '👹',
         'robot': '🤖',
         'monster': '👾',
         'golem': '🗿',
@@ -1034,11 +1036,13 @@ class DepartmentBattle(models.Model):
 
     department = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='battles', verbose_name="対象部署")
     boss_type = models.CharField("ボスの種類", max_length=50, default='dragon')
+    boss_level = models.IntegerField("ボスレベル", default=1)
     boss_name = models.CharField("ボス名", max_length=100)
     max_hp = models.IntegerField("最大HP", default=1000)
     current_hp = models.IntegerField("現在HP", default=1000)
     start_date = models.DateTimeField("開始日時", default=timezone.now)
     end_date = models.DateTimeField("終了日時", null=True, blank=True)
+    last_defeated_date = models.DateField("最終討伐日", null=True, blank=True)
     status = models.CharField("ステータス", max_length=20, choices=STATUS_CHOICES, default='active', db_index=True)
     created_at = models.DateTimeField("作成日時", auto_now_add=True)
     updated_at = models.DateTimeField("更新日時", auto_now=True)
@@ -1069,11 +1073,16 @@ class DepartmentBattle(models.Model):
 
     @property
     def image_path(self):
-        from .services import BOSS_TEMPLATES
-        for t in BOSS_TEMPLATES:
+        if self.status == 'recess':
+            return 'core/images/bosses/recess.png'
+        from .services import BOSS_TEMPLATES, RANDOM_BOSS_TEMPLATES
+        all_templates = BOSS_TEMPLATES + RANDOM_BOSS_TEMPLATES
+        for t in all_templates:
             raw_name = t['boss_name'].split('（')[0]
             if t['boss_name'] in self.boss_name or raw_name in self.boss_name:
                 return t.get('image_path', 'core/images/bosses/dragon_01.png')
+        if self.boss_level and 1 <= self.boss_level <= 30:
+            return f'core/images/bosses/dragon_{self.boss_level:02d}.png'
         return 'core/images/bosses/dragon_01.png'
 
 
@@ -1119,6 +1128,8 @@ class DepartmentAchievementUnlock(models.Model):
 class DepartmentProfile(models.Model):
     department = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='department_profile', verbose_name="部署")
     current_title = models.ForeignKey(DepartmentAchievement, on_delete=models.SET_NULL, null=True, blank=True, related_name='+', verbose_name="現在の部署称号")
+    is_loop_mode = models.BooleanField("周回モード", default=False)
+    last_defeated_date = models.DateField("最終討伐日", null=True, blank=True)
 
     class Meta:
         verbose_name = "部署プロファイル"
@@ -1126,4 +1137,5 @@ class DepartmentProfile(models.Model):
 
     def __str__(self):
         title_str = f" ({self.current_title.name})" if self.current_title else ""
-        return f"{self.department.name}{title_str}"
+        loop_str = " [周回モード]" if self.is_loop_mode else ""
+        return f"{self.department.name}{title_str}{loop_str}"
