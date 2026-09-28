@@ -890,10 +890,17 @@ def my_island(request):
     if request.method == 'POST' and 'toggle_item_placed' in request.POST:
         item_id = request.POST.get('item_id')
         item = get_object_or_404(IslandItem, pk=item_id, user=request.user)
-        item.is_placed = not item.is_placed
+        if not item.is_placed:
+            if profile.level < item.required_island_level:
+                area_name = "海洋エリア" if item.area_category == 'ocean' else ("上空エリア" if item.area_category == 'sky' else "陸地")
+                messages.error(request, f"アイテム「{item.name}」の配置には島レベル {item.required_island_level} 以上が必要です。({area_name})")
+                return redirect('my_island')
+            item.is_placed = True
+            messages.success(request, f"アイテム「{item.name}」を配置にしました。")
+        else:
+            item.is_placed = False
+            messages.success(request, f"アイテム「{item.name}」を非配置にしました。")
         item.save()
-        status_str = "配置" if item.is_placed else "非配置"
-        messages.success(request, f"アイテム「{item.name}」を{status_str}にしました。")
         return redirect('my_island')
 
     items = IslandItem.objects.filter(user=request.user)
@@ -927,7 +934,10 @@ def gacha_page(request):
             user=request.user,
             item_type=item_type,
             name=item_name,
-            is_placed=True
+            is_placed=False,
+            position_x=0.0,
+            position_y=0.0,
+            position_z=0.0
         )
 
         from .services import check_achievements
