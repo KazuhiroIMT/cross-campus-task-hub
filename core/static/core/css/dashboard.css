@@ -252,6 +252,22 @@ button[data-bs-target="#createTaskModal"]:hover {
   overflow: hidden;
 }
 
+/* --- ゲーミフィケーション集約エリア --- */
+.gamification-section {
+  margin-top: 40px !important;
+  background-color: var(--color-bg-pale) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+@media (max-width: 768px) {
+  .gamification-section {
+    margin-top: 24px !important;
+    padding: 1rem !important;
+  }
+}
+
 /* 至急カード */
 .card.border-danger { border-color: var(--color-accent) !important; }
 .card-header.bg-danger {
