@@ -10,8 +10,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
-    <!-- 外部化したダッシュボード用カスタムCSSを読み込み -->
+    <!-- 外部化したダッシュボード用カスタムCSSおよびボス演出用CSSを読み込み -->
     <link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/bosses.css' %}">
 </head>
 <body{% if not user.is_superuser %} class="user-protected"{% endif %}>
 
@@ -308,6 +309,123 @@
 
     <!-- 独立検索フォーム（Submitボタン用） -->
     <form id="searchForm" method="get" action="{% url 'dashboard' %}" class="d-none"></form>
+
+    <!-- ③ 【部署協力型ボス討伐表示エリア】 -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-dark text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <span>🛡️ 部署協力型ボス討伐</span>
+                {% if user_primary_dept %}
+                    <span class="badge bg-secondary" style="font-size: 0.8rem;">{{ user_primary_dept.name }}</span>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                {% if active_dept_battle and active_dept_battle.status == 'recess' %}
+                    <span class="badge bg-success"><i class="bi bi-cup-hot-fill me-1"></i> 本日は休憩中</span>
+                {% elif active_dept_battle %}
+                    <span class="badge bg-danger"><i class="bi bi-fire me-1"></i> 戦闘中</span>
+                {% else %}
+                    <span class="badge bg-secondary">平和</span>
+                {% endif %}
+                {% if user_primary_dept %}
+                    <a href="{% url 'department_boss' user_primary_dept.id %}" class="btn btn-outline-light btn-sm ms-2" style="font-size: 0.75rem;">
+                        詳細画面へ <i class="bi bi-arrow-right"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body p-4 text-center position-relative">
+            {% if active_dept_battle and active_dept_battle.status == 'recess' %}
+                <!-- 討伐後の当日休憩演出 -->
+                <div class="dragon-stage-wrapper">
+                    <img src="{% static 'core/images/bosses/recess.png' %}"
+                         alt="本日は休憩中"
+                         class="recess-image-live"
+                         id="recessImg"
+                         onerror="this.style.display='none'; document.getElementById('recessFallback').style.display='inline-block';">
+                    <div id="recessFallback" class="p-4 border rounded bg-light text-success fw-bold fs-2 shadow-sm my-3" style="display: none;">
+                        ☕ 休憩中 (recess.png)
+                    </div>
+                </div>
+
+                <div class="recess-banner-box p-4 my-3">
+                    <h3 class="fw-bold mb-2">🎉 本日の討伐完了！（休憩中）</h3>
+                    <p class="mb-1 fs-6">本日分のボス討伐に見事成功しました！本日はゆっくり休みましょう。</p>
+                    <p class="mb-0 fw-bold text-success"><i class="bi bi-clock-history me-1"></i> 明日（日付変更後）に次のボスが出現します！また明日挑戦しましょう。</p>
+                </div>
+
+            {% elif active_dept_battle %}
+                <!-- Animated Live Dragon Graphic -->
+                <div class="dragon-stage-wrapper" id="dragonStage">
+                    <span class="smoke-puff-1">💨</span>
+                    <span class="smoke-puff-2">🔥</span>
+                    {% if active_dept_battle.image_path %}
+                        <img src="{% static active_dept_battle.image_path %}"
+                             alt="{{ active_dept_battle.boss_name }}"
+                             class="boss-image-live"
+                             id="dragonAvatarImg"
+                             onerror="this.style.display='none'; document.getElementById('dragonAvatarFallback').style.display='inline-block';">
+                    {% endif %}
+                    <span class="dragon-live-avatar" id="dragonAvatarFallback" style="{% if active_dept_battle.image_path %}display: none;{% endif %}">
+                        <i class="bi bi-fire text-danger me-1"></i>{{ active_dept_battle.icon }}
+                    </span>
+                </div>
+
+                <h3 class="fw-bold mb-1 text-dark" id="bossNameTitle">
+                    {% if active_dept_battle.boss_level > 0 %}
+                        <span class="badge bg-danger fs-6 align-middle me-1">Lv.{{ active_dept_battle.boss_level }}</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark fs-6 align-middle me-1">レア</span>
+                    {% endif %}
+                    {{ active_dept_battle.boss_name }}
+                </h3>
+
+                <div class="row justify-content-center my-3">
+                    <div class="col-md-8">
+                        <div class="d-flex justify-content-between small text-muted mb-1 fw-bold">
+                            <span>HP</span>
+                            <span id="hpText">{{ active_dept_battle.current_hp }} / {{ active_dept_battle.max_hp }}</span>
+                        </div>
+                        <div class="progress shadow-sm" style="height: 26px; border-radius: 13px; background: #e9ecef;">
+                            <div id="hpProgressBar"
+                                 class="progress-bar progress-bar-striped progress-bar-animated bg-danger fw-bold fs-6"
+                                 role="progressbar"
+                                 style="width: {{ active_dept_battle.hp_percent }}%; transition: width 0.6s ease;">
+                                {{ active_dept_battle.hp_percent }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Attack Simulation Test Buttons -->
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(100, '【高優先度タスク完了!】')">
+                        ⚔️ 高優先度撃破 (-100)
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm text-dark fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(50, '【中優先度タスク完了!】')">
+                        ⚔️ 中優先度撃破 (-50)
+                    </button>
+                </div>
+
+                <!-- Defeat Victory Banner (Hidden by default until HP reaches 0) -->
+                <div id="victoryBanner" class="victory-banner-box p-4 my-3 d-none">
+                    <div class="display-3 mb-2">🎉 👑 ✨</div>
+                    <h3 class="fw-bold mb-1">討伐成功！ 部署の勝利！</h3>
+                    <p class="mb-0 font-bold">本日分ボスの撃破に成功しました！明日、次のボスが挑んできます。</p>
+                </div>
+
+                <div class="alert alert-info py-2 small d-inline-block px-4 mb-0">
+                    💡 「部署メンバーがタスクをクローズするたびにリアルタイムでダメージが与えられます」
+                </div>
+            {% else %}
+                <div class="py-4 text-muted">
+                    <div class="fs-1 mb-2">🕊️</div>
+                    <p class="mb-0 fw-bold">現在、進行中のボス討伐はありません。</p>
+                    <small>明日になると新しいボスが出現します。</small>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 
     <!-- ④ モチベーション（コンパクトエリア：画面下部） -->
     <div class="card shadow-sm border-0 mb-4 bg-light">
@@ -748,6 +866,54 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+// --- 部署ボスダメージ演出JS ---
+let currentHp = parseInt("{{ active_dept_battle.current_hp|default:1000 }}", 10);
+let maxHp = parseInt("{{ active_dept_battle.max_hp|default:1000 }}", 10);
+
+function triggerTaskDamageEffect(amount = 50, label = '') {
+    const imgEl = document.getElementById("dragonAvatarImg");
+    const fallbackEl = document.getElementById("dragonAvatarFallback");
+    const dragonAvatar = (imgEl && imgEl.style.display !== "none") ? imgEl : fallbackEl;
+    const dragonStage = document.getElementById("dragonStage");
+    const hpText = document.getElementById("hpText");
+    const hpBar = document.getElementById("hpProgressBar");
+    const victoryBanner = document.getElementById("victoryBanner");
+
+    if (!dragonAvatar || currentHp <= 0) return;
+
+    // 1. Floating damage popup
+    const pop = document.createElement("div");
+    pop.className = "damage-pop-text";
+    pop.innerText = `-${amount}`;
+    pop.style.left = "50%";
+    pop.style.top = "20%";
+    dragonStage.appendChild(pop);
+    setTimeout(() => pop.remove(), 1200);
+
+    // 2. Dragon hit flinch & flash shake
+    dragonAvatar.classList.remove("dragon-hit-anim");
+    void dragonAvatar.offsetWidth; // trigger reflow
+    dragonAvatar.classList.add("dragon-hit-anim");
+
+    // 3. Update HP
+    currentHp = Math.max(0, currentHp - amount);
+    const pct = Math.max(0, Math.min(100, Math.round((currentHp / maxHp) * 100)));
+
+    if (hpText) hpText.innerText = `${currentHp} / ${maxHp}`;
+    if (hpBar) {
+        hpBar.style.width = `${pct}%`;
+        hpBar.innerText = `${pct}%`;
+    }
+
+    // 4. Defeat Reaction if HP reaches 0
+    if (currentHp <= 0) {
+        setTimeout(() => {
+            dragonAvatar.classList.add("dragon-defeat-anim");
+            if (victoryBanner) victoryBanner.classList.remove("d-none");
+        }, 600);
+    }
+}
+
 // --- 教職員マスターデータをDjangoテンプレートから直接安全に受け取る ---
 let ALL_STAFFS = [];
 try {

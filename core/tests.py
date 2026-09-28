@@ -894,3 +894,38 @@ class DashboardFailSafeTests(TestCase):
         self.assertContains(response, 'Normal Task 1')
         self.assertContains(response, 'id="urgentTasksBody" class="collapse show"')
         self.assertContains(response, 'id="normalTasksBody" class="collapse show"')
+
+    def test_dashboard_renders_department_boss_card(self):
+        """ダッシュボードに部署ボスセクション（画像・HPゲージ・ステータス・操作ボタン）が正常にレンダリングされる"""
+        group = Group.objects.create(name='営業部')
+        self.user.groups.add(group)
+
+        battle = DepartmentBattle.objects.create(
+            department=group,
+            boss_name='納期ドラゴン',
+            max_hp=1000,
+            current_hp=750,
+            status='active'
+        )
+
+        self.client.login(username='freshuser', password='password123')
+        response = self.client.get('/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '部署協力型ボス討伐')
+        self.assertContains(response, '納期ドラゴン')
+        self.assertContains(response, 'HP')
+        self.assertContains(response, '750 / 1000')
+        self.assertContains(response, '高優先度撃破')
+        self.assertContains(response, 'dragonStage')
+        self.assertContains(response, 'core/css/bosses.css')
+
+        # 当日休憩状態の表示テスト
+        battle.status = 'recess'
+        battle.last_defeated_date = timezone.localdate()
+        battle.save()
+
+        response_recess = self.client.get('/')
+        self.assertEqual(response_recess.status_code, 200)
+        self.assertContains(response_recess, '本日の討伐完了！（休憩中）')
+        self.assertContains(response_recess, 'recess.png')
