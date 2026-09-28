@@ -1067,6 +1067,15 @@ class DepartmentBattle(models.Model):
         pct = int((max(0, self.current_hp) / self.max_hp) * 100)
         return max(0, min(100, pct))
 
+    @property
+    def image_path(self):
+        from .services import BOSS_TEMPLATES
+        for t in BOSS_TEMPLATES:
+            raw_name = t['boss_name'].split('（')[0]
+            if t['boss_name'] in self.boss_name or raw_name in self.boss_name:
+                return t.get('image_path', 'core/images/bosses/dragon_01.png')
+        return 'core/images/bosses/dragon_01.png'
+
 
 class DepartmentAchievement(models.Model):
     REQUIREMENT_CHOICES = [

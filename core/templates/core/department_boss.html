@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>部署ボス討伐 - {{ department.name }}</title>
+    {% load static %}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -52,6 +53,16 @@
             filter: drop-shadow(0 12px 25px rgba(0,0,0,0.35));
             transition: transform 0.2s ease, filter 0.2s ease;
             line-height: 1;
+        }
+
+        .boss-image-live {
+            max-width: 180px;
+            max-height: 180px;
+            object-fit: contain;
+            animation: dragonIdleBreathing 3s ease-in-out infinite;
+            user-select: none;
+            filter: drop-shadow(0 12px 25px rgba(0,0,0,0.35));
+            transition: transform 0.2s ease, filter 0.2s ease;
         }
 
         .smoke-puff-1 {
@@ -154,7 +165,16 @@
                 <div class="dragon-stage-wrapper" id="dragonStage">
                     <span class="smoke-puff-1">💨</span>
                     <span class="smoke-puff-2">🔥</span>
-                    <span class="dragon-live-avatar" id="dragonAvatar">{{ active_battle.icon }}</span>
+                    {% if active_battle.image_path %}
+                        <img src="{% static active_battle.image_path %}"
+                             alt="{{ active_battle.boss_name }}"
+                             class="boss-image-live"
+                             id="dragonAvatarImg"
+                             onerror="this.style.display='none'; document.getElementById('dragonAvatarFallback').style.display='inline-block';">
+                    {% endif %}
+                    <span class="dragon-live-avatar" id="dragonAvatarFallback" style="{% if active_battle.image_path %}display: none;{% endif %}">
+                        <i class="bi bi-fire text-danger me-1"></i>{{ active_battle.icon }}
+                    </span>
                 </div>
 
                 <h3 class="fw-bold mb-1 text-dark" id="bossNameTitle">{{ active_battle.boss_name }}</h3>
@@ -292,7 +312,9 @@ let currentHp = parseInt("{{ active_battle.current_hp|default:1000 }}", 10);
 let maxHp = parseInt("{{ active_battle.max_hp|default:1000 }}", 10);
 
 function triggerTaskDamageEffect(amount = 50, label = '') {
-    const dragonAvatar = document.getElementById("dragonAvatar");
+    const imgEl = document.getElementById("dragonAvatarImg");
+    const fallbackEl = document.getElementById("dragonAvatarFallback");
+    const dragonAvatar = (imgEl && imgEl.style.display !== "none") ? imgEl : fallbackEl;
     const dragonStage = document.getElementById("dragonStage");
     const hpText = document.getElementById("hpText");
     const hpBar = document.getElementById("hpProgressBar");

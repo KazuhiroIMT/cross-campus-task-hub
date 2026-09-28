@@ -48,7 +48,7 @@ def department_boss(request, dept_id=None):
     if dept_id:
         department = get_object_or_404(Group, pk=dept_id)
     else:
-        department = user_groups.first()
+        department = user_groups.first() or Group.objects.first()
         if not department:
             messages.error(request, "所属部署が設定されていません。")
             return redirect('dashboard')

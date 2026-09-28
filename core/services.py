@@ -10,26 +10,26 @@ from .models import (
 
 # ドラゴンボス20段階マスタ設計（業務・タスクモチーフ）
 BOSS_TEMPLATES = [
-    {'boss_level': 1,  'boss_type': 'dragon', 'boss_name': 'コドモドラゴ（未着手タスクの幼体）', 'max_hp': 1000},
-    {'boss_level': 2,  'boss_type': 'dragon', 'boss_name': 'メモリーワイバーン（連絡漏れの使い魔）', 'max_hp': 1200},
-    {'boss_level': 3,  'boss_type': 'dragon', 'boss_name': 'ケアレスリザード（記入ミス・誤字脱字竜）', 'max_hp': 1400},
-    {'boss_level': 4,  'boss_type': 'dragon', 'boss_name': 'スケジュールパピー（日程重複の幼竜）', 'max_hp': 1600},
-    {'boss_level': 5,  'boss_type': 'dragon', 'boss_name': '催促のフライヤー（提出物未回収の飛竜）', 'max_hp': 1800},
-    {'boss_level': 6,  'boss_type': 'dragon', 'boss_name': '保留のドレイク（ペンディング案件の沼竜）', 'max_hp': 2000},
-    {'boss_level': 7,  'boss_type': 'dragon', 'boss_name': '欠席ラッシュドラゴン（突発対応の咆哮竜）', 'max_hp': 2300},
-    {'boss_level': 8,  'boss_type': 'dragon', 'boss_name': '事務処理ゴーンドラゴン（書類山積の岩石竜）', 'max_hp': 2600},
-    {'boss_level': 9,  'boss_type': 'dragon', 'boss_name': '面談過密のスピリット（スケジュール逼迫竜）', 'max_hp': 2900},
-    {'boss_level': 10, 'boss_type': 'dragon', 'boss_name': '納期ドラゴン・幼生（期限切迫の赤翼竜）', 'max_hp': 3200},
-    {'boss_level': 11, 'boss_type': 'dragon', 'boss_name': 'システムエラーワイバーン（連携障害の雷竜）', 'max_hp': 3600},
-    {'boss_level': 12, 'boss_type': 'dragon', 'boss_name': '期日超過のケルベロスドラゴン（追跡困難の猛竜）', 'max_hp': 4000},
-    {'boss_level': 13, 'boss_type': 'dragon', 'boss_name': '怒涛の行事ラダー（学校行事ピークの嵐竜）', 'max_hp': 4500},
-    {'boss_level': 14, 'boss_type': 'dragon', 'boss_name': '評価ラッシュファング（成績・レポート査定の激竜）', 'max_hp': 5000},
-    {'boss_level': 15, 'boss_type': 'dragon', 'boss_name': '多重案件のヒドラ（タスク同時多発の多頭竜）', 'max_hp': 5600},
-    {'boss_level': 16, 'boss_type': 'dragon', 'boss_name': '締切プレッシャーベヒモス（最終期限の鉄壁竜）', 'max_hp': 6200},
-    {'boss_level': 17, 'boss_type': 'dragon', 'boss_name': 'キャパシティオーバーロード（業務限界の灼熱竜）', 'max_hp': 7000},
-    {'boss_level': 18, 'boss_type': 'dragon', 'boss_name': 'インシデント・ドゥーム（緊急事態対応の獄炎竜）', 'max_hp': 8000},
-    {'boss_level': 19, 'boss_type': 'dragon', 'boss_name': '終末のタスクカタストロフィ（学期末総決算の破壊竜）', 'max_hp': 9200},
-    {'boss_level': 20, 'boss_type': 'dragon', 'boss_name': 'アビス・エンドライン（完全納期崩壊を司る絶対の深淵古龍）', 'max_hp': 10500},
+    {'boss_level': 1,  'boss_type': 'dragon', 'boss_name': 'コドモドラゴ（未着手タスクの幼体）', 'max_hp': 1000, 'image_path': 'core/images/bosses/dragon_01.png'},
+    {'boss_level': 2,  'boss_type': 'dragon', 'boss_name': 'メモリーワイバーン（連絡漏れの使い魔）', 'max_hp': 2500, 'image_path': 'core/images/bosses/dragon_02.png'},
+    {'boss_level': 3,  'boss_type': 'dragon', 'boss_name': 'ケアレスリザード（記入ミス・誤字脱字竜）', 'max_hp': 4500, 'image_path': 'core/images/bosses/dragon_03.png'},
+    {'boss_level': 4,  'boss_type': 'dragon', 'boss_name': 'スケジュールパピー（日程重複の幼竜）', 'max_hp': 7000, 'image_path': 'core/images/bosses/dragon_04.png'},
+    {'boss_level': 5,  'boss_type': 'dragon', 'boss_name': '催促のフライヤー（提出物未回収の飛竜）', 'max_hp': 10000, 'image_path': 'core/images/bosses/dragon_05.png'},
+    {'boss_level': 6,  'boss_type': 'dragon', 'boss_name': '保留のドレイク（ペンディング案件の沼竜）', 'max_hp': 14000, 'image_path': 'core/images/bosses/dragon_06.png'},
+    {'boss_level': 7,  'boss_type': 'dragon', 'boss_name': '欠席ラッシュドラゴン（突発対応の咆哮竜）', 'max_hp': 19000, 'image_path': 'core/images/bosses/dragon_07.png'},
+    {'boss_level': 8,  'boss_type': 'dragon', 'boss_name': '事務処理ゴーンドラゴン（書類山積の岩石竜）', 'max_hp': 25000, 'image_path': 'core/images/bosses/dragon_08.png'},
+    {'boss_level': 9,  'boss_type': 'dragon', 'boss_name': '面談過密のスピリット（スケジュール逼迫竜）', 'max_hp': 32000, 'image_path': 'core/images/bosses/dragon_09.png'},
+    {'boss_level': 10, 'boss_type': 'dragon', 'boss_name': '納期ドラゴン・幼生（期限切迫の赤翼竜）', 'max_hp': 40000, 'image_path': 'core/images/bosses/dragon_10.png'},
+    {'boss_level': 11, 'boss_type': 'dragon', 'boss_name': 'システムエラーワイバーン（連携障害の雷竜）', 'max_hp': 50000, 'image_path': 'core/images/bosses/dragon_11.png'},
+    {'boss_level': 12, 'boss_type': 'dragon', 'boss_name': '期日超過のケルベロスドラゴン（追跡困難の猛竜）', 'max_hp': 62000, 'image_path': 'core/images/bosses/dragon_12.png'},
+    {'boss_level': 13, 'boss_type': 'dragon', 'boss_name': '怒涛の行事ラダー（学校行事ピークの嵐竜）', 'max_hp': 76000, 'image_path': 'core/images/bosses/dragon_13.png'},
+    {'boss_level': 14, 'boss_type': 'dragon', 'boss_name': '評価ラッシュファング（成績・レポート査定の激竜）', 'max_hp': 92000, 'image_path': 'core/images/bosses/dragon_14.png'},
+    {'boss_level': 15, 'boss_type': 'dragon', 'boss_name': '多重案件のヒドラ（タスク同時多発の多頭竜）', 'max_hp': 110000, 'image_path': 'core/images/bosses/dragon_15.png'},
+    {'boss_level': 16, 'boss_type': 'dragon', 'boss_name': '締切プレッシャーベヒモス（最終期限の鉄壁竜）', 'max_hp': 132000, 'image_path': 'core/images/bosses/dragon_16.png'},
+    {'boss_level': 17, 'boss_type': 'dragon', 'boss_name': 'キャパシティオーバーロード（業務限界の灼熱竜）', 'max_hp': 158000, 'image_path': 'core/images/bosses/dragon_17.png'},
+    {'boss_level': 18, 'boss_type': 'dragon', 'boss_name': 'インシデント・ドゥーム（緊急事態対応の獄炎竜）', 'max_hp': 190000, 'image_path': 'core/images/bosses/dragon_18.png'},
+    {'boss_level': 19, 'boss_type': 'dragon', 'boss_name': '終末のタスクカタストロフィ（学期末総決算の破壊竜）', 'max_hp': 230000, 'image_path': 'core/images/bosses/dragon_19.png'},
+    {'boss_level': 20, 'boss_type': 'dragon', 'boss_name': 'アビス・エンドライン（完全納期崩壊を司る絶対の深淵古龍）', 'max_hp': 300000, 'image_path': 'core/images/bosses/dragon_20.png'},
 ]
 
 
@@ -47,6 +47,17 @@ def ensure_active_department_boss(department):
     ).first()
 
     if active_boss:
+        defeated_count = DepartmentBattle.objects.filter(
+            department=department,
+            status='defeated'
+        ).count()
+        template = BOSS_TEMPLATES[defeated_count % len(BOSS_TEMPLATES)]
+        raw_template_name = template['boss_name'].split('（')[0]
+        if raw_template_name in active_boss.boss_name:
+            if active_boss.current_hp == active_boss.max_hp and active_boss.max_hp != template['max_hp']:
+                active_boss.max_hp = template['max_hp']
+                active_boss.current_hp = template['max_hp']
+                active_boss.save(update_fields=['max_hp', 'current_hp'])
         return active_boss
 
     with transaction.atomic():
