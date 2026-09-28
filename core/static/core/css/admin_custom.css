@@ -135,6 +135,27 @@ nav[aria-label] {
     z-index: 1030 !important;
     border-right: 1px solid var(--admin-border) !important;
     background: var(--admin-surface) !important;
+    flex: 0 0 275px !important;
+    width: 275px !important;
+    min-width: 275px !important;
+    left: auto !important;
+    transition: margin-left 0.3s ease, visibility 0.3s ease !important;
+}
+
+/* PC幅でのトグル開閉状態管理 */
+.main.shifted > #nav-sidebar,
+#nav-sidebar[aria-expanded="true"] {
+    margin-left: 0 !important;
+    visibility: visible !important;
+    display: block !important;
+    pointer-events: auto !important;
+}
+
+.main:not(.shifted) > #nav-sidebar,
+#nav-sidebar[aria-expanded="false"] {
+    margin-left: -275px !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 /* 5. コンテンツ内部 */
@@ -270,10 +291,21 @@ div.results {
 /* 7. サイドバー開閉ボタン */
 #toggle-nav-sidebar {
     width: 48px !important;
+    min-width: 48px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-right: 1px solid var(--admin-border) !important;
+    background: var(--admin-surface) !important;
+    cursor: pointer !important;
+    position: sticky !important;
+    top: 100px !important;
+    height: calc(100vh - 100px) !important;
+    z-index: 1035 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    padding: 0 !important;
 }
 #toggle-nav-sidebar::before {
     content: "開く\A >>" !important;
@@ -283,8 +315,8 @@ div.results {
     text-align: center !important;
     color: var(--admin-ink-faint) !important;
 }
-#nav-sidebar[aria-expanded="true"] ~ #toggle-nav-sidebar::before,
-.shifted #toggle-nav-sidebar::before {
+.main.shifted #toggle-nav-sidebar::before,
+#nav-sidebar[aria-expanded="true"] ~ #toggle-nav-sidebar::before {
     content: "<< \A閉じる" !important;
 }
 
@@ -357,7 +389,7 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
 /* ==================================================
    レスポンシブ対応(構造は維持)
    ================================================== */
-@media screen and (max-width: 920px) {
+@media screen and (max-width: 768px) {
     #changelist { display: block !important; }
     .change-list #changelist-form { margin-right: 0 !important; width: 100% !important; }
     #changelist-filter {
@@ -368,25 +400,6 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
         margin-top: 24px !important;
         box-shadow: none !important;
     }
-    #nav-sidebar { position: relative !important; height: auto !important; top: 0 !important; }
-}
-
-@media screen and (max-width: 1024px) {
-    #nav-sidebar {
-        position: fixed !important;
-        left: -280px !important;
-        transition: left 0.3s ease !important;
-        z-index: 1060 !important;
-    }
-    body.shifted #nav-sidebar,
-    #nav-sidebar[aria-expanded="true"] { left: 0 !important; }
-    #main { padding-left: 0 !important; }
-    #changelist { display: block !important; }
-    .change-list #changelist-form { margin-right: 0 !important; width: 100% !important; }
-    #changelist-filter { position: static !important; width: 100% !important; height: auto !important; margin-top: 24px !important; }
-}
-
-@media screen and (max-width: 768px) {
     .object-tools,
     ul.object-tools {
         padding-left: 0 !important;
@@ -459,15 +472,21 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
     .change-list #nav-sidebar,
     body.change-list #nav-sidebar,
     body.shifted #nav-sidebar,
+    .main.shifted > #nav-sidebar,
+    .main:not(.shifted) > #nav-sidebar,
     #nav-sidebar[aria-expanded="true"],
     #nav-sidebar[aria-expanded="false"] {
         position: static !important;
         width: 100% !important;
+        min-width: 100% !important;
         margin-left: 0 !important;
         left: 0 !important;
         top: 0 !important;
         height: auto !important;
         max-height: none !important;
+        visibility: visible !important;
+        display: block !important;
+        pointer-events: auto !important;
         border-right: none !important;
         border-bottom: 1px solid var(--admin-border) !important;
         transition: none !important;
