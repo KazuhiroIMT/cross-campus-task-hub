@@ -259,6 +259,7 @@ User._meta.get_field('last_name').verbose_name = '氏名'
 User._meta.get_field('last_name').help_text = '姓名の間に半角スペースを空けて入力してください。'
 
 class CustomUserAdmin(BaseUserAdmin):
+    list_per_page = 10
     change_list_template = "admin/auth/user/change_list.html"
     add_form_template = "admin/change_form.html"
 
@@ -552,62 +553,73 @@ class UserCompanionInline(admin.StackedInline):
 
 @admin.register(UserCompanion)
 class UserCompanionAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('user', 'companion_type', 'completed_tasks_count', 'level', 'current_form')
     list_editable = ('companion_type', 'completed_tasks_count')
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
 
 @admin.register(GraduatedCompanion)
 class GraduatedCompanionAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('user', 'companion_type', 'completed_tasks_count', 'final_form', 'graduated_at')
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
     date_hierarchy = 'graduated_at'
 
 @admin.register(Achievement)
 class AchievementAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('code', 'name', 'category', 'requirement_value', 'created_at')
     list_filter = ('category',)
     search_fields = ('code', 'name', 'description')
 
 @admin.register(UserAchievement)
 class UserAchievementAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('user', 'achievement', 'achieved_at')
     search_fields = ('user__username', 'achievement__name', 'achievement__code')
 
 @admin.register(UserTaskCompletionDate)
 class UserTaskCompletionDateAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('user', 'date')
     search_fields = ('user__username',)
 
 @admin.register(IslandProfile)
 class IslandProfileAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('user', 'level', 'experience', 'coins', 'gacha_tickets', 'current_title', 'created_at')
     search_fields = ('user__username', 'user__last_name', 'user__first_name')
 
 @admin.register(IslandItem)
 class IslandItemAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('user', 'name', 'item_type', 'is_placed', 'obtained_at')
     list_filter = ('item_type', 'is_placed')
     search_fields = ('user__username', 'name')
 
 @admin.register(DepartmentBattle)
 class DepartmentBattleAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('department', 'boss_name', 'boss_type', 'current_hp', 'max_hp', 'status', 'start_date', 'end_date')
     list_filter = ('status', 'department', 'boss_type')
     search_fields = ('department__name', 'boss_name')
 
 @admin.register(DepartmentAchievement)
 class DepartmentAchievementAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('code', 'name', 'requirement_type', 'requirement_value', 'created_at')
     list_filter = ('requirement_type',)
     search_fields = ('code', 'name', 'description')
 
 @admin.register(DepartmentAchievementUnlock)
 class DepartmentAchievementUnlockAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('department', 'achievement', 'unlocked_at')
     search_fields = ('department__name', 'achievement__name', 'achievement__code')
 
 @admin.register(DepartmentProfile)
 class DepartmentProfileAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('department', 'current_title')
     search_fields = ('department__name',)
 
@@ -623,7 +635,7 @@ admin.site.register(User, CustomUserAdmin)
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('student_id', 'name', 'furigana', 'display_nickname', 'nationality', 'department', 'course', 'display_class', 'display_status')
-    list_per_page = 50
+    list_per_page = 10
     list_filter = ('is_active', MultipleNationalityFilter, 'department', 'course', ShortClassListFilter, 'updated_at')
     search_fields = ('student_id', 'name', 'furigana', 'nickname', 'nationality', 'department__name', 'course__name', 'school_class__name')
     actions = ['make_active', 'make_inactive']
@@ -834,6 +846,7 @@ class TaskAdmin(admin.ModelAdmin):
 # --- 担当業務マスタ ---
 @admin.register(StaffDuty)
 class StaffDutyAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('name', 'department_group')
     list_filter = ('department_group',)
     search_fields = ('name', 'department_group__name')
@@ -845,6 +858,7 @@ class StaffDutyInline(admin.TabularInline):
 
 @admin.register(DepartmentGroup)
 class DepartmentGroupAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('name', 'display_duties_count')
     search_fields = ('name',)
     fields = ('name',)
@@ -894,6 +908,7 @@ class StaffProfileForm(forms.ModelForm):
 
 @admin.register(StaffProfile)
 class StaffProfileAdmin(admin.ModelAdmin):
+    list_per_page = 10
     form = StaffProfileForm
     list_display = ('display_user', 'display_departments', 'display_duties')
     
@@ -951,6 +966,7 @@ class SchoolClassInline(admin.TabularInline):
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('name', 'order', 'display_courses_count', 'display_classes_count')
     inlines = [CourseInline, SchoolClassInline]
 
@@ -965,6 +981,7 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('name', 'department')
     list_filter = ('department',)
     search_fields = ('name', 'department__name')
@@ -972,6 +989,7 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(SchoolClass)
 class SchoolClassAdmin(admin.ModelAdmin):
+    list_per_page = 10
     list_display = ('name', 'department', 'course')
     list_filter = ('department', 'course')
     search_fields = ('name', 'department__name', 'course__name')

@@ -432,11 +432,16 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
     #toggle-nav-sidebar {
         display: none !important;
     }
-    #nav-sidebar {
+    #nav-sidebar,
+    .change-list #nav-sidebar,
+    body.shifted #nav-sidebar,
+    #nav-sidebar[aria-expanded="true"],
+    #nav-sidebar[aria-expanded="false"] {
         position: static !important;
-        left: auto !important;
-        top: 0 !important;
         width: 100% !important;
+        margin-left: 0 !important;
+        left: 0 !important;
+        top: 0 !important;
         height: auto !important;
         max-height: none !important;
         border-right: none !important;
@@ -445,12 +450,6 @@ input[type="submit"].default:hover, .submit-row input.default:hover {
         transform: none !important;
         z-index: auto !important;
         box-shadow: none !important;
-    }
-    body.shifted #nav-sidebar,
-    #nav-sidebar[aria-expanded="true"] {
-        left: auto !important;
-        position: static !important;
-        width: 100% !important;
     }
 }
 
@@ -623,4 +622,71 @@ a.section:hover,
 /* パスワードリセットボタンの文字色修正 */
 #id_password a.button {
     color: #ffffff !important;
+}
+
+/* ==================================================
+   ページネーション(paginator)視認性・コントラスト改善
+   ================================================== */
+.paginator {
+    background: var(--admin-surface) !important;
+    color: var(--admin-ink) !important;
+    border-top: 1px solid var(--admin-border) !important;
+    padding: 12px 16px !important;
+    font-size: 0.85rem !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    border-radius: 0 0 var(--admin-radius) var(--admin-radius) !important;
+}
+
+.paginator a,
+.paginator .this-page,
+.paginator a:link,
+.paginator a:visited {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 6px 12px !important;
+    min-width: 32px !important;
+    border-radius: 6px !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    text-decoration: none !important;
+    box-sizing: border-box !important;
+}
+
+.paginator a:link,
+.paginator a:visited,
+.paginator a {
+    background-color: var(--admin-navy) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--admin-navy) !important;
+}
+
+.paginator a:hover,
+.paginator a:focus {
+    background-color: var(--admin-teal-dark) !important;
+    color: #ffffff !important;
+    border-color: var(--admin-teal-dark) !important;
+    text-decoration: none !important;
+}
+
+.paginator .this-page {
+    background-color: var(--admin-teal) !important;
+    color: #ffffff !important;
+    border: 1px solid var(--admin-teal) !important;
+    cursor: default !important;
+}
+
+.paginator a.showall {
+    background-color: var(--admin-navy-soft) !important;
+    color: var(--admin-navy) !important;
+    border: 1px solid var(--admin-border) !important;
+    margin-left: auto !important;
+}
+
+.paginator a.showall:hover {
+    background-color: var(--admin-border) !important;
+    color: var(--admin-navy-dark) !important;
 }
