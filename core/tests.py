@@ -935,3 +935,94 @@ class DashboardFailSafeTests(TestCase):
 
         boss_recess_res = self.client.get(f'/department/{group.id}/boss/')
         self.assertContains(boss_recess_res, 'recess.png')
+
+
+class StudentIDNormalizationAndAdminFilterTests(TestCase):
+    def setUp(self):
+        from core.models import Department, Course, SchoolClass
+        self.superuser = User.objects.create_superuser(username='admin', password='password123', email='admin@example.com')
+        self.client = Client()
+        self.dept_anim = Department.objects.create(name='アニメーション学科', order=1)
+        self.course_anim = Course.objects.create(department=self.dept_anim, name='作画コース')
+        self.class_anim = SchoolClass.objects.create(department=self.dept_anim, course=self.course_anim, name='AN1')
+
+        self.dept_it = Department.objects.create(name='情報IT学科', order=2)
+        self.course_it = Course.objects.create(department=self.dept_it, name='ITプログラミングコース')
+        self.class_it = SchoolClass.objects.create(department=self.dept_it, course=self.course_it, name='IT1')
+
+    def test_clean_student_id_function(self):
+        from core.models import clean_student_id
+        self.assertEqual(clean_student_id(" ２６Ａ ０１０５ "), "26A0105")
+        self.assertEqual(clean_student_id("  ２６ａ　０１０５  "), "26A0105")
+        self.assertEqual(clean_student_id(""), "")
+        self.assertEqual(clean_student_id(None), "")
+
+    def test_student_model_save_normalization(self):
+        from core.models import Student
+        st = Student.objects.create(
+            student_id=" ２６ａ ０１０５ ",
+            name="山田 太郎",
+            department=self.dept_anim
+        )
+        self.assertEqual(st.student_id, "26A0105")
+
+    def test_student_csv_import_normalization(self):
+        self.client.login(username='admin', password='password123')
+        csv_content = (
+            "学籍番号,氏名,フリガナ,ニックネーム,国籍,学科,コース,クラス\n"
+            " ２６Ａ ０１０５ ,山田 太郎,ヤマダ タロウ,タロー,日本,アニメーション学科,作画コース,AN1\n"
+        )
+        import io
+        csv_file = io.BytesIO(csv_content.encode('utf-8-sig'))
+        csv_file.name = 'students.csv'
+
+        res = self.client.post('/admin/core/student/import-csv/', {'csv_file': csv_file})
+        self.assertEqual(res.status_code, 302)
+
+        from core.models import Student
+        st = Student.objects.get(name="山田 太郎")
+        self.assertEqual(st.student_id, "26A0105")
+
+    def test_admin_chained_filters(self):
+        self.client.login(username='admin', password='password123')
+        from django.test import RequestFactory
+        from core.admin import ChainedDepartmentFilter, ChainedCourseFilter, ChainedClassFilter, StudentAdmin
+        from core.models import Student
+
+        rf = RequestFactory()
+
+        # 1. Without department parameter: Course and Class filters return all courses and classes
+        req1 = rf.get('/admin/core/student/')
+        f_course1 = ChainedCourseFilter(req1, {}, Student, StudentAdmin)
+        course_lookups1 = f_course1.lookups(req1, StudentAdmin)
+        course_ids1 = [item[0] for item in course_lookups1]
+        self.assertIn(self.course_anim.id, course_ids1)
+        self.assertIn(self.course_it.id, course_ids1)
+
+        f_class1 = ChainedClassFilter(req1, {}, Student, StudentAdmin)
+        class_lookups1 = f_class1.lookups(req1, StudentAdmin)
+        class_ids1 = [item[0] for item in class_lookups1]
+        self.assertIn(self.class_anim.id, class_ids1)
+        self.assertIn(self.class_it.id, class_ids1)
+
+        # 2. With department parameter for アニメーション学科: Course and Class filters only return アニメーション学科's items
+        req2 = rf.get(f'/admin/core/student/?department={self.dept_anim.id}')
+        f_course2 = ChainedCourseFilter(req2, {'department': str(self.dept_anim.id)}, Student, StudentAdmin)
+        course_lookups2 = f_course2.lookups(req2, StudentAdmin)
+        course_ids2 = [item[0] for item in course_lookups2]
+        self.assertIn(self.course_anim.id, course_ids2)
+        self.assertNotIn(self.course_it.id, course_ids2)
+
+        f_class2 = ChainedClassFilter(req2, {'department': str(self.dept_anim.id)}, Student, StudentAdmin)
+        class_lookups2 = f_class2.lookups(req2, StudentAdmin)
+        class_ids2 = [item[0] for item in class_lookups2]
+        self.assertIn(self.class_anim.id, class_ids2)
+        self.assertNotIn(self.class_it.id, class_ids2)
+
+        # 3. With course parameter for 作画コース: Class filter only returns 作画コース's items
+        req3 = rf.get(f'/admin/core/student/?department={self.dept_anim.id}&course={self.course_anim.id}')
+        f_class3 = ChainedClassFilter(req3, {'course': str(self.course_anim.id)}, Student, StudentAdmin)
+        class_lookups3 = f_class3.lookups(req3, StudentAdmin)
+        class_ids3 = [item[0] for item in class_lookups3]
+        self.assertIn(self.class_anim.id, class_ids3)
+        self.assertNotIn(self.class_it.id, class_ids3)

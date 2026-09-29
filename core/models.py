@@ -7,6 +7,15 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 
+def clean_student_id(val: str) -> str:
+    if not val:
+        return ""
+    # 全角英数→半角、全角記号等の正規化
+    normalized = unicodedata.normalize('NFKC', str(val))
+    # 全角・半角スペースの除去と大文字統一
+    return normalized.replace(' ', '').replace('　', '').strip().upper()
+
+
 def normalize_text(text):
     """半角カナを全角に、全角英数を半角に、全角スペースを半角スペースに変換"""
     if not text:
@@ -88,7 +97,9 @@ class Student(models.Model):
 
     # 保存時の自動処理
     def save(self, *args, **kwargs):
-        # 保存される瞬間に、氏名・フリガナ・ニックネームを強制的に正規化
+        # 保存される瞬間に、学籍番号・氏名・フリガナ・ニックネームを強制的に正規化
+        if self.student_id:
+            self.student_id = clean_student_id(self.student_id)
         self.name = normalize_text(self.name)
         self.furigana = normalize_text(self.furigana)
         self.nickname = normalize_text(self.nickname)
