@@ -47,6 +47,27 @@ class GamificationAndArchiveTests(TestCase):
         from core.admin import TaskAdmin
         self.assertEqual(TaskAdmin.list_per_page, 10)
 
+    def test_other_department_tasks_view(self):
+        """他部署案件一覧（/tasks/other/）が正常に表示されることを検証"""
+        other_group = Group.objects.create(name='広報課')
+        other_user = User.objects.create_user(username='otheruser', password='password123', is_staff=True)
+        other_user.groups.add(other_group)
+
+        Task.objects.create(
+            title='Other Dept Task',
+            description='Public Task in Other Dept',
+            target_group=other_group,
+            created_by=other_user,
+            due_date=timezone.now().date(),
+            privacy='general',
+            status='open'
+        )
+
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get('/tasks/other/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Other Dept Task')
+
     def test_task_archiving(self):
         task = Task.objects.create(
             title='Test Task',
