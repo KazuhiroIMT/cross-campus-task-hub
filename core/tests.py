@@ -1230,6 +1230,29 @@ class NewFeatureRequirementsTests(TestCase):
             "テーブルヘッダーのカラム順序が正しくありません"
         )
 
+    def test_student_list_chained_dropdown_context_data(self):
+        """学生一覧画面で階層連動型プルダウン用のコンテキストデータが正常に渡されることをテスト"""
+        self.client.login(username='staff_user', password='password123')
+
+        res = self.client.get('/students/')
+        self.assertEqual(res.status_code, 200)
+
+        self.assertIn('courses_data', res.context)
+        self.assertIn('classes_data', res.context)
+
+        courses_data = res.context['courses_data']
+        classes_data = res.context['classes_data']
+
+        self.assertTrue(any(c['id'] == self.course.id and c['department_id'] == self.dept.id for c in courses_data))
+        self.assertTrue(any(cl['id'] == self.sclass.id and cl['department_id'] == self.dept.id and cl['course_id'] == self.course.id for cl in classes_data))
+
+        html = res.content.decode('utf-8')
+        self.assertIn('id="courses-data"', html)
+        self.assertIn('id="classes-data"', html)
+        self.assertIn('id="department-select"', html)
+        self.assertIn('id="course-select"', html)
+        self.assertIn('id="class-select"', html)
+
     def test_boss_battle_damage_api_and_persistence(self):
         """ボス戦ダメージAPI呼び出しとHP・defeated_at永続化テスト"""
         self.client.login(username='staff_user', password='password123')

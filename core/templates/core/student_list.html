@@ -42,10 +42,10 @@
     <!-- 検索フィルターカード -->
     <div class="card shadow-sm border-0 mb-4 bg-light">
         <div class="card-body p-3">
-            <form method="get" action="{% url 'student_list' %}" class="row g-2 align-items-center">
+            <form method="get" action="{% url 'student_list' %}" class="row g-2 align-items-center" id="student-filter-form">
                 <div class="col-md-3 col-sm-6">
                     <label class="form-label small fw-bold text-muted mb-1">学科</label>
-                    <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <select name="department" id="department-select" class="form-select form-select-sm">
                         <option value="">すべての学科</option>
                         {% for d in departments %}
                             <option value="{{ d.id }}" {% if selected_dept == d.id|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
@@ -54,7 +54,7 @@
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <label class="form-label small fw-bold text-muted mb-1">コース</label>
-                    <select name="course" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <select name="course" id="course-select" class="form-select form-select-sm">
                         <option value="">すべてのコース</option>
                         {% for c in courses %}
                             <option value="{{ c.id }}" {% if selected_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
@@ -63,7 +63,7 @@
                 </div>
                 <div class="col-md-2 col-sm-6">
                     <label class="form-label small fw-bold text-muted mb-1">クラス</label>
-                    <select name="school_class" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <select name="school_class" id="class-select" class="form-select form-select-sm">
                         <option value="">すべてのクラス</option>
                         {% for cl in classes %}
                             <option value="{{ cl.id }}" {% if selected_class == cl.id|stringformat:"s" %}selected{% endif %}>{{ cl.name }}</option>
@@ -165,9 +165,101 @@
     </div>
 </div>
 
+{{ courses_data|json_script:"courses-data" }}
+{{ classes_data|json_script:"classes-data" }}
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // 階層連動型プルダウン (Chained Dropdown) の制御
+    const deptSelect = document.getElementById('department-select');
+    const courseSelect = document.getElementById('course-select');
+    const classSelect = document.getElementById('class-select');
+    const filterForm = document.getElementById('student-filter-form');
+
+    const coursesDataScript = document.getElementById('courses-data');
+    const classesDataScript = document.getElementById('classes-data');
+
+    const allCourses = coursesDataScript ? JSON.parse(coursesDataScript.textContent) : [];
+    const allClasses = classesDataScript ? JSON.parse(classesDataScript.textContent) : [];
+
+    const updateOptions = (triggerSource = null) => {
+        const selectedDeptId = deptSelect ? deptSelect.value : '';
+        const selectedCourseId = courseSelect ? courseSelect.value : '';
+        const selectedClassId = classSelect ? classSelect.value : '';
+
+        // 1. コース選択肢の更新
+        if (courseSelect) {
+            const currentCourseVal = triggerSource === 'dept' ? '' : selectedCourseId;
+            let filteredCourses = allCourses;
+
+            if (selectedDeptId) {
+                filteredCourses = allCourses.filter(c => String(c.department_id) === String(selectedDeptId));
+            }
+
+            courseSelect.innerHTML = '<option value="">すべてのコース</option>';
+            filteredCourses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                if (String(c.id) === String(currentCourseVal)) {
+                    opt.selected = true;
+                }
+                courseSelect.appendChild(opt);
+            });
+        }
+
+        // 2. クラス選択肢の更新
+        if (classSelect) {
+            const currentCourseVal = courseSelect ? courseSelect.value : '';
+            const currentClassVal = (triggerSource === 'dept' || triggerSource === 'course') ? '' : selectedClassId;
+            let filteredClasses = allClasses;
+
+            if (currentCourseVal) {
+                // コースが選択されている場合：そのコースに紐づくクラスに絞り込み
+                filteredClasses = allClasses.filter(cl => String(cl.course_id) === String(currentCourseVal));
+            } else if (selectedDeptId) {
+                // コースが未選択かつ学科が選択されている場合：その学科に紐づくクラスに絞り込み
+                filteredClasses = allClasses.filter(cl => String(cl.department_id) === String(selectedDeptId));
+            }
+
+            classSelect.innerHTML = '<option value="">すべてのクラス</option>';
+            filteredClasses.forEach(cl => {
+                const opt = document.createElement('option');
+                opt.value = cl.id;
+                opt.textContent = cl.name;
+                if (String(cl.id) === String(currentClassVal)) {
+                    opt.selected = true;
+                }
+                classSelect.appendChild(opt);
+            });
+        }
+    };
+
+    // 初期ロード時の選択肢絞り込み適用（現在選択されている値を基準に絞り込み）
+    updateOptions();
+
+    if (deptSelect) {
+        deptSelect.addEventListener('change', () => {
+            updateOptions('dept');
+            if (filterForm) filterForm.submit();
+        });
+    }
+
+    if (courseSelect) {
+        courseSelect.addEventListener('change', () => {
+            updateOptions('course');
+            if (filterForm) filterForm.submit();
+        });
+    }
+
+    if (classSelect) {
+        classSelect.addEventListener('change', () => {
+            if (filterForm) filterForm.submit();
+        });
+    }
+
+    // ニックネームインライン編集の制御
     const forms = document.querySelectorAll('.nickname-form');
     forms.forEach(form => {
         form.addEventListener('submit', async (e) => {
