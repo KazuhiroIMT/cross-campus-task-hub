@@ -789,6 +789,9 @@ def student_list(request):
     courses = Course.objects.all().select_related('department').order_by('department__order', 'name')
     classes = SchoolClass.objects.all().select_related('department', 'course').order_by('department__order', 'name')
 
+    courses_data = [{'id': c.id, 'name': c.name, 'department_id': c.department_id} for c in courses]
+    classes_data = [{'id': cl.id, 'name': cl.name, 'department_id': cl.department_id, 'course_id': cl.course_id} for cl in classes]
+
     paginator = Paginator(students_qs, 20)
     page_number = request.GET.get('page')
     students_page = paginator.get_page(page_number)
@@ -798,6 +801,8 @@ def student_list(request):
         'departments': departments,
         'courses': courses,
         'classes': classes,
+        'courses_data': courses_data,
+        'classes_data': classes_data,
         'selected_dept': dept_id,
         'selected_course': course_id,
         'selected_class': class_id,
