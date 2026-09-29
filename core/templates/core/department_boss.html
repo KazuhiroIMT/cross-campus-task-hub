@@ -130,10 +130,10 @@
 
                 <!-- Interactive Attack Simulation Test Buttons -->
                 <div class="d-flex justify-content-center gap-2 mb-3">
-                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(100, '【高優先度タスク完了!】')">
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(100, '【高優先度タスク完了!】', true)">
                         ⚔️ 高優先度撃破 (-100)
                     </button>
-                    <button type="button" class="btn btn-outline-warning btn-sm text-dark fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(50, '【中優先度タスク完了!】')">
+                    <button type="button" class="btn btn-outline-warning btn-sm text-dark fw-bold px-3 shadow-sm" onclick="triggerTaskDamageEffect(50, '【中優先度タスク完了!】', true)">
                         ⚔️ 中優先度撃破 (-50)
                     </button>
                 </div>
@@ -248,9 +248,11 @@ let initialHp = parseInt("{{ initial_hp|default:1000 }}", 10);
 function renderHpDisplay(hp, max) {
     const hpText = document.getElementById("hpText");
     const hpBar = document.getElementById("hpProgressBar");
-    const pct = Math.max(0, Math.min(100, Math.round((hp / max) * 100)));
-    if (hpText) hpText.innerText = `${hp} / ${max}`;
+    if (hpText) {
+        hpText.innerText = `${hp} / ${max}`;
+    }
     if (hpBar) {
+        const pct = Math.max(0, Math.min(100, Math.round((hp / max) * 100)));
         hpBar.style.width = `${pct}%`;
         hpBar.innerText = `${pct}%`;
     }
@@ -266,13 +268,15 @@ function triggerTaskDamageEffect(amount = 50, label = '', persistInDb = false) {
     if (!dragonAvatar || currentHp <= 0) return;
 
     // 1. Floating damage popup
-    const pop = document.createElement("div");
-    pop.className = "damage-pop-text";
-    pop.innerText = `-${amount}`;
-    pop.style.left = "50%";
-    pop.style.top = "20%";
-    if (dragonStage) dragonStage.appendChild(pop);
-    setTimeout(() => pop.remove(), 1200);
+    if (dragonStage) {
+        const pop = document.createElement("div");
+        pop.className = "damage-pop-text";
+        pop.innerText = `-${amount}`;
+        pop.style.left = "50%";
+        pop.style.top = "20%";
+        dragonStage.appendChild(pop);
+        setTimeout(() => pop.remove(), 1200);
+    }
 
     // 2. Dragon hit flinch & flash shake
     dragonAvatar.classList.remove("dragon-hit-anim");
@@ -284,11 +288,13 @@ function triggerTaskDamageEffect(amount = 50, label = '', persistInDb = false) {
     renderHpDisplay(currentHp, maxHp);
 
     if (persistInDb) {
+        const csrfTokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = csrfTokenEl ? csrfTokenEl.value : '{{ csrf_token }}';
         fetch("{% url 'api_department_boss_damage' department.id %}", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
+                "X-CSRFToken": csrfToken
             },
             body: JSON.stringify({ damage: amount })
         }).then(res => res.json()).then(data => {
@@ -301,19 +307,25 @@ function triggerTaskDamageEffect(amount = 50, label = '', persistInDb = false) {
     // 4. Defeat Reaction if HP reaches 0
     if (currentHp <= 0) {
         setTimeout(() => {
-            dragonAvatar.classList.add("dragon-defeat-anim");
+            if (dragonAvatar) dragonAvatar.classList.add("dragon-defeat-anim");
             if (victoryBanner) victoryBanner.classList.remove("d-none");
         }, 600);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const hpBar = document.getElementById("hpProgressBar");
+    const dragonStage = document.getElementById("dragonStage");
+
     if (pendingDamage > 0) {
         currentHp = initialHp;
         renderHpDisplay(initialHp, maxHp);
-        setTimeout(() => {
-            triggerTaskDamageEffect(pendingDamage, '未反映のダメージ');
-        }, 400);
+
+        if (hpBar || dragonStage) {
+            setTimeout(() => {
+                triggerTaskDamageEffect(pendingDamage, '未反映のダメージ');
+            }, 300);
+        }
     }
 });
 </script>
