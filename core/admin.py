@@ -382,7 +382,7 @@ class CustomUserAdmin(BaseUserAdmin):
     )
 
     list_display = (
-        'username', 'display_full_name', 'email',
+        'username', 'get_full_name', 'email',
         'display_login_status', 'display_inactivity_alert',
         'display_leave_toggle', 'is_staff', 'display_active_status'
     )
@@ -477,8 +477,9 @@ class CustomUserAdmin(BaseUserAdmin):
         return render(request, 'admin/auth/user/inactive_confirm.html', context)
 
     @admin.display(description="氏名", ordering="last_name")
-    def display_full_name(self, obj):
-        return format_html('<span style="white-space: nowrap;">{}</span>', obj.last_name)
+    def get_full_name(self, obj):
+        full_name = f"{obj.last_name} {obj.first_name}".strip()
+        return format_html('<span style="white-space: nowrap;">{}</span>', full_name)
 
     @admin.display(description="ログイン実績")
     def display_login_status(self, obj):
