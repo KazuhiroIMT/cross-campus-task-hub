@@ -1034,10 +1034,6 @@ def my_island(request):
     """マイアイランド管理画面"""
     profile, _ = IslandProfile.objects.get_or_create(user=request.user)
 
-    # 初回アクセス時またはアイテム未所有時にシードデータを確保
-    from .management.commands.seed_island_items import seed_items_for_user
-    seed_items_for_user(request.user)
-
     if request.method == 'POST' and 'toggle_item_placed' in request.POST:
         item_id = request.POST.get('item_id')
         item = get_object_or_404(IslandItem, pk=item_id, user=request.user)
