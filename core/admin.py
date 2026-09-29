@@ -21,7 +21,8 @@ from .models import (
     Student, Task, StaffDuty, StaffProfile, Department, SchoolClass, Course,
     DepartmentGroup, UserCompanion, GraduatedCompanion, IslandProfile,
     IslandItem, Achievement, UserAchievement, UserTaskCompletionDate,
-    DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
+    DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile,
+    clean_student_id
 )
 from .forms import UserCSVUploadForm, CSVUploadForm
 
@@ -209,19 +210,86 @@ class MultipleNationalityFilter(admin.SimpleListFilter):
             }
 
 
-class ShortClassListFilter(admin.SimpleListFilter):
-    """絞り込みフィルターの表記をクラス名のみにするカスタムフィルター"""
+class ChainedDepartmentFilter(admin.SimpleListFilter):
+    title = '学科'
+    parameter_name = 'department'
+
+    def lookups(self, request, model_admin):
+        depts = Department.objects.all().order_by('order', 'name')
+        return [(d.id, d.name) for d in depts]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(department_id=self.value())
+        return queryset
+
+    def choices(self, changelist):
+        yield {
+            'selected': self.value() is None,
+            'query_string': changelist.get_query_string(remove=[self.parameter_name, 'course', 'school_class']),
+            'display': 'すべて',
+        }
+        for lookup, title in self.lookup_choices:
+            yield {
+                'selected': str(lookup) == self.value(),
+                'query_string': changelist.get_query_string({self.parameter_name: lookup}, remove=['course', 'school_class']),
+                'display': title,
+            }
+
+
+class ChainedCourseFilter(admin.SimpleListFilter):
+    title = 'コース'
+    parameter_name = 'course'
+
+    def lookups(self, request, model_admin):
+        dept_id = request.GET.get('department')
+        if dept_id:
+            courses = Course.objects.filter(department_id=dept_id).order_by('name')
+        else:
+            courses = Course.objects.all().order_by('department__order', 'name')
+        return [(c.id, c.name) for c in courses]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(course_id=self.value())
+        return queryset
+
+    def choices(self, changelist):
+        yield {
+            'selected': self.value() is None,
+            'query_string': changelist.get_query_string(remove=[self.parameter_name, 'school_class']),
+            'display': 'すべて',
+        }
+        for lookup, title in self.lookup_choices:
+            yield {
+                'selected': str(lookup) == self.value(),
+                'query_string': changelist.get_query_string({self.parameter_name: lookup}, remove=['school_class']),
+                'display': title,
+            }
+
+
+class ChainedClassFilter(admin.SimpleListFilter):
     title = 'クラス'
     parameter_name = 'school_class'
 
     def lookups(self, request, model_admin):
-        classes = SchoolClass.objects.all().order_by('name')
+        dept_id = request.GET.get('department')
+        course_id = request.GET.get('course')
+        if course_id:
+            classes = SchoolClass.objects.filter(course_id=course_id).order_by('name')
+        elif dept_id:
+            classes = SchoolClass.objects.filter(department_id=dept_id).order_by('name')
+        else:
+            classes = SchoolClass.objects.all().order_by('department__order', 'name')
         return [(c.id, c.name) for c in classes]
 
     def queryset(self, request, queryset):
         if self.value():
             return queryset.filter(school_class_id=self.value())
         return queryset
+
+
+ShortClassListFilter = ChainedClassFilter
 
 
 # --- 標準 User の管理画面カスタマイズ ---
@@ -636,7 +704,7 @@ admin.site.register(User, CustomUserAdmin)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('student_id', 'name', 'furigana', 'display_nickname', 'nationality', 'department', 'course', 'display_class', 'display_status')
     list_per_page = 10
-    list_filter = ('is_active', MultipleNationalityFilter, 'department', 'course', ShortClassListFilter, 'updated_at')
+    list_filter = ('is_active', MultipleNationalityFilter, ChainedDepartmentFilter, ChainedCourseFilter, ChainedClassFilter, 'updated_at')
     search_fields = ('student_id', 'name', 'furigana', 'nickname', 'nationality', 'department__name', 'course__name', 'school_class__name')
     actions = ['make_active', 'make_inactive']
 
@@ -733,7 +801,7 @@ class StudentAdmin(admin.ModelAdmin):
                     if not row or len(row) < 3:
                         continue
 
-                    student_id = row[0].strip()
+                    student_id = clean_student_id(row[0])
                     name = row[1].strip()
 
                     furigana = nickname = nationality = dept_str = course_str = class_str = ""
