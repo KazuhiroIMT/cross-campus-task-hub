@@ -54,10 +54,14 @@ RANDOM_BOSS_TEMPLATES = [
 
 def ensure_active_department_boss(department):
     """
-    指定された部署にアクティブなボス（または休憩中）が存在しない場合、自動的に次のボスを安全に生成する。
-    ・当日討伐済みの場合は即時出現させず、「recess」状態（recess.png）を維持。
-    ・日付が変わった（翌日以降）アクセス時に新しいボスを出現。
-    ・周回モード時は全33種（通常30＋ランダム3）から完全ランダム選出。
+    指定された部署のボスを安全に取得・更新・生成する。
+    1. defeated_at が今日より前（昨日以前）の場合：
+       ボスのレベルを+1し、HPを最大値に戻して defeated_at をクリアした新しいアクティブボスを生成。
+       （過去のボスは status='defeated' として保存）
+    2. defeated_at が今日と同日の場合：
+       当日の討伐完了状態（status='recess'）を維持。
+    3. 未討伐の場合：
+       既存のアクティブボス（status='active'）を返却。
     """
     if not department:
         return None
@@ -65,92 +69,110 @@ def ensure_active_department_boss(department):
     today = timezone.localdate()
     dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
 
-    # 1. 進行中(active) または 休憩中(recess) のレコードを確認
-    active_boss = DepartmentBattle.objects.filter(
-        department=department,
-        status__in=['active', 'recess']
-    ).first()
-
-    if active_boss:
-        # 休憩中レコードが存在する場合、日付が変わったか判定
-        if active_boss.status == 'recess':
-            if active_boss.last_defeated_date and active_boss.last_defeated_date == today:
-                return active_boss  # 当日中は休憩中を継続
-            # 翌日になったので、recess レコードを defeated に変更して次ボス生成へ進む
-            active_boss.status = 'defeated'
-            active_boss.save(update_fields=['status'])
-        else:
-            return active_boss
-
-    # 2. 当日既にボスを撃破済みで、まだ active / recess が無い場合（直接訪問等）
-    last_defeated_date = dept_profile.last_defeated_date
-    if not last_defeated_date:
-        last_defeated_boss = DepartmentBattle.objects.filter(
-            department=department,
-            status='defeated'
-        ).order_by('-end_date', '-id').first()
-        if last_defeated_boss and last_defeated_boss.last_defeated_date:
-            last_defeated_date = last_defeated_boss.last_defeated_date
-
-    if last_defeated_date == today:
-        # 当日撃破済みの場合は休憩中(recess)レコードを生成・返却
-        recess_boss = DepartmentBattle.objects.create(
-            department=department,
-            boss_type='recess',
-            boss_level=0,
-            boss_name='本日の討伐完了（休憩中）',
-            max_hp=0,
-            current_hp=0,
-            status='recess',
-            last_defeated_date=today,
-            start_date=timezone.now()
-        )
-        return recess_boss
-
     with transaction.atomic():
-        # 再チェック（排他ロック付き）
-        active_boss = DepartmentBattle.objects.select_for_update().filter(
-            department=department,
-            status__in=['active', 'recess']
-        ).first()
+        # 最新のボスレコードを取得（排他ロック付き）
+        latest_boss = DepartmentBattle.objects.select_for_update().filter(
+            department=department
+        ).order_by('-id').first()
 
-        if active_boss:
-            if active_boss.status == 'recess':
-                if active_boss.last_defeated_date and active_boss.last_defeated_date == today:
-                    return active_boss
-                active_boss.status = 'defeated'
-                active_boss.save(update_fields=['status'])
-            else:
-                return active_boss
-
-        # 次に出現させるボステンプレートの選定
-        if dept_profile.is_loop_mode:
-            # 周回（カオス）モード: 全33種（通常30 + ランダム3）から完全ランダム選出
-            all_options = BOSS_TEMPLATES + RANDOM_BOSS_TEMPLATES
-            template = random.choice(all_options)
-            boss_level = template.get('boss_level', 0)
-        else:
-            # 通常進行（Lv.1 ～ Lv.30）
-            defeated_count = DepartmentBattle.objects.filter(
+        if not latest_boss:
+            # 初回作成: Lv.1ボスを作成
+            template = BOSS_TEMPLATES[0]
+            new_boss = DepartmentBattle.objects.create(
                 department=department,
-                status='defeated'
-            ).exclude(boss_type='recess').count()
+                boss_type=template['boss_type'],
+                boss_level=template['boss_level'],
+                boss_name=template['boss_name'],
+                max_hp=template['max_hp'],
+                current_hp=template['max_hp'],
+                status='active',
+                start_date=timezone.now()
+            )
+            return new_boss
 
-            level_index = min(defeated_count, len(BOSS_TEMPLATES) - 1)
-            template = BOSS_TEMPLATES[level_index]
-            boss_level = template['boss_level']
+        # 討伐済み日時（defeated_at または last_defeated_date）のチェック
+        defeated_at = latest_boss.defeated_at
+        defeated_date = None
+        if defeated_at:
+            defeated_date = timezone.localdate(defeated_at)
+        elif latest_boss.last_defeated_date:
+            defeated_date = latest_boss.last_defeated_date
+        elif latest_boss.status in ['recess', 'defeated']:
+            defeated_date = timezone.localdate(latest_boss.end_date or latest_boss.updated_at)
 
-        new_boss = DepartmentBattle.objects.create(
-            department=department,
-            boss_type=template['boss_type'],
-            boss_level=boss_level,
-            boss_name=template['boss_name'],
-            max_hp=template['max_hp'],
-            current_hp=template['max_hp'],
-            status='active',
-            start_date=timezone.now()
-        )
-        return new_boss
+        if defeated_date:
+            if defeated_date < today:
+                # 翌日処理: 昨日以前に討伐された場合
+                # 過去の最新ボスのステータスを 'defeated' に確定
+                if latest_boss.status != 'defeated':
+                    latest_boss.status = 'defeated'
+                    latest_boss.save(update_fields=['status'])
+
+                # ボスレベルを+1
+                if latest_boss.boss_level > 0:
+                    next_level = latest_boss.boss_level + 1
+                else:
+                    last_real_boss = DepartmentBattle.objects.filter(
+                        department=department,
+                        boss_level__gt=0
+                    ).order_by('-id').first()
+                    next_level = (last_real_boss.boss_level + 1) if last_real_boss else 1
+
+                # テンプレートの選定
+                if dept_profile.is_loop_mode:
+                    all_options = BOSS_TEMPLATES + RANDOM_BOSS_TEMPLATES
+                    template = random.choice(all_options)
+                    boss_level = template.get('boss_level', 0)
+                else:
+                    level_idx = min(next_level - 1, len(BOSS_TEMPLATES) - 1)
+                    template = BOSS_TEMPLATES[level_idx]
+                    boss_level = template['boss_level']
+
+                # ボスのレベルを+1し、HPを最大値に戻して defeated_at をクリアした新しいアクティブボスを生成
+                new_boss = DepartmentBattle.objects.create(
+                    department=department,
+                    boss_type=template['boss_type'],
+                    boss_level=boss_level,
+                    boss_name=template['boss_name'],
+                    max_hp=template['max_hp'],
+                    current_hp=template['max_hp'],
+                    status='active',
+                    start_date=timezone.now(),
+                    defeated_at=None,
+                    pending_damage=0
+                )
+                return new_boss
+            else:
+                # 当日の討伐済み（defeated_date == today）:
+                # 撃破されたボス自体は status='defeated' を維持し、recessレコードが存在しなければ生成して返す
+                if latest_boss.status == 'recess':
+                    return latest_boss
+
+                recess_boss = DepartmentBattle.objects.filter(
+                    department=department,
+                    status='recess',
+                    last_defeated_date=today
+                ).first()
+
+                if not recess_boss:
+                    recess_boss = DepartmentBattle.objects.create(
+                        department=department,
+                        boss_type='recess',
+                        boss_level=0,
+                        boss_name='本日の討伐完了（休憩中）',
+                        max_hp=0,
+                        current_hp=0,
+                        status='recess',
+                        last_defeated_date=today,
+                        start_date=timezone.now()
+                    )
+                return recess_boss
+
+        # まだ討伐されていない進行中のボス
+        if latest_boss.status != 'active':
+            latest_boss.status = 'active'
+            latest_boss.save(update_fields=['status'])
+        return latest_boss
 
 # Priority damage constants
 BOSS_DAMAGE_MAP = {
