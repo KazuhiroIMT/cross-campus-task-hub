@@ -448,12 +448,15 @@ def process_task_completion(task, user, request=None):
         if active_battle:
             damage = BOSS_DAMAGE_MAP.get(task.priority, 50)
             active_battle.current_hp -= damage
+            active_battle.pending_damage += damage
 
             if active_battle.current_hp <= 0:
                 today = timezone.localdate()
+                now = timezone.now()
                 active_battle.current_hp = 0
                 active_battle.status = 'defeated'
-                active_battle.end_date = timezone.now()
+                active_battle.defeated_at = now
+                active_battle.end_date = now
                 active_battle.last_defeated_date = today
                 active_battle.save()
 
