@@ -242,14 +242,25 @@
 <script>
 let currentHp = parseInt("{{ active_battle.current_hp|default:1000 }}", 10);
 let maxHp = parseInt("{{ active_battle.max_hp|default:1000 }}", 10);
+let pendingDamage = parseInt("{{ pending_damage|default:0 }}", 10);
+let initialHp = parseInt("{{ initial_hp|default:1000 }}", 10);
 
-function triggerTaskDamageEffect(amount = 50, label = '') {
+function renderHpDisplay(hp, max) {
+    const hpText = document.getElementById("hpText");
+    const hpBar = document.getElementById("hpProgressBar");
+    const pct = Math.max(0, Math.min(100, Math.round((hp / max) * 100)));
+    if (hpText) hpText.innerText = `${hp} / ${max}`;
+    if (hpBar) {
+        hpBar.style.width = `${pct}%`;
+        hpBar.innerText = `${pct}%`;
+    }
+}
+
+function triggerTaskDamageEffect(amount = 50, label = '', persistInDb = false) {
     const imgEl = document.getElementById("dragonAvatarImg");
     const fallbackEl = document.getElementById("dragonAvatarFallback");
     const dragonAvatar = (imgEl && imgEl.style.display !== "none") ? imgEl : fallbackEl;
     const dragonStage = document.getElementById("dragonStage");
-    const hpText = document.getElementById("hpText");
-    const hpBar = document.getElementById("hpProgressBar");
     const victoryBanner = document.getElementById("victoryBanner");
 
     if (!dragonAvatar || currentHp <= 0) return;
@@ -260,7 +271,7 @@ function triggerTaskDamageEffect(amount = 50, label = '') {
     pop.innerText = `-${amount}`;
     pop.style.left = "50%";
     pop.style.top = "20%";
-    dragonStage.appendChild(pop);
+    if (dragonStage) dragonStage.appendChild(pop);
     setTimeout(() => pop.remove(), 1200);
 
     // 2. Dragon hit flinch & flash shake
@@ -270,12 +281,21 @@ function triggerTaskDamageEffect(amount = 50, label = '') {
 
     // 3. Update HP
     currentHp = Math.max(0, currentHp - amount);
-    const pct = Math.max(0, Math.min(100, Math.round((currentHp / maxHp) * 100)));
+    renderHpDisplay(currentHp, maxHp);
 
-    if (hpText) hpText.innerText = `${currentHp} / ${maxHp}`;
-    if (hpBar) {
-        hpBar.style.width = `${pct}%`;
-        hpBar.innerText = `${pct}%`;
+    if (persistInDb) {
+        fetch("{% url 'api_department_boss_damage' department.id %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ damage: amount })
+        }).then(res => res.json()).then(data => {
+            if (data.boss_status === 'defeated' || currentHp <= 0) {
+                setTimeout(() => location.reload(), 1800);
+            }
+        }).catch(err => console.error(err));
     }
 
     // 4. Defeat Reaction if HP reaches 0
@@ -286,6 +306,16 @@ function triggerTaskDamageEffect(amount = 50, label = '') {
         }, 600);
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (pendingDamage > 0) {
+        currentHp = initialHp;
+        renderHpDisplay(initialHp, maxHp);
+        setTimeout(() => {
+            triggerTaskDamageEffect(pendingDamage, '未反映のダメージ');
+        }, 400);
+    }
+});
 </script>
 </body>
 </html>

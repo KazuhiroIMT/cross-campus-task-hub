@@ -69,14 +69,79 @@ def department_boss(request, dept_id=None):
         department=department
     ).select_related('achievement')
 
+    pending_damage = 0
+    initial_hp = 0
+    if active_battle and active_battle.status == 'active':
+        pending_damage = active_battle.pending_damage
+        initial_hp = min(active_battle.max_hp, active_battle.current_hp + pending_damage)
+        if pending_damage > 0:
+            active_battle.pending_damage = 0
+            active_battle.save(update_fields=['pending_damage'])
+
     context = {
         'department': department,
         'dept_profile': dept_profile,
         'active_battle': active_battle,
         'defeated_battles': defeated_battles,
         'unlocked_achievements_list': unlocked_achievements_list,
+        'pending_damage': pending_damage,
+        'initial_hp': initial_hp,
     }
     return render(request, 'core/department_boss.html', context)
+
+
+@login_required
+def api_department_boss_damage(request, dept_id):
+    """ボス攻撃シミュレーション（手動テストボタン用）非同期API"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid HTTP method'}, status=405)
+
+    user = request.user
+    department = get_object_or_404(Group, pk=dept_id)
+
+    if not (user.is_superuser or department in user.groups.all()):
+        return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
+
+    ensure_active_department_boss(department)
+    active_battle = DepartmentBattle.objects.filter(department=department, status='active').first()
+
+    if not active_battle:
+        return JsonResponse({'status': 'error', 'message': 'No active boss'}, status=400)
+
+    try:
+        body = json.loads(request.body or '{}')
+        damage = int(body.get('damage', 50))
+    except Exception:
+        damage = 50
+
+    active_battle.current_hp -= damage
+    if active_battle.current_hp <= 0:
+        today = timezone.localdate()
+        now = timezone.now()
+        active_battle.current_hp = 0
+        active_battle.status = 'defeated'
+        active_battle.defeated_at = now
+        active_battle.end_date = now
+        active_battle.last_defeated_date = today
+        active_battle.save()
+
+        dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
+        dept_profile.last_defeated_date = today
+        if active_battle.boss_level == 30 and active_battle.boss_type == 'dragon':
+            dept_profile.is_loop_mode = True
+        dept_profile.save()
+
+        check_department_achievements(department)
+        ensure_active_department_boss(department)
+    else:
+        active_battle.save()
+
+    return JsonResponse({
+        'status': 'success',
+        'current_hp': active_battle.current_hp,
+        'max_hp': active_battle.max_hp,
+        'boss_status': active_battle.status
+    })
 
 
 @login_required
@@ -695,6 +760,83 @@ def update_task_status(request, pk):
 
 
 @login_required
+def student_list(request):
+    """学生一覧画面（検索フィルタリング・ニックネーム編集対応）"""
+    dept_id = request.GET.get('department', '').strip()
+    course_id = request.GET.get('course', '').strip()
+    class_id = request.GET.get('school_class', '').strip()
+    search_query = request.GET.get('q', '').strip()
+
+    students_qs = Student.objects.filter(is_active=True).select_related('department', 'course', 'school_class')
+
+    if dept_id:
+        students_qs = students_qs.filter(department_id=dept_id)
+    if course_id:
+        students_qs = students_qs.filter(course_id=course_id)
+    if class_id:
+        students_qs = students_qs.filter(school_class_id=class_id)
+
+    if search_query:
+        norm_q = unicodedata.normalize('NFKC', search_query)
+        students_qs = students_qs.filter(
+            Q(student_id__icontains=norm_q) |
+            Q(name__icontains=norm_q) |
+            Q(furigana__icontains=norm_q) |
+            Q(nickname__icontains=norm_q)
+        ).distinct()
+
+    departments = Department.objects.all().order_by('order', 'name')
+    courses = Course.objects.all().select_related('department').order_by('department__order', 'name')
+    classes = SchoolClass.objects.all().select_related('department', 'course').order_by('department__order', 'name')
+
+    paginator = Paginator(students_qs, 20)
+    page_number = request.GET.get('page')
+    students_page = paginator.get_page(page_number)
+
+    context = {
+        'students': students_page,
+        'departments': departments,
+        'courses': courses,
+        'classes': classes,
+        'selected_dept': dept_id,
+        'selected_course': course_id,
+        'selected_class': class_id,
+        'search_query': search_query,
+    }
+    return render(request, 'core/student_list.html', context)
+
+
+@login_required
+def update_student_nickname(request, pk):
+    """学生ニックネームの個別更新（AJAX / POST対応）"""
+    student = get_object_or_404(Student, pk=pk)
+
+    if request.method == 'POST':
+        if request.content_type == 'application/json':
+            try:
+                body = json.loads(request.body)
+                nickname = body.get('nickname', '')
+            except Exception:
+                nickname = ''
+        else:
+            nickname = request.POST.get('nickname', '')
+
+        student.nickname = nickname
+        student.save()
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({
+                'status': 'success',
+                'student_id': student.id,
+                'nickname': student.nickname or ''
+            })
+
+        messages.success(request, f"学生「{student.name}」のニックネームを更新しました。")
+
+    return redirect('student_list')
+
+
+@login_required
 def api_search_students(request):
     """学生検索用Ajax/JSON API（マスタ外部キー対応版）"""
     dept = request.GET.get('dept', '').strip()
@@ -847,6 +989,12 @@ def select_companion(request):
         companion_type = request.POST.get('companion_type')
         from .models import UserCompanion
         companion, created = UserCompanion.objects.get_or_create(user=request.user)
+
+        # 現在のキャラクターが設定されており、レベル10（最大レベル）未到達の場合は変更禁止
+        if companion.companion_type != 'none' and companion.level < 10:
+            messages.error(request, '現在のキャラクターが最大レベルに到達するまで、他のキャラクターへの変更はできません。')
+            return redirect('dashboard')
+
         if companion_type in dict(UserCompanion.COMPANION_CHOICES).keys():
             companion.companion_type = companion_type
             companion.save()

@@ -1071,3 +1071,98 @@ class StudentIDNormalizationAndAdminFilterTests(TestCase):
         course_ids4 = [item[0] for item in course_lookups4]
         self.assertIn(self.course_anim.id, course_ids4)
         self.assertNotIn(self.course_it.id, course_ids4)
+
+
+class NewFeatureRequirementsTests(TestCase):
+    def setUp(self):
+        from core.models import Student, Department, Course, SchoolClass
+        self.client = Client()
+        self.user = User.objects.create_user(username='staff_user', password='password123', is_staff=True)
+        self.group = Group.objects.create(name='教務部')
+        self.user.groups.add(self.group)
+
+        self.dept = Department.objects.create(name='情報学科', order=1)
+        self.course = Course.objects.create(department=self.dept, name='ITコース')
+        self.sclass = SchoolClass.objects.create(department=self.dept, course=self.course, name='IT-1A')
+
+        self.student = Student.objects.create(
+            student_id='2026A001',
+            name='情報 太郎',
+            furigana='ジョウホウ タロウ',
+            nickname='タロー',
+            department=self.dept,
+            course=self.course,
+            school_class=self.sclass
+        )
+
+    def test_companion_change_lock_under_max_level(self):
+        """レベル10未満のキャラクターの変更試行は拒否される"""
+        self.client.login(username='staff_user', password='password123')
+        companion = UserCompanion.objects.get(user=self.user)
+        companion.companion_type = 'shiba_inu'
+        companion.completed_tasks_count = 5  # Lv.3
+        companion.save()
+
+        res = self.client.post('/select-companion/', {'companion_type': 'calico_cat'})
+        self.assertEqual(res.status_code, 302)
+
+        companion.refresh_from_db()
+        self.assertEqual(companion.companion_type, 'shiba_inu')  # 変更されていないこと
+
+    def test_companion_change_allowed_at_max_level(self):
+        """レベル10到達時はキャラクター変更が可能"""
+        self.client.login(username='staff_user', password='password123')
+        companion = UserCompanion.objects.get(user=self.user)
+        companion.companion_type = 'shiba_inu'
+        companion.completed_tasks_count = 50  # Lv.10
+        companion.save()
+
+        res = self.client.post('/select-companion/', {'companion_type': 'calico_cat'})
+        self.assertEqual(res.status_code, 302)
+
+        companion.refresh_from_db()
+        self.assertEqual(companion.companion_type, 'calico_cat')  # 変更されたこと
+
+    def test_student_list_and_nickname_update(self):
+        """学生一覧画面の検索とニックネームの非同期・インライン更新テスト"""
+        self.client.login(username='staff_user', password='password123')
+
+        res_list = self.client.get('/students/?q=2026A001')
+        self.assertEqual(res_list.status_code, 200)
+        self.assertContains(res_list, '2026A001')
+        self.assertContains(res_list, '情報 太郎')
+
+        # ニックネームを更新
+        res_update = self.client.post(
+            f'/students/{self.student.id}/nickname/',
+            data='{"nickname": "タロちゃん"}',
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(res_update.status_code, 200)
+
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.nickname, 'タロちゃん')
+
+    def test_boss_battle_damage_api_and_persistence(self):
+        """ボス戦ダメージAPI呼び出しとHP・defeated_at永続化テスト"""
+        self.client.login(username='staff_user', password='password123')
+        battle = DepartmentBattle.objects.create(
+            department=self.group,
+            boss_name='テストボス',
+            max_hp=100,
+            current_hp=100,
+            status='active'
+        )
+
+        res_damage = self.client.post(
+            f'/department/{self.group.id}/boss/damage/',
+            data='{"damage": 100}',
+            content_type='application/json'
+        )
+        self.assertEqual(res_damage.status_code, 200)
+
+        battle.refresh_from_db()
+        self.assertEqual(battle.current_hp, 0)
+        self.assertEqual(battle.status, 'defeated')
+        self.assertIsNotNone(battle.defeated_at)

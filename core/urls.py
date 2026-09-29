@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('department/boss/', views.department_boss, name='department_boss_my'),
     path('department/<int:dept_id>/boss/', views.department_boss, name='department_boss'),
+    path('department/<int:dept_id>/boss/damage/', views.api_department_boss_damage, name='api_department_boss_damage'),
     path('department/<int:dept_id>/set-title/', views.set_department_title, name='set_department_title'),
     path('island/', views.my_island, name='my_island'),
     path('island/gacha/', views.gacha_page, name='gacha_page'),
@@ -19,6 +20,8 @@ urlpatterns = [
     path('tasks/closed/', views.closed_task_list, name='closed_tasks'),
     path('tasks/sent/', views.my_created_tasks, name='my_created_tasks'),
     path('api/students/search/', views.api_search_students, name='api_search_students'),
+    path('students/', views.student_list, name='student_list'),
+    path('students/<int:pk>/nickname/', views.update_student_nickname, name='update_student_nickname'),
     path('tasks/other/', views.other_department_tasks, name='other_department_tasks'),
     path('export/json/', views.export_data_json, name='export_data_json'),
     path('export/csv/', views.export_data_csv, name='export_data_csv'),
