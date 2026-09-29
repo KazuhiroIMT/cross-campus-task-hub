@@ -1,45 +1,33 @@
 /* ==========================================================================
-   Cross-Campus Task Hub — Dashboard Theme
-   「毎日見ても飽きない、気持ちが上向く」デザイン
-   HTML変更不要・このCSSファイルの差し替えのみで適用されます
+   Cross-Campus Task Hub — Neo Botanical Design Theme
+   Calm × Fresh × Playful
+   HTML構造・動作・データ処理を変更せず、UI/UXをNeo Botanicalデザインで刷新
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
 
 :root {
-  /* --- ベースカラー --- */
-  --color-bg: #f6f4ec;
-  --color-bg-soft: #efece0;
-  --color-surface: #ffffff;
-  --color-border: #e3ddc9;
+  /* --- Neo Botanical カラーパレット --- */
+  --color-bg: #F4F5EF;              /* メイン背景: ソフトアイボリー */
+  --color-surface: #FFFFFF;         /* カード背景: ホワイト */
+  --color-ink: #202A35;             /* メイン文字・ナビ: ディープブルーグレー */
+  --color-primary: #B8E34B;         /* メインカラー: ライムグリーン */
+  --color-sub: #A99AFB;             /* サブカラー: ソフトラベンダー */
+  --color-accent: #F18F72;          /* アクセントカラー: コーラル */
+  --color-ink-soft: #68716D;        /* 補助文字: グレーグリーン */
+  --color-border: #E8EDE4;          /* 区切り線・境界線: ライトグレーグリーン */
+  --color-bg-pale: #EEF1E9;         /* 薄い補助背景: ペールグリーン */
 
-  /* --- テキスト --- */
-  --color-ink: #2b2a26;
-  --color-ink-soft: #6b6656;
-  --color-ink-faint: #9a947d;
+  /* --- テーマ派生トーン & アクション用色調 --- */
+  --color-primary-dark: #8cb820;    /* ライムグリーン濃色（Hover/Active） */
+  --color-sub-soft: #f0edfe;        /* ラベンダー淡色 */
+  --color-accent-soft: #fdeee9;     /* コーラル淡色 */
+  --color-accent-dark: #d86848;     /* コーラル濃色 */
+  --color-ink-faint: #98a19d;       /* 控えめな文字色 */
 
-  /* --- ブランドカラー --- */
-  --color-pine: #2f4a3e;
-  --color-pine-dark: #223629;
-  --color-pine-soft: #e3ebe3;
-
-  --color-slate: #45648c;
-  --color-slate-soft: #e4ebf3;
-
-  --color-amber: #e2a33b;
-  --color-amber-dark: #a9711b;
-  --color-amber-soft: #fbecd3;
-
-  --color-rust: #be5036;
-  --color-rust-dark: #8f3823;
-  --color-rust-soft: #f5ded6;
-
-  --color-sage: #3f6e52;
-  --color-sage-soft: #dceadf;
-
-  --shadow-soft: 0 6px 20px rgba(47, 74, 62, 0.08);
-  --shadow-lift: 0 12px 28px rgba(47, 74, 62, 0.16);
-  --radius-card: 16px;
+  --shadow-soft: 0 4px 16px rgba(32, 42, 53, 0.05);
+  --shadow-lift: 0 8px 24px rgba(32, 42, 53, 0.10);
+  --radius-card: 14px;
   --radius-pill: 999px;
 }
 
@@ -63,50 +51,52 @@ html, body {
   display: block !important;
 }
 
-/* --- ベース --- */
+/* --- ベーススタイル --- */
 body {
-  background-color: var(--color-bg);
+  background-color: var(--color-bg) !important;
   color: var(--color-ink);
   font-family: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+  line-height: 1.6;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-amber);
+  outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
 
 h1, h2, h3, h4, h5, h6, .navbar-brand {
   font-family: "Kaisei Decol", "Hiragino Mincho ProN", serif;
   letter-spacing: 0.01em;
+  color: var(--color-ink);
 }
 
 /* --- ナビゲーションバー --- */
 .navbar.bg-dark {
-  background: linear-gradient(135deg, var(--color-pine) 0%, var(--color-pine-dark) 100%) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-ink) !important;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .navbar-brand {
-  color: #f6f4ec !important;
+  color: #FFFFFF !important;
   font-weight: 700;
 }
-.navbar-brand i { color: var(--color-amber) !important; }
+.navbar-brand i { color: var(--color-primary) !important; }
 
-.navbar .text-white { color: #f2efe4 !important; }
-.navbar .text-secondary { color: #cfd6c9 !important; }
+.navbar .text-white { color: #FFFFFF !important; }
+.navbar .text-secondary { color: #A0AAB3 !important; }
 
 .navbar .btn-outline-light {
-  color: #f2efe4;
-  border-color: rgba(242, 239, 228, 0.45);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.35);
   border-radius: var(--radius-pill);
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   white-space: nowrap !important;
 }
 .navbar .btn-outline-light:hover,
 .navbar .btn-outline-light:focus {
-  background-color: var(--color-amber);
-  border-color: var(--color-amber);
-  color: var(--color-pine-dark);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-ink);
 }
 
 @media (max-width: 768px) {
@@ -133,9 +123,9 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
   }
 }
 
-/* --- 検索・見出しエリア --- */
-h4.text-secondary { color: var(--color-pine) !important; }
-h4 .bi { color: var(--color-amber); }
+/* --- 見出し & フォーム要素 --- */
+h4.text-secondary { color: var(--color-ink) !important; }
+h4 .bi { color: var(--color-primary); }
 
 .form-control, .form-select {
   background-color: var(--color-surface);
@@ -144,8 +134,8 @@ h4 .bi { color: var(--color-amber); }
   border-radius: 10px;
 }
 .form-control:focus, .form-select:focus {
-  border-color: var(--color-amber);
-  box-shadow: 0 0 0 0.2rem rgba(226, 163, 59, 0.25);
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 0.2rem rgba(184, 227, 75, 0.4);
 }
 .input-group-text {
   background-color: var(--color-surface);
@@ -153,72 +143,81 @@ h4 .bi { color: var(--color-amber); }
   color: var(--color-ink-soft);
 }
 
-/* --- ボタン全般 --- */
-.btn { border-radius: var(--radius-pill); font-weight: 600; }
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--color-pine) 0%, var(--color-pine-dark) 100%);
-  border: none;
-  box-shadow: var(--shadow-soft);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+/* --- ボタン設計 --- */
+.btn {
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
-.btn-primary:hover, .btn-primary:focus {
-  background: linear-gradient(135deg, #375a4b 0%, var(--color-pine-dark) 100%);
+
+/* 主要ボタン: ライムグリーン */
+.btn-primary {
+  background-color: var(--color-primary);
+  background-image: none;
+  border: 1px solid var(--color-primary);
+  color: var(--color-ink) !important;
+  box-shadow: var(--shadow-soft);
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: var(--color-primary-dark) !important;
+  border-color: var(--color-primary-dark) !important;
+  color: var(--color-ink) !important;
   transform: translateY(-1px);
   box-shadow: var(--shadow-lift);
 }
 
-/* CTA(タスク依頼・起票)だけ、少し華やかに --- 大胆さはここに集中 */
-button[data-bs-target="#createTaskModal"] {
-  position: relative;
-  overflow: hidden;
+/* 起票・主要CTAボタン */
+button[data-bs-target="#createTaskModal"],
+.btn-lg[data-bs-target="#createTaskModal"] {
+  background: var(--color-primary) !important;
+  color: var(--color-ink) !important;
+  border: none !important;
+  box-shadow: var(--shadow-lift) !important;
 }
-button[data-bs-target="#createTaskModal"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, transparent 30%, rgba(226, 163, 59, 0.35) 50%, transparent 70%);
-  transform: translateX(-100%);
-  transition: transform 0.5s ease;
+button[data-bs-target="#createTaskModal"]:hover {
+  background: var(--color-primary-dark) !important;
+  transform: translateY(-1px);
 }
-button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(100%); }
 
 .btn-secondary {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  color: var(--color-ink-soft);
+  color: var(--color-ink);
 }
 .btn-secondary:hover {
-  background-color: var(--color-bg-soft);
+  background-color: var(--color-bg-pale);
   color: var(--color-ink);
 }
 
 .btn-outline-primary {
-  color: var(--color-pine);
-  border-color: var(--color-pine);
+  color: var(--color-ink);
+  border-color: var(--color-primary);
+  background-color: var(--color-surface);
 }
 .btn-outline-primary:hover, .btn-outline-primary:focus {
-  background-color: var(--color-pine);
-  border-color: var(--color-pine);
-  color: #fff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-ink);
 }
 
 .btn-outline-success {
-  color: var(--color-sage);
-  border-color: var(--color-sage);
+  color: var(--color-ink);
+  border-color: var(--color-primary);
+  background-color: var(--color-surface);
 }
 .btn-outline-success:hover, .btn-outline-success:focus {
-  background-color: var(--color-sage);
-  border-color: var(--color-sage);
-  color: #fff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-ink);
 }
 
 .btn-outline-secondary {
   color: var(--color-ink-soft);
   border-color: var(--color-border);
+  background-color: var(--color-surface);
 }
 .btn-outline-secondary:hover {
-  background-color: var(--color-bg-soft);
+  background-color: var(--color-bg-pale);
   color: var(--color-ink);
   border-color: var(--color-border);
 }
@@ -232,44 +231,67 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 .btn-group .btn-check:last-child + label { border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
 .btn-check:checked + .btn-outline-primary,
 .btn-check:checked + .btn-outline-secondary {
-  background-color: var(--color-pine);
-  border-color: var(--color-pine);
-  color: #fff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-ink);
 }
 
 /* --- アラート --- */
-.alert { border: none; border-radius: 12px; }
-.alert-success { background-color: var(--color-sage-soft); color: var(--color-pine-dark); }
-.alert-warning { background-color: var(--color-amber-soft); color: var(--color-amber-dark); }
-.alert-danger, .alert-error { background-color: var(--color-rust-soft); color: var(--color-rust-dark); }
-.alert-info { background-color: var(--color-slate-soft); color: var(--color-slate); }
+.alert { border: 1px solid var(--color-border); border-radius: 12px; }
+.alert-success { background-color: var(--color-bg-pale); color: var(--color-ink); border-color: var(--color-primary); }
+.alert-warning { background-color: var(--color-accent-soft); color: var(--color-accent-dark); border-color: var(--color-accent); }
+.alert-danger, .alert-error { background-color: var(--color-accent-soft); color: var(--color-accent-dark); border-color: var(--color-accent); }
+.alert-info { background-color: var(--color-sub-soft); color: var(--color-ink); border-color: var(--color-sub); }
 
-/* --- カード --- */
+/* --- カードコンポーネント --- */
 .card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
+  background-color: var(--color-surface);
   overflow: hidden;
 }
 
-/* 至急カード:塗りつぶし赤ではなく、紙に滲んだようなトーンに */
-.card.border-danger { border-color: var(--color-rust-soft) !important; }
-.card-header.bg-danger {
-  background: linear-gradient(135deg, var(--color-rust) 0%, var(--color-rust-dark) 100%) !important;
-  border: none;
+/* --- ゲーミフィケーション集約エリア --- */
+.gamification-section {
+  margin-top: 40px !important;
+  background-color: var(--color-bg-pale) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-soft) !important;
 }
 
-/* 通常カードヘッダー:下線アクセントで区別 */
+@media (max-width: 768px) {
+  .gamification-section {
+    margin-top: 24px !important;
+    padding: 1rem !important;
+  }
+}
+
+/* 至急カード */
+.card.border-danger { border-color: var(--color-accent) !important; }
+.card-header.bg-danger {
+  background: var(--color-accent) !important;
+  border: none;
+  color: #FFFFFF !important;
+}
+
+/* 通常カードヘッダー ＆ ダークカードヘッダー */
 .card-header.bg-white {
   background-color: var(--color-surface) !important;
-  border-bottom: 2px solid var(--color-pine-soft);
-  color: var(--color-pine);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-ink);
+}
+.card-header.bg-dark {
+  background-color: var(--color-ink) !important;
+  border-bottom: 1px solid var(--color-border);
+  color: #FFFFFF !important;
 }
 
 .card-header.collapse-toggle {
   transition: background-color 0.2s ease;
 }
-.card-header.collapse-toggle:hover { background-color: rgba(0, 0, 0, 0.02); }
+.card-header.collapse-toggle:hover { background-color: rgba(32, 42, 53, 0.02); }
 
 .card-footer.bg-white { background-color: var(--color-surface) !important; border-top: 1px solid var(--color-border); }
 
@@ -291,6 +313,7 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 }
 
 .table td .fw-bold.text-dark {
+  color: var(--color-ink) !important;
   white-space: normal;
   word-break: break-word;
   min-width: 140px;
@@ -299,6 +322,7 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 
 .table td small.text-muted,
 .table td small.text-secondary {
+  color: var(--color-ink-soft) !important;
   display: block;
   white-space: normal;
   word-break: break-word;
@@ -307,59 +331,67 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 }
 
 .table thead.table-light th {
-  background-color: var(--color-pine-soft);
-  color: var(--color-pine-dark);
+  background-color: var(--color-bg-pale);
+  color: var(--color-ink);
   font-weight: 700;
-  border-bottom: 2px solid var(--color-pine-soft);
+  border-bottom: 2px solid var(--color-border);
   font-size: 0.85rem;
 }
 .table-hover > tbody > tr:hover {
-  background-color: var(--color-amber-soft);
+  background-color: var(--color-bg-pale);
 }
 .table > :not(caption) > * > * { border-bottom-color: var(--color-border); }
 
-/* 至急行:赤ベタ塗りから、和紙に滲んだ赤茶のウォッシュ+左バーへ */
+/* 至急行 */
 .table-urgent {
-  background-color: var(--color-rust-soft) !important;
-  border-left: 4px solid var(--color-rust);
+  background-color: var(--color-accent-soft) !important;
+  border-left: 4px solid var(--color-accent);
 }
-.table-urgent:hover { background-color: #f0d0c6 !important; }
+.table-urgent:hover { background-color: #f7d2c8 !important; }
 .table-urgent td:first-child { padding-left: calc(0.5rem - 4px); }
 
-.text-danger { color: var(--color-rust) !important; }
+.text-danger { color: var(--color-accent-dark) !important; }
 .text-secondary { color: var(--color-ink-soft) !important; }
-.text-muted { color: var(--color-ink-faint) !important; }
+.text-muted { color: var(--color-ink-soft) !important; }
 
 /* --- 優先度バッジ --- */
-.badge-high { background-color: var(--color-rust); color: #fff; }
-.badge-mid { background-color: var(--color-amber); color: var(--color-ink); }
-.badge-medium { background-color: var(--color-amber); color: var(--color-ink); }
-.badge-low { background-color: var(--color-bg-soft); color: var(--color-ink-soft); border: 1px solid var(--color-border); }
+.badge-high { background-color: var(--color-accent); color: #FFFFFF; }
+.badge-mid { background-color: var(--color-sub-soft); color: var(--color-ink); border: 1px solid var(--color-sub); }
+.badge-medium { background-color: var(--color-sub-soft); color: var(--color-ink); border: 1px solid var(--color-sub); }
+.badge-low { background-color: var(--color-bg-pale); color: var(--color-ink-soft); border: 1px solid var(--color-border); }
 
-/* --- 状態バッジ(Bootstrapユーティリティを .badge スコープ限定で上書き) --- */
-.badge { font-weight: 600; border-radius: var(--radius-pill); padding: 0.4em 0.75em; }
-.badge.bg-warning { background-color: var(--color-amber-soft) !important; color: var(--color-amber-dark) !important; }
-.badge.bg-info { background-color: var(--color-slate-soft) !important; color: var(--color-slate) !important; }
-.badge.bg-success { background-color: var(--color-sage-soft) !important; color: var(--color-sage) !important; }
-.badge.bg-danger { background-color: var(--color-rust) !important; color: #fff !important; }
-.badge.bg-secondary { background-color: var(--color-bg-soft) !important; color: var(--color-ink-soft) !important; border: 1px solid var(--color-border); }
+/* --- 状態バッジ (Neo Botanical カラー) --- */
+.badge { font-weight: 700; border-radius: var(--radius-pill); padding: 0.4em 0.75em; }
+
+/* 未着手: ニュートラルグレー系 / コーラル系 */
+.badge.bg-warning { background-color: var(--color-bg-pale) !important; color: var(--color-ink) !important; border: 1px solid var(--color-border); }
+/* 進行中・対応中: ソフトラベンダー */
+.badge.bg-info { background-color: var(--color-sub) !important; color: var(--color-ink) !important; }
+/* 完了: ライムグリーン */
+.badge.bg-success { background-color: var(--color-primary) !important; color: var(--color-ink) !important; }
+/* 期限間近・機密: コーラル */
+.badge.bg-danger { background-color: var(--color-accent) !important; color: #FFFFFF !important; }
+/* その他・補助 */
+.badge.bg-secondary { background-color: var(--color-bg-pale) !important; color: var(--color-ink-soft) !important; border: 1px solid var(--color-border); }
 
 /* --- モーダル --- */
 .modal-content {
   border: none;
-  border-radius: 18px;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-lift);
   overflow: hidden;
+  background-color: var(--color-surface);
 }
 .modal-header.bg-primary {
-  background: linear-gradient(135deg, var(--color-pine) 0%, var(--color-pine-dark) 100%) !important;
+  background: var(--color-ink) !important;
   border: none;
+  color: #FFFFFF !important;
 }
 .modal-footer.bg-light { background-color: var(--color-bg) !important; border-top: 1px solid var(--color-border); }
 
-.bg-light { background-color: var(--color-bg-soft) !important; }
+.bg-light { background-color: var(--color-bg-pale) !important; }
 
-/* --- 学生/教職員検索リスト --- */
+/* --- リストボックス --- */
 .target-list-box {
   max-height: 200px;
   overflow-y: auto;
@@ -371,31 +403,31 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
   border-bottom: 1px solid var(--color-border);
   transition: background-color 0.15s ease;
 }
-.target-item:hover { background-color: var(--color-pine-soft); }
+.target-item:hover { background-color: var(--color-bg-pale); }
 .target-item input[type="checkbox"]:checked + label,
 .target-item input[type="radio"]:checked + label {
-  color: var(--color-pine);
+  color: var(--color-ink);
   font-weight: 700;
 }
 
 /* --- ページネーション --- */
 .pagination .page-link {
-  color: var(--color-pine);
+  color: var(--color-ink);
   border-color: var(--color-border);
+  background-color: var(--color-surface);
 }
 .pagination .page-item.active .page-link {
-  background-color: var(--color-pine);
-  border-color: var(--color-pine);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-ink);
+  font-weight: 700;
 }
 .pagination .page-item.disabled .page-link {
   color: var(--color-ink-faint);
-  background-color: var(--color-bg-soft);
+  background-color: var(--color-bg-pale);
 }
 
-/* --- ツールチップ(機密ラベル) --- */
-.badge.bg-danger[data-bs-toggle="tooltip"] i { margin-right: 2px; }
-
-/* --- アコーディオン開閉トグルの文字色 ＆ 表示切り替え --- */
+/* --- アコーディオン開閉トグル --- */
 .collapse-toggle.collapsed .toggle-text-open { display: none !important; }
 .collapse-toggle:not(.collapsed) .toggle-text-closed { display: none !important; }
 
@@ -405,94 +437,79 @@ button[data-bs-target="#createTaskModal"]:hover::after { transform: translateX(1
 }
 .card-header.bg-danger .toggle-text-closed,
 .card-header.bg-danger .toggle-text-open {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9);
 }
 
-/* --- スクロールバー(装飾:主要ブラウザのみ) --- */
+/* --- スクロールバー --- */
 .target-list-box::-webkit-scrollbar { width: 8px; }
-.target-list-box::-webkit-scrollbar-track { background: var(--color-bg-soft); border-radius: 8px; }
-.target-list-box::-webkit-scrollbar-thumb { background: var(--color-pine-soft); border-radius: 8px; }
-.target-list-box::-webkit-scrollbar-thumb:hover { background: var(--color-pine); }
+.target-list-box::-webkit-scrollbar-track { background: var(--color-bg-pale); border-radius: 8px; }
+.target-list-box::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 8px; }
+.target-list-box::-webkit-scrollbar-thumb:hover { background: var(--color-ink-soft); }
 
-/* --- 空状態(現在対応が必要なタスクはありません) --- */
+/* --- 空状態 --- */
 td.text-center.text-muted {
   font-family: "Kaisei Decol", serif;
   font-size: 1.05rem;
   color: var(--color-ink-soft) !important;
 }
 
-/* ==========================================================================
-   追加ページ共通(完了済み・自分の依頼・他部署の案件・案件詳細)
-   ========================================================================== */
-
-/* どのページでも背景色を確実に統一(各テンプレートのインラインstyleより後に効かせる) */
+/* ページ共通 */
 body { background-color: var(--color-bg) !important; }
 
-/* 行クリック時のホバー(各テンプレートの .clickable-row を上書き) */
 .clickable-row:hover {
-  background-color: var(--color-amber-soft) !important;
+  background-color: var(--color-bg-pale) !important;
 }
 
-/* テキスト系ユーティリティ */
-.text-primary { color: var(--color-pine) !important; }
-.text-success { color: var(--color-sage) !important; }
+.text-primary { color: var(--color-ink) !important; }
+.text-success { color: var(--color-primary) !important; }
 
-/* サブトルバッジ(「他 N 名」のツールチップ付きバッジなど) */
 .badge.bg-primary-subtle {
-  background-color: var(--color-pine-soft) !important;
-  color: var(--color-pine) !important;
-  border-color: var(--color-pine-soft) !important;
+  background-color: var(--color-bg-pale) !important;
+  color: var(--color-ink) !important;
+  border-color: var(--color-border) !important;
 }
 
-/* 罫線色の統一(担当バッジの border や区切り線) */
 .border, .border-top, .border-bottom, .border-start, .border-end {
   border-color: var(--color-border) !important;
 }
-.border-primary { border-color: var(--color-pine) !important; }
+.border-primary { border-color: var(--color-primary) !important; }
 
 /* 案件詳細:申し送り・対応履歴タイムライン */
 .border-start.border-3.border-primary {
-  border-color: var(--color-pine-soft) !important;
+  border-color: var(--color-primary) !important;
   background-color: var(--color-surface);
   border-radius: 0 10px 10px 0;
   padding-top: 0.5rem !important;
   padding-bottom: 0.5rem !important;
 }
 
-/* 案件詳細:ステータス切替クイックボタン */
 .btn-outline-warning {
-  color: var(--color-amber-dark);
-  border-color: var(--color-amber);
+  color: var(--color-ink);
+  border-color: var(--color-accent);
 }
 .btn-outline-warning:hover, .btn-outline-warning:focus {
-  background-color: var(--color-amber);
-  border-color: var(--color-amber);
-  color: var(--color-ink);
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #FFFFFF;
 }
 .btn-outline-info {
-  color: var(--color-slate);
-  border-color: var(--color-slate);
+  color: var(--color-ink);
+  border-color: var(--color-sub);
 }
 .btn-outline-info:hover, .btn-outline-info:focus {
-  background-color: var(--color-slate);
-  border-color: var(--color-slate);
-  color: #fff;
+  background-color: var(--color-sub);
+  border-color: var(--color-sub);
+  color: var(--color-ink);
 }
 
-/* 学生別進捗テーブルの担当・タグバッジ(nickname, duty表示) */
 .badge.bg-light {
-  background-color: var(--color-bg-soft) !important;
+  background-color: var(--color-bg-pale) !important;
   color: var(--color-ink-soft) !important;
 }
 
-/* 案件詳細ヘッダーの優先度・機密バッジは fs-6 で少し大きめ表示されるため余白を調整 */
 .badge.fs-6 { padding: 0.5em 0.9em; }
 
-/* ==========================================================================
-   キャラクターアニメーション & セキュリティ保護スタイル (外部化)
-   ========================================================================== */
-
-/* Character Idle Animations */
+/* アニメーション & セキュリティ保護 */
 @keyframes charBreathing {
   0%, 100% { transform: translateY(0px) scale(1.0); }
   50% { transform: translateY(-8px) scale(1.05); }
@@ -507,7 +524,7 @@ body { background-color: var(--color-bg) !important; }
   display: inline-block;
   font-size: 4.5rem;
   animation: charBreathing 2.8s ease-in-out infinite, charFloating 4s ease-in-out infinite;
-  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 10px 15px rgba(32, 42, 53, 0.15));
   user-select: none;
   line-height: 1;
 }
@@ -520,7 +537,6 @@ body { background-color: var(--color-bg) !important; }
   vertical-align: middle;
 }
 
-/* 一般ユーザー向けセキュリティ保護スタイル */
 body.user-protected,
 body.user-protected input,
 body.user-protected textarea,
@@ -532,8 +548,162 @@ body.user-protected button {
   user-select: none !important;
 }
 
-/* 画面ブラー（キー検知時等） */
 .screen-protected-blur {
   filter: blur(15px) !important;
   transition: filter 0.1s ease !important;
+}
+
+/* --- 3D Island View Styles --- */
+#island-canvas-container {
+    position: relative;
+    width: 100%;
+    height: 520px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    background: #87ceeb;
+}
+#three-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.island-ui-overlay {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+}
+.island-mode-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1d3557;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.item-tray {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 10px 16px;
+    display: flex;
+    gap: 12px;
+    max-width: 90%;
+    overflow-x: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.tray-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    cursor: pointer;
+    min-width: 72px;
+    transition: all 0.2s ease;
+}
+.tray-item:hover {
+    background: #e2f2ee;
+    border-color: #2f8f7b;
+    transform: translateY(-2px);
+}
+.tray-item.selected {
+    background: #2f8f7b;
+    color: white;
+    border-color: #226a5a;
+}
+.tray-item.selected small {
+    color: white !important;
+}
+.edit-controls-toast {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(29, 53, 87, 0.9);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    pointer-events: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.reaction-heart {
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    animation: floatUpFade 1.2s ease-out forwards;
+    z-index: 100;
+}
+@keyframes floatUpFade {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.6); }
+    50% { transform: translate(-50%, -100%) scale(1.3); }
+    100% { opacity: 0; transform: translate(-50%, -160%) scale(1); }
+}
+.rotation-toolbar {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    background: rgba(29, 53, 87, 0.92);
+    backdrop-filter: blur(8px);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+.item-stack-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #e63946;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 10px;
+    border: 2px solid white;
+}
+.item-area-badge {
+    font-size: 0.65rem;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin-top: 2px;
+}
+.toast-warning-widget {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: rgba(217, 4, 41, 0.92);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    pointer-events: none;
+    transition: all 0.3s ease;
 }

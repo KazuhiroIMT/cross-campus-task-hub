@@ -332,6 +332,18 @@ div.results {
 /* ==================================================
    ボタン類(追加・履歴・インポート)
    ================================================== */
+.object-tools,
+ul.object-tools {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    list-style: none !important;
+}
+
+.object-tools li {
+    margin: 0 0 0 8px !important;
+    padding: 0 !important;
+}
+
 .object-tools a.addlink {
     background-color: var(--admin-teal) !important;
     color: #ffffff !important;

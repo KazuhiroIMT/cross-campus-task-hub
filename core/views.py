@@ -62,7 +62,7 @@ def department_boss(request, dept_id=None):
 
     ensure_active_department_boss(department)
     dept_profile, _ = DepartmentProfile.objects.get_or_create(department=department)
-    active_battle = DepartmentBattle.objects.filter(department=department, status='active').first()
+    active_battle = DepartmentBattle.objects.filter(department=department, status__in=['active', 'recess']).first()
     defeated_battles = DepartmentBattle.objects.filter(department=department, status='defeated').order_by('-end_date')
 
     unlocked_achievements_list = DepartmentAchievementUnlock.objects.filter(
@@ -477,7 +477,7 @@ def dashboard(request):
         user_primary_dept = user_groups.first() if user_groups.exists() else None
         if user_primary_dept:
             ensure_active_department_boss(user_primary_dept)
-            active_dept_battle = DepartmentBattle.objects.filter(department=user_primary_dept, status='active').first()
+            active_dept_battle = DepartmentBattle.objects.filter(department=user_primary_dept, status__in=['active', 'recess']).first()
     except Exception:
         active_dept_battle = None
 
@@ -498,6 +498,11 @@ def dashboard(request):
         'island_profile': island_profile,
         'user_primary_dept': user_primary_dept,
         'active_dept_battle': active_dept_battle,
+        'department_boss': active_dept_battle,
+        'active_battle': active_dept_battle,
+        'boss': active_dept_battle,
+        'boss_hp': active_dept_battle.current_hp if active_dept_battle else 0,
+        'boss_max_hp': active_dept_battle.max_hp if active_dept_battle else 0,
     }
     return render(request, 'core/dashboard.html', context)
 
