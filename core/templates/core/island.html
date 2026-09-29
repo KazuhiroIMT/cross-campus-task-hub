@@ -101,12 +101,61 @@
 
                 <!-- Top Right UI Controls -->
                 <div class="island-ui-overlay d-flex gap-2">
+                    <button id="btn-toggle-collection" class="btn btn-light btn-sm fw-bold shadow-sm rounded-pill px-3">
+                        <i class="bi bi-box-seam text-success me-1"></i> コレクション一覧
+                    </button>
                     <button id="btn-toggle-edit" class="btn btn-light btn-sm fw-bold shadow-sm rounded-pill px-3">
-                        <i class="bi bi-pencil-square text-primary"></i> 模様替え（配置変更）
+                        <i class="bi bi-pencil-square text-primary me-1"></i> 模様替え（配置変更）
                     </button>
                     <button id="btn-save-positions" class="btn btn-success btn-sm fw-bold shadow-sm rounded-pill px-3 d-none">
-                        <i class="bi bi-check-lg"></i> 位置を保存
+                        <i class="bi bi-check-lg me-1"></i> 位置を保存
                     </button>
+                </div>
+
+                <!-- Overlay GUI: Collection Panel -->
+                <div id="collection-panel" class="collection-panel-overlay d-none">
+                    <div class="collection-panel-header">
+                        <span class="fw-bold fs-6 text-dark"><i class="bi bi-box-seam text-success me-1"></i> 所持コレクションアイテム (<span id="collection-count">0</span>件)</span>
+                        <button id="btn-close-collection" type="button" class="btn-close" aria-label="Close"></button>
+                    </div>
+                    <div class="collection-filter-nav">
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill collection-filter-btn active" data-filter="all">すべて</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill collection-filter-btn" data-filter="placed">島に配置中</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill collection-filter-btn" data-filter="unplaced">未配置</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill collection-filter-btn" data-filter="land">🌱 陸地</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill collection-filter-btn" data-filter="ocean">🌊 海洋 (Lv.20)</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill collection-filter-btn" data-filter="sky">☁️ 上空 (Lv.50)</button>
+                    </div>
+                    <div id="collection-items-container" class="collection-items-grid">
+                        {% if items %}
+                            {% for item in items %}
+                            <div class="collection-item-card">
+                                <div class="collection-item-icon">{{ item.icon }}</div>
+                                <div class="collection-item-info">
+                                    <div class="collection-item-title">{{ item.name }}</div>
+                                    <div class="d-flex align-items-center gap-1 mt-1">
+                                        {% if item.area_category == 'ocean' %}
+                                            <span class="badge bg-info text-dark item-area-badge me-1">🌊 海洋 (Lv.20)</span>
+                                        {% elif item.area_category == 'sky' %}
+                                            <span class="badge bg-primary item-area-badge me-1">☁️ 上空 (Lv.50)</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark item-area-badge me-1">🌱 陸地</span>
+                                        {% endif %}
+                                        {% if item.is_placed %}
+                                            <span class="badge bg-success small">配置中</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary small">未配置</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="p-4 text-center text-muted fw-bold col-12">
+                                まだアイテムを所持していません。タスクを完了してガチャチケットを集めましょう！
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <!-- Toast Warning Widget -->
@@ -137,61 +186,6 @@
         </div>
     </div>
 
-    <!-- 所有アイテム一覧 & 配置切替テーブル -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-white fw-bold py-3">
-            📦 所有コレクションアイテム一覧 ({{ items.count }}件)
-        </div>
-        <div class="card-body p-0">
-            {% if items %}
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 10%;">アイコン</th>
-                                <th style="width: 35%;">名称</th>
-                                <th style="width: 25%;">獲得日時</th>
-                                <th style="width: 15%;">状態</th>
-                                <th style="width: 15%;">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in items %}
-                            <tr>
-                                <td class="fs-4 text-center">{{ item.icon }}</td>
-                                <td class="fw-bold text-dark">{{ item.name }}</td>
-                                <td class="small text-muted">{{ item.obtained_at|date:"Y/m/d H:i" }}</td>
-                                <td>
-                                    {% if item.is_placed %}
-                                        <span class="badge bg-success">島に配置中</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">非配置</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <form method="post" action="{% url 'my_island' %}" class="m-0">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="toggle_item_placed" value="1">
-                                        <input type="hidden" name="item_id" value="{{ item.id }}">
-                                        {% if item.is_placed %}
-                                            <button type="submit" class="btn btn-outline-secondary btn-sm">外す</button>
-                                        {% else %}
-                                            <button type="submit" class="btn btn-outline-success btn-sm">配置する</button>
-                                        {% endif %}
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="p-4 text-center text-muted">
-                    まだアイテムを所持していません。タスクを完了してガチャチケットを集めましょう！
-                </div>
-            {% endif %}
-        </div>
-    </div>
 
 </div>
 
@@ -202,6 +196,13 @@
 document.addEventListener("DOMContentLoaded", function() {
     const container = document.getElementById("island-canvas-container");
     const canvas = document.getElementById("three-canvas");
+    const btnToggleCollection = document.getElementById("btn-toggle-collection");
+    const btnCloseCollection = document.getElementById("btn-close-collection");
+    const collectionPanel = document.getElementById("collection-panel");
+    const collectionCount = document.getElementById("collection-count");
+    const collectionItemsContainer = document.getElementById("collection-items-container");
+    const collectionFilterBtns = document.querySelectorAll(".collection-filter-btn");
+
     const btnToggleEdit = document.getElementById("btn-toggle-edit");
     const btnSavePositions = document.getElementById("btn-save-positions");
     const modeBadge = document.getElementById("mode-badge");
@@ -214,6 +215,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let creaturesList = []; // List of creatures with AI state
     let selectedTrayItem = null;
     let activeSelectedObject = null; // Currently selected placed object in edit mode
+    let currentCollectionFilter = "all";
 
     // --- 0. Island Level & Configuration ---
     const ISLAND_LEVEL = parseInt("{{ island_profile.level|default:1 }}", 10) || 1;
@@ -1801,6 +1803,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 islandData = data;
                 renderPlacedItems();
                 populateItemTray();
+                populateCollectionPanel();
             })
             .catch(err => console.error("Error loading island data:", err));
     }
@@ -1966,6 +1969,156 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    // コレクションGUIオーバーレイパネルの生成・更新
+    function populateCollectionPanel() {
+        if (!collectionItemsContainer || !islandData || !islandData.items) return;
+
+        const items = islandData.items;
+        if (collectionCount) {
+            collectionCount.innerText = items.length;
+        }
+
+        let filteredItems = items.filter(item => {
+            const cat = getItemAreaCategory(item.item_type);
+            if (currentCollectionFilter === "placed") return item.is_placed;
+            if (currentCollectionFilter === "unplaced") return !item.is_placed;
+            if (currentCollectionFilter === "land") return cat === "land";
+            if (currentCollectionFilter === "ocean") return cat === "ocean";
+            if (currentCollectionFilter === "sky") return cat === "sky";
+            return true; // "all"
+        });
+
+        collectionItemsContainer.innerHTML = "";
+
+        if (filteredItems.length === 0) {
+            collectionItemsContainer.innerHTML = `
+                <div class="p-4 text-center text-muted fw-bold col-12">
+                    該当する所有アイテムはありません。
+                </div>
+            `;
+            return;
+        }
+
+        filteredItems.forEach(item => {
+            const reqLvl = getItemRequiredLevel(item.item_type);
+            const areaCat = getItemAreaCategory(item.item_type);
+
+            let areaBadge = '';
+            if (areaCat === 'ocean') {
+                areaBadge = `<span class="badge bg-info text-dark item-area-badge me-1">🌊 海洋 (Lv.20)</span>`;
+            } else if (areaCat === 'sky') {
+                areaBadge = `<span class="badge bg-primary item-area-badge me-1">☁️ 上空 (Lv.50)</span>`;
+            } else {
+                areaBadge = `<span class="badge bg-light text-dark item-area-badge me-1">🌱 陸地</span>`;
+            }
+
+            const card = document.createElement("div");
+            card.className = "collection-item-card";
+
+            const statusBadge = item.is_placed
+                ? `<span class="badge bg-success small">配置中</span>`
+                : `<span class="badge bg-secondary small">未配置</span>`;
+
+            const actionBtn = item.is_placed
+                ? `<button type="button" class="btn btn-outline-secondary btn-sm px-2 py-1 btn-unplace-item" data-item-id="${item.id}">外す</button>`
+                : `<button type="button" class="btn btn-outline-success btn-sm px-2 py-1 btn-place-item" data-item-id="${item.id}">配置する</button>`;
+
+            card.innerHTML = `
+                <div class="collection-item-icon">${item.icon}</div>
+                <div class="collection-item-info">
+                    <div class="collection-item-title">${item.name}</div>
+                    <div class="d-flex align-items-center gap-1 mt-1">
+                        ${areaBadge}
+                        ${statusBadge}
+                    </div>
+                </div>
+                <div>
+                    ${actionBtn}
+                </div>
+            `;
+
+            // Action button handlers
+            const btnPlace = card.querySelector(".btn-place-item");
+            if (btnPlace) {
+                btnPlace.addEventListener("click", () => {
+                    if (ISLAND_LEVEL < reqLvl) {
+                        const areaName = areaCat === 'ocean' ? '海洋エリア' : '上空エリア';
+                        showWarningToast(`⚠️ このアイテムは島Lv.${reqLvl}以上で配置可能です (${areaName})`);
+                        return;
+                    }
+
+                    item.is_placed = true;
+                    const maxR = getPlacementMaxRadius(ISLAND_LEVEL);
+                    if (!item.position_x && !item.position_z) {
+                        item.position_x = (Math.random() - 0.5) * (maxR * 0.8);
+                        item.position_z = (Math.random() - 0.5) * (maxR * 0.8);
+                    }
+                    item.position_y = areaCat === 'sky' ? 12.0 : getTerrainHeight(item.position_x, item.position_z, ISLAND_LEVEL);
+
+                    renderPlacedItems();
+                    populateItemTray();
+                    populateCollectionPanel();
+
+                    // 編集モードを有効化し、配置したアイテムを選択
+                    if (!isEditMode) {
+                        btnToggleEdit.click();
+                    }
+                    const placedGroup = placedObjectsMap.get(item.id);
+                    if (placedGroup) selectPlacedObject(placedGroup);
+                });
+            }
+
+            const btnUnplace = card.querySelector(".btn-unplace-item");
+            if (btnUnplace) {
+                btnUnplace.addEventListener("click", () => {
+                    item.is_placed = false;
+                    renderPlacedItems();
+                    populateItemTray();
+                    populateCollectionPanel();
+                    deselectActiveObject();
+                });
+            }
+
+            collectionItemsContainer.appendChild(card);
+        });
+    }
+
+    if (btnToggleCollection && collectionPanel) {
+        btnToggleCollection.addEventListener("click", () => {
+            const isHidden = collectionPanel.classList.contains("d-none");
+            if (isHidden) {
+                populateCollectionPanel();
+                collectionPanel.classList.remove("d-none");
+                btnToggleCollection.className = "btn btn-success btn-sm fw-bold shadow-sm rounded-pill px-3";
+            } else {
+                collectionPanel.classList.add("d-none");
+                btnToggleCollection.className = "btn btn-light btn-sm fw-bold shadow-sm rounded-pill px-3";
+            }
+        });
+    }
+
+    if (btnCloseCollection && collectionPanel) {
+        btnCloseCollection.addEventListener("click", () => {
+            collectionPanel.classList.add("d-none");
+            btnToggleCollection.className = "btn btn-light btn-sm fw-bold shadow-sm rounded-pill px-3";
+        });
+    }
+
+    if (collectionFilterBtns) {
+        collectionFilterBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+                collectionFilterBtns.forEach(b => {
+                    b.classList.remove("active", "btn-primary");
+                    b.classList.add("btn-outline-secondary");
+                });
+                btn.classList.add("active", "btn-primary");
+                btn.classList.remove("btn-outline-secondary");
+                currentCollectionFilter = btn.dataset.filter;
+                populateCollectionPanel();
+            });
+        });
+    }
+
     // 回転ツールバーのボタンバインド
     const objectRotationToolbar = document.getElementById("object-rotation-toolbar");
     const rotationItemName = document.getElementById("rotation-item-name");
@@ -2022,6 +2175,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             renderPlacedItems();
             populateItemTray();
+            populateCollectionPanel();
             deselectActiveObject();
         }
     });
@@ -2138,6 +2292,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                         renderPlacedItems();
                         populateItemTray();
+                        populateCollectionPanel();
                         selectedTrayItem = null;
 
                         const placedGroup = placedObjectsMap.get(item.id);
