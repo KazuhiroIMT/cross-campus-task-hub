@@ -238,15 +238,30 @@ class ChainedDepartmentFilter(admin.SimpleListFilter):
 
 
 class ChainedCourseFilter(admin.SimpleListFilter):
+    """選択された学科に連動してコースの選択肢を絞り込むフィルター"""
     title = 'コース'
     parameter_name = 'course'
 
     def lookups(self, request, model_admin):
-        dept_id = request.GET.get('department')
-        if dept_id:
-            courses = Course.objects.filter(department_id=dept_id).order_by('name')
+        dept = request.GET.get('department__exact') or request.GET.get('department')
+        qs = Student.objects.all()
+
+        if dept:
+            qs = qs.filter(department_id=dept)
+
+        course_ids = (
+            qs.exclude(course__isnull=True)
+            .values_list('course_id', flat=True)
+            .distinct()
+        )
+        if course_ids:
+            courses = Course.objects.filter(id__in=course_ids).order_by('name')
         else:
-            courses = Course.objects.all().order_by('department__order', 'name')
+            if not dept:
+                courses = Course.objects.all().order_by('department__order', 'name')
+            else:
+                courses = Course.objects.none()
+
         return [(c.id, c.name) for c in courses]
 
     def queryset(self, request, queryset):
@@ -269,18 +284,33 @@ class ChainedCourseFilter(admin.SimpleListFilter):
 
 
 class ChainedClassFilter(admin.SimpleListFilter):
+    """選択された学科およびコースに連動してクラスの選択肢を絞り込むフィルター"""
     title = 'クラス'
     parameter_name = 'school_class'
 
     def lookups(self, request, model_admin):
-        dept_id = request.GET.get('department')
-        course_id = request.GET.get('course')
-        if course_id:
-            classes = SchoolClass.objects.filter(course_id=course_id).order_by('name')
-        elif dept_id:
-            classes = SchoolClass.objects.filter(department_id=dept_id).order_by('name')
+        dept = request.GET.get('department__exact') or request.GET.get('department')
+        course = request.GET.get('course__exact') or request.GET.get('course')
+        qs = Student.objects.all()
+
+        if dept:
+            qs = qs.filter(department_id=dept)
+        if course:
+            qs = qs.filter(course_id=course)
+
+        class_ids = (
+            qs.exclude(school_class__isnull=True)
+            .values_list('school_class_id', flat=True)
+            .distinct()
+        )
+        if class_ids:
+            classes = SchoolClass.objects.filter(id__in=class_ids).order_by('name')
         else:
-            classes = SchoolClass.objects.all().order_by('department__order', 'name')
+            if not dept and not course:
+                classes = SchoolClass.objects.all().order_by('department__order', 'name')
+            else:
+                classes = SchoolClass.objects.none()
+
         return [(c.id, c.name) for c in classes]
 
     def queryset(self, request, queryset):

@@ -989,9 +989,25 @@ class StudentIDNormalizationAndAdminFilterTests(TestCase):
         from core.admin import ChainedDepartmentFilter, ChainedCourseFilter, ChainedClassFilter, StudentAdmin
         from core.models import Student
 
+        # 学生データを登録
+        Student.objects.create(
+            student_id="STU001",
+            name="アニメ太郎",
+            department=self.dept_anim,
+            course=self.course_anim,
+            school_class=self.class_anim
+        )
+        Student.objects.create(
+            student_id="STU002",
+            name="IT花子",
+            department=self.dept_it,
+            course=self.course_it,
+            school_class=self.class_it
+        )
+
         rf = RequestFactory()
 
-        # 1. Without department parameter: Course and Class filters return all courses and classes
+        # 1. 未選択（「全て」）の場合: 学生データに存在する全コース・クラスを表示
         req1 = rf.get('/admin/core/student/')
         f_course1 = ChainedCourseFilter(req1, {}, Student, StudentAdmin)
         course_lookups1 = f_course1.lookups(req1, StudentAdmin)
@@ -1005,7 +1021,7 @@ class StudentIDNormalizationAndAdminFilterTests(TestCase):
         self.assertIn(self.class_anim.id, class_ids1)
         self.assertIn(self.class_it.id, class_ids1)
 
-        # 2. With department parameter for アニメーション学科: Course and Class filters only return アニメーション学科's items
+        # 2. 学科（アニメーション学科）選択時: アニメーション学科に所属する学生のコース・クラスのみ表示
         req2 = rf.get(f'/admin/core/student/?department={self.dept_anim.id}')
         f_course2 = ChainedCourseFilter(req2, {'department': str(self.dept_anim.id)}, Student, StudentAdmin)
         course_lookups2 = f_course2.lookups(req2, StudentAdmin)
@@ -1019,10 +1035,18 @@ class StudentIDNormalizationAndAdminFilterTests(TestCase):
         self.assertIn(self.class_anim.id, class_ids2)
         self.assertNotIn(self.class_it.id, class_ids2)
 
-        # 3. With course parameter for 作画コース: Class filter only returns 作画コース's items
+        # 3. 学科およびコース（作画コース）選択時: 該当学科＋コースに所属する学生のクラスのみ表示
         req3 = rf.get(f'/admin/core/student/?department={self.dept_anim.id}&course={self.course_anim.id}')
         f_class3 = ChainedClassFilter(req3, {'course': str(self.course_anim.id)}, Student, StudentAdmin)
         class_lookups3 = f_class3.lookups(req3, StudentAdmin)
         class_ids3 = [item[0] for item in class_lookups3]
         self.assertIn(self.class_anim.id, class_ids3)
         self.assertNotIn(self.class_it.id, class_ids3)
+
+        # 4. department__exact 等のパラメータ指定でも同様に動作することを検証
+        req4 = rf.get(f'/admin/core/student/?department__exact={self.dept_anim.id}')
+        f_course4 = ChainedCourseFilter(req4, {'department__exact': str(self.dept_anim.id)}, Student, StudentAdmin)
+        course_lookups4 = f_course4.lookups(req4, StudentAdmin)
+        course_ids4 = [item[0] for item in course_lookups4]
+        self.assertIn(self.course_anim.id, course_ids4)
+        self.assertNotIn(self.course_it.id, course_ids4)
