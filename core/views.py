@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.urls import reverse
@@ -230,8 +230,6 @@ def dashboard(request):
             my_tasks = my_tasks.filter(search_condition).distinct()
         except Exception:
             pass
-
-    from django.db.models import Case, When, Value, IntegerField
 
     priority_order = Case(
         When(priority='high', then=Value(1)),
