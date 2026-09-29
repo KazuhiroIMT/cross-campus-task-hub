@@ -90,30 +90,33 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th style="width: 30%;">所属 (学科 / コース / クラス)</th>
                         <th style="width: 12%;">学籍番号</th>
                         <th style="width: 18%;">氏名</th>
                         <th style="width: 15%;">フリガナ</th>
-                        <th style="width: 25%;">所属 (学科 / コース / クラス)</th>
-                        <th style="width: 30%;">ニックネーム (編集)</th>
+                        <th style="width: 25%;">ニックネーム (編集)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for student in students %}
                     <tr>
+                        <td class="small">
+                            {% if student.department %}
+                                <span class="badge bg-light text-dark border">{{ student.department.name }}</span>
+                            {% endif %}
+                            {% if student.course %}
+                                <span class="badge bg-info text-dark">{{ student.course.name }}</span>
+                            {% endif %}
+                            {% if student.school_class %}
+                                <span class="badge bg-secondary">{{ student.school_class.name }}</span>
+                            {% endif %}
+                        </td>
                         <td class="fw-bold font-monospace">{{ student.student_id }}</td>
                         <td class="fw-bold text-dark">
                             {{ student.name }}
                             {% if student.flag_tag %}{{ student.flag_tag|safe }}{% endif %}
                         </td>
                         <td class="small text-secondary">{{ student.furigana|default:"-" }}</td>
-                        <td class="small">
-                            {% if student.department %}
-                                <span class="badge bg-light text-dark border">{{ student.department.name }}</span>
-                            {% endif %}
-                            {% if student.school_class %}
-                                <span class="badge bg-secondary">{{ student.school_class.name }}</span>
-                            {% endif %}
-                        </td>
                         <td>
                             <form method="post" action="{% url 'update_student_nickname' student.id %}" class="nickname-form d-flex gap-2 align-items-center" data-student-id="{{ student.id }}">
                                 {% csrf_token %}

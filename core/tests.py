@@ -8,7 +8,8 @@ from django.conf import settings
 from core.models import (
     UserCompanion, GraduatedCompanion, Task, DepartmentGroup,
     IslandProfile, IslandItem, Achievement, UserAchievement,
-    DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile
+    DepartmentBattle, DepartmentAchievement, DepartmentAchievementUnlock, DepartmentProfile,
+    Department, Course, SchoolClass, Student
 )
 from core.services import (
     process_task_completion, ensure_initial_achievements, check_achievements,
@@ -1143,6 +1144,39 @@ class NewFeatureRequirementsTests(TestCase):
 
         self.student.refresh_from_db()
         self.assertEqual(self.student.nickname, 'タロちゃん')
+
+    def test_student_list_course_display(self):
+        """学生一覧画面のコース表示およびカラム順序のテスト"""
+        self.client.login(username='staff_user', password='password123')
+
+        # 学生にコースを設定
+        course = Course.objects.create(department=self.dept, name="ゲームクリエイターコース")
+        self.student.course = course
+        self.student.save()
+
+        res = self.client.get('/students/')
+        self.assertEqual(res.status_code, 200)
+
+        html = res.content.decode('utf-8')
+
+        # コース名が表示されていることを確認
+        self.assertIn("ゲームクリエイターコース", html)
+
+        # カラムヘッダーの順序（所属, 学籍番号, 氏名, フリガナ, ニックネーム）を確認
+        idx_thead = html.find("<thead")
+        idx_tbody = html.find("<tbody")
+        thead_html = html[idx_thead:idx_tbody]
+
+        idx_dept_th = thead_html.find("所属 (学科 / コース / クラス)")
+        idx_id_th = thead_html.find("学籍番号")
+        idx_name_th = thead_html.find("氏名")
+        idx_furi_th = thead_html.find("フリガナ")
+        idx_nick_th = thead_html.find("ニックネーム (編集)")
+
+        self.assertTrue(
+            idx_dept_th < idx_id_th < idx_name_th < idx_furi_th < idx_nick_th,
+            "テーブルヘッダーのカラム順序が正しくありません"
+        )
 
     def test_boss_battle_damage_api_and_persistence(self):
         """ボス戦ダメージAPI呼び出しとHP・defeated_at永続化テスト"""
