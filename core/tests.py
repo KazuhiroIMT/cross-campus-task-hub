@@ -364,6 +364,58 @@ class MyIslandTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'マイアイランド')
         self.assertContains(res, 'Lv. 1')
+        self.assertEqual(IslandItem.objects.filter(user=self.user).count(), 0)
+
+    def test_new_user_island_initialization_empty(self):
+        """新規ユーザー作成・初回アクセス時に更地（レベル1、アイテム0件）で初期化される"""
+        new_user = User.objects.create_user(username='new_island_user', password='password123')
+        profile = IslandProfile.objects.get(user=new_user)
+        self.assertEqual(profile.level, 1)
+        self.assertEqual(profile.experience, 0)
+        self.assertEqual(IslandItem.objects.filter(user=new_user).count(), 0)
+
+        self.client.login(username='new_island_user', password='password123')
+        res = self.client.get('/island/')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Lv. 1')
+        self.assertContains(res, 'まだアイテムを所持していません')
+        self.assertEqual(IslandItem.objects.filter(user=new_user).count(), 0)
+
+        api_res = self.client.get('/api/island/data/')
+        self.assertEqual(api_res.status_code, 200)
+        data = api_res.json()
+        self.assertEqual(data['island']['level'], 1)
+        self.assertEqual(len(data['items']), 0)
+
+    def test_user_island_data_isolation(self):
+        """ユーザーごとの島データ（プロファイル・配置アイテム）が完全独立している"""
+        user1 = User.objects.create_user(username='iso_user1', password='password123')
+        user2 = User.objects.create_user(username='iso_user2', password='password123')
+
+        item1 = IslandItem.objects.create(
+            user=user1,
+            item_type='tree',
+            name='ユーザー1の木',
+            is_placed=True
+        )
+
+        p1 = IslandProfile.objects.get(user=user1)
+        p2 = IslandProfile.objects.get(user=user2)
+
+        p1.level = 5
+        p1.save()
+
+        p2.refresh_from_db()
+        self.assertEqual(p2.level, 1)
+
+        self.assertEqual(IslandItem.objects.filter(user=user1).count(), 1)
+        self.assertEqual(IslandItem.objects.filter(user=user2).count(), 0)
+
+        self.client.login(username='iso_user2', password='password123')
+        api_res2 = self.client.get('/api/island/data/')
+        data2 = api_res2.json()
+        self.assertEqual(data2['island']['level'], 1)
+        self.assertEqual(len(data2['items']), 0)
 
     def test_gacha_unplaced_and_level_restricted_placement(self):
         """ガチャで獲得したアイテムは未配置になり、レベル不足時の手動配置は拒否される"""
