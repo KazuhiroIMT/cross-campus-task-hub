@@ -1186,9 +1186,59 @@ def gacha_page(request):
 
     items = IslandItem.objects.filter(user=request.user)
 
+    catalog_items = []
+    for code, full_name in IslandItem.ITEM_TYPE_CHOICES:
+        price = IslandItem.get_default_price(code)
+        icon = IslandItem.ITEM_ICONS.get(code, '🎁')
+        dummy_item = IslandItem(item_type=code)
+        area_cat = dummy_item.area_category
+        req_lvl = dummy_item.required_island_level
+        clean_name = full_name.split(' ')[0].strip()
+
+        catalog_items.append({
+            'code': code,
+            'name': clean_name,
+            'full_name': full_name,
+            'price': price,
+            'icon': icon,
+            'category': area_cat,
+            'required_level': req_lvl,
+        })
+
+    # Group / stack user items for stacked card display
+    item_groups = {}
+    for item in items:
+        if item.item_type not in item_groups:
+            item_groups[item.item_type] = []
+        item_groups[item.item_type].append(item)
+
+    stacked_items = []
+    for item_type, group_list in item_groups.items():
+        first_item = group_list[0]
+        placed_count = sum(1 for i in group_list if i.is_placed)
+        unplaced_count = len(group_list) - placed_count
+        latest_obtained = max(i.obtained_at for i in group_list)
+
+        stacked_items.append({
+            'item_type': item_type,
+            'name': first_item.name,
+            'icon': first_item.icon,
+            'area_category': first_item.area_category,
+            'count': len(group_list),
+            'placed_count': placed_count,
+            'unplaced_count': unplaced_count,
+            'latest_obtained': latest_obtained,
+            'items': group_list,
+        })
+
+    # Sort by latest obtained
+    stacked_items.sort(key=lambda x: x['latest_obtained'], reverse=True)
+
     context = {
         'island_profile': profile,
         'items': items,
+        'catalog_items': catalog_items,
+        'stacked_items': stacked_items,
     }
     return render(request, 'core/gacha.html', context)
 

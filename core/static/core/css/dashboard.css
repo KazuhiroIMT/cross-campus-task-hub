@@ -811,3 +811,119 @@ body.user-protected button {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* --- Gacha Page & Stacked Card Styles --- */
+.gacha-lineup-btn {
+    background-color: #ffffff;
+    border: 2px solid #e2e8f0;
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+.gacha-lineup-btn:hover {
+    background-color: #f8fafc;
+    border-color: #2f8f7b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+.gacha-stacked-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px;
+}
+
+.stacked-card-wrapper {
+    position: relative;
+    padding-top: 6px;
+    padding-left: 6px;
+}
+
+.stacked-card-wrapper.has-stack::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 6px;
+    bottom: 6px;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    transform: rotate(-3.5deg) translate(-4px, -2px);
+    z-index: 1;
+}
+
+.stacked-card-wrapper.has-multi-stack::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 8px;
+    bottom: 8px;
+    background: #cbd5e1;
+    border: 1px solid #94a3b8;
+    border-radius: 14px;
+    transform: rotate(-5deg) translate(-5px, -3px);
+    z-index: 1;
+}
+
+.stacked-card-wrapper.has-multi-stack::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 5px;
+    bottom: 5px;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    transform: rotate(3deg) translate(4px, -1px);
+    z-index: 2;
+}
+
+.gacha-item-card {
+    position: relative;
+    z-index: 3;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.gacha-item-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: #2f8f7b;
+}
+
+.gacha-card-icon {
+    font-size: 2.8rem;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.gacha-card-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #202a35;
+    word-break: break-all;
+}
+
+.stack-count-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 10;
+    font-size: 0.82rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    border: 2px solid #ffffff;
+}
