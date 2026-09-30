@@ -1,11 +1,180 @@
 Watching for file changes with StatReloader
-[30/Sep/2026 14:18:56] "HEAD /login/ HTTP/1.1" 200 0
-[30/Sep/2026 14:19:34] "GET /login/ HTTP/1.1" 200 1520
-[30/Sep/2026 14:19:34] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
-[30/Sep/2026 14:20:43] "GET /login/ HTTP/1.1" 200 1520
-[30/Sep/2026 14:20:43] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
-[30/Sep/2026 14:20:46] "POST /login/ HTTP/1.1" 302 0
-[30/Sep/2026 14:20:46] "GET / HTTP/1.1" 200 71480
-[30/Sep/2026 14:20:46] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
-[30/Sep/2026 14:20:47] "GET /island/ HTTP/1.1" 200 519932
-[30/Sep/2026 14:20:48] "GET /api/island/data/ HTTP/1.1" 200 5535
+[30/Sep/2026 15:44:25] "HEAD / HTTP/1.1" 302 0
+[30/Sep/2026 15:44:57] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:44:57] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+Internal Server Error: /login/
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/sqlite3/base.py", line 359, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: auth_user
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/core/handlers/exception.py", line 56, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/core/handlers/base.py", line 199, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/generic/base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/utils/decorators.py", line 47, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/decorators/debug.py", line 142, in sensitive_post_parameters_wrapper
+    return view(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/utils/decorators.py", line 191, in _view_wrapper
+    result = _process_exception(request, e)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/utils/decorators.py", line 189, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/decorators/cache.py", line 79, in _view_wrapper
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/contrib/auth/views.py", line 97, in dispatch
+    return super().dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/generic/base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/generic/edit.py", line 150, in post
+    if form.is_valid():
+       ^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/forms/forms.py", line 206, in is_valid
+    return self.is_bound and not self.errors
+                                 ^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/forms/forms.py", line 201, in errors
+    self.full_clean()
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/forms/forms.py", line 338, in full_clean
+    self._clean_form()
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/forms/forms.py", line 354, in _clean_form
+    cleaned_data = self.clean()
+                   ^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/decorators/debug.py", line 74, in sensitive_variables_wrapper
+    return func(*func_args, **func_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/contrib/auth/forms.py", line 349, in clean
+    self.user_cache = authenticate(
+                      ^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/decorators/debug.py", line 74, in sensitive_variables_wrapper
+    return func(*func_args, **func_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/contrib/auth/__init__.py", line 130, in authenticate
+    user = backend.authenticate(request, **credentials)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/views/decorators/debug.py", line 74, in sensitive_variables_wrapper
+    return func(*func_args, **func_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/contrib/auth/backends.py", line 71, in authenticate
+    user = UserModel._default_manager.get_by_natural_key(username)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/contrib/auth/base_user.py", line 37, in get_by_natural_key
+    return self.get(**{self.model.USERNAME_FIELD: username})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/models/query.py", line 718, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/models/query.py", line 455, in __len__
+    self._fetch_all()
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/models/query.py", line 2287, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/models/query.py", line 131, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1643, in execute_sql
+    cursor.execute(sql, params)
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/django/db/backends/sqlite3/base.py", line 359, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: no such table: auth_user
+[30/Sep/2026 15:44:59] "POST /login/ HTTP/1.1" 500 226097
+[30/Sep/2026 15:45:00] "GET /island/ HTTP/1.1" 302 0
+[30/Sep/2026 15:45:00] "GET /login/?next=/island/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:45:34] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:45:34] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:45:36] "POST /login/ HTTP/1.1" 200 1656
+[30/Sep/2026 15:45:37] "GET /island/ HTTP/1.1" 302 0
+[30/Sep/2026 15:45:37] "GET /login/?next=/island/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:45:58] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:45:58] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:46:00] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:46:00] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:46:00] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:46:02] "GET /island/ HTTP/1.1" 200 586735
+[30/Sep/2026 15:46:27] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:46:27] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:46:29] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:46:29] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:46:29] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:46:30] "GET /island/ HTTP/1.1" 200 586735
+[30/Sep/2026 15:47:02] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:47:02] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:47:04] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:47:04] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:47:04] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:47:06] "GET /island/ HTTP/1.1" 200 586839
+[30/Sep/2026 15:47:07] "GET /api/island/data/ HTTP/1.1" 200 5535
+[30/Sep/2026 15:48:48] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:48:48] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:48:50] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:48:50] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:48:50] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:48:52] "GET /island/ HTTP/1.1" 200 586839
+[30/Sep/2026 15:48:53] "GET /api/island/data/ HTTP/1.1" 200 5535
+[30/Sep/2026 15:49:36] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:49:36] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:49:38] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:49:38] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:49:38] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:49:40] "GET /island/ HTTP/1.1" 200 586793
+[30/Sep/2026 15:49:40] "GET /api/island/data/ HTTP/1.1" 200 5535
+[30/Sep/2026 15:51:19] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:51:19] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:51:21] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:51:21] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:51:21] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:51:22] "GET /island/ HTTP/1.1" 200 586835
+[30/Sep/2026 15:51:23] "GET /api/island/data/ HTTP/1.1" 200 5535
+[30/Sep/2026 15:52:53] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:52:53] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:52:55] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:52:56] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:52:56] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:52:57] "GET /island/ HTTP/1.1" 200 586838
+[30/Sep/2026 15:52:58] "GET /api/island/data/ HTTP/1.1" 200 5535
+[30/Sep/2026 15:54:19] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 15:54:19] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 15:54:21] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 15:54:21] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 15:54:21] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 15:54:23] "GET /island/ HTTP/1.1" 200 586819
+[30/Sep/2026 15:54:24] "GET /api/island/data/ HTTP/1.1" 200 5535
