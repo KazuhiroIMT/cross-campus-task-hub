@@ -21,6 +21,9 @@
         <i class="bi bi-grid-fill text-primary"></i> Cross-Campus Task Hub
     </a>
     <div class="ms-auto d-flex align-items-center text-white small gap-3">
+        <button type="button" class="btn btn-outline-info btn-sm text-white border-white" data-bs-toggle="modal" data-bs-target="#islandManualModal">
+            <i class="bi bi-journal-bookmark-fill"></i> 島の説明書
+        </button>
         <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left"></i> ダッシュボードへ戻る</a>
         <a href="{% url 'gacha_page' %}" class="btn btn-warning btn-sm fw-bold"><i class="bi bi-ticket-perforated"></i> ガチャを引く</a>
     </div>
@@ -46,6 +49,9 @@
                     <p class="text-muted small mb-0">日々の業務の合間に癒やされる、あなたのリアルな3D箱庭空間です。</p>
                 </div>
                 <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#islandManualModal">
+                        <i class="bi bi-journal-bookmark-fill"></i> 島の説明書
+                    </button>
                     <a href="{% url 'gacha_page' %}" class="btn btn-primary btn-sm fw-bold shadow-sm">
                         🎟️ ガチャを引く (チケット ×{{ island_profile.gacha_tickets }})
                     </a>
@@ -235,6 +241,267 @@
     </div>
 
 
+</div>
+
+<!-- 島の説明書（ヘルプ）モーダル -->
+<div class="modal fade" id="islandManualModal" tabindex="-1" aria-labelledby="islandManualModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="islandManualModalLabel">
+                    <i class="bi bi-journal-bookmark-fill me-2"></i> リアル3Dマイアイランド 説明書 (ヘルプ)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Nav Tabs -->
+                <ul class="nav nav-tabs nav-justified bg-light border-bottom" id="manualTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold py-3 text-dark" id="tab-level-tab" data-bs-toggle="tab" data-bs-target="#tab-level" type="button" role="tab" aria-controls="tab-level" aria-selected="true">
+                            🏝️ 島レベル
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold py-3 text-dark" id="tab-exp-tab" data-bs-toggle="tab" data-bs-target="#tab-exp" type="button" role="tab" aria-controls="tab-exp" aria-selected="false">
+                            ⭐ EXP獲得
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold py-3 text-dark" id="tab-coins-tab" data-bs-toggle="tab" data-bs-target="#tab-coins" type="button" role="tab" aria-controls="tab-coins" aria-selected="false">
+                            🪙 コイン
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold py-3 text-dark" id="tab-gacha-tab" data-bs-toggle="tab" data-bs-target="#tab-gacha" type="button" role="tab" aria-controls="tab-gacha" aria-selected="false">
+                            🎟️ ガチャ
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold py-3 text-dark" id="tab-catalog-tab" data-bs-toggle="tab" data-bs-target="#tab-catalog" type="button" role="tab" aria-controls="tab-catalog" aria-selected="false">
+                            📦 アイテム一覧
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold py-3 text-dark" id="tab-guide-tab" data-bs-toggle="tab" data-bs-target="#tab-guide" type="button" role="tab" aria-controls="tab-guide" aria-selected="false">
+                            💡 使い方
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Contents -->
+                <div class="tab-content p-4" id="manualTabContent">
+
+                    <!-- 1. 島レベルについて -->
+                    <div class="tab-pane fade show active" id="tab-level" role="tabpanel" aria-labelledby="tab-level-tab">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="fs-1">🏝️</span>
+                            <div>
+                                <h5 class="fw-bold mb-1">島レベルと開放エリア</h5>
+                                <p class="text-muted small mb-0">タスクを達成して経験値(EXP)を溜めることで、島レベルが上昇します (最大 Lv.99)。</p>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 border-light bg-light">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary"><i class="bi bi-arrow-up-circle-fill me-1"></i> レベルアップによる恩恵</h6>
+                                <ul class="mb-0 ps-3 text-secondary small">
+                                    <li class="mb-2"><strong>島の土地拡大:</strong> レベルが上がると3Dアイランドの敷地（グラウンドサイズ）が段階的に大きくなります。</li>
+                                    <li class="mb-2"><strong>配置可能エリアの解禁:</strong>
+                                        <ul class="mt-1">
+                                            <li><span class="badge bg-success">🌱 陸地エリア</span> : Lv.1 から配置可能</li>
+                                            <li><span class="badge bg-info text-dark">🌊 海洋エリア</span> : <strong>Lv.20</strong> で開放（ヨット・手漕ぎボート・水上コテージ等）</li>
+                                            <li><span class="badge bg-primary">☁️ 上空エリア</span> : <strong>Lv.50</strong> で開放（気球・浮遊島・虹の架け橋等）</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>称号や各種実績の獲得:</strong> 特定の島レベル達成により特別な実績や称号が解放されます。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. EXPの獲得方法 -->
+                    <div class="tab-pane fade" id="tab-exp" role="tabpanel" aria-labelledby="tab-exp-tab">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="fs-1">⭐</span>
+                            <div>
+                                <h5 class="fw-bold mb-1">島経験値 (EXP) の獲得方法</h5>
+                                <p class="text-muted small mb-0">日常の業務タスクを完了することで島経験値を獲得できます。</p>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 border-light bg-light">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-success"><i class="bi bi-check-circle-fill me-1"></i> EXP獲得条件</h6>
+                                <div class="p-3 bg-white rounded border mb-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold">タスク完了 (Status: 完了 / Closed)</span>
+                                        <span class="badge bg-success fs-6">+10 EXP</span>
+                                    </div>
+                                    <div class="text-muted extra-small mt-1">※ 1つのタスクにつき1度のみ付与されます。</div>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-graph-up-arrow me-1"></i> レベルアップに必要な目安</h6>
+                                <p class="small text-secondary mb-0">
+                                    Lv.1 (0 EXP) → Lv.2 (50 EXP) → Lv.3 (120 EXP) → Lv.4 (220 EXP) → Lv.5 (350 EXP) ... と必要EXPが少しずつ増えていきます。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. コインについて -->
+                    <div class="tab-pane fade" id="tab-coins" role="tabpanel" aria-labelledby="tab-coins-tab">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="fs-1">🪙</span>
+                            <div>
+                                <h5 class="fw-bold mb-1">コインの獲得方法と使い道</h5>
+                                <p class="text-muted small mb-0">コインは島を装飾するアイテムをショップで購入するために使用します。</p>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card h-100 border-light bg-light">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold text-warning"><i class="bi bi-plus-circle-fill me-1"></i> 獲得方法</h6>
+                                        <p class="small text-secondary mb-0">
+                                            タスクを完了すると、EXPと同時に <strong>+5 コイン</strong> が進呈されます。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 border-light bg-light">
+                                    <div class="card-body">
+                                        <h6 class="fw-bold text-info"><i class="bi bi-bag-check-fill me-1"></i> 使い道 (ショップ)</h6>
+                                        <p class="small text-secondary mb-0">
+                                            3Dキャンバス内の「所持品 / ショップ」パネルのショップタブから、好きな樹木・建物・動物・海洋アイテムなどを直接コインで購入できます。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. ガチャチケットについて -->
+                    <div class="tab-pane fade" id="tab-gacha" role="tabpanel" aria-labelledby="tab-gacha-tab">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="fs-1">🎟️</span>
+                            <div>
+                                <h5 class="fw-bold mb-1">ガチャチケットの入手方法と使い方</h5>
+                                <p class="text-muted small mb-0">特別・レアな島アイテムや動物を無料でランダム入手できるチケットです。</p>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3 border-light bg-light">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-success"><i class="bi bi-ticket-detailed-fill me-1"></i> 入手方法</h6>
+                                <p class="small text-secondary mb-2">
+                                    タスクを <strong>5件完了するごと</strong> に <strong>ガチャチケット ×1枚</strong> が自動的にプレゼントされます。
+                                </p>
+                                <hr>
+                                <h6 class="fw-bold text-primary"><i class="bi bi-stars me-1"></i> 使い方</h6>
+                                <p class="small text-secondary mb-0">
+                                    画面右上の「ガチャを引く」ボタンからガチャページへアクセスし、チケット1枚につき1回ガチャを回せます。獲得したアイテムは所持品ボックスへ入ります。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. 島アイテム一覧 -->
+                    <div class="tab-pane fade" id="tab-catalog" role="tabpanel" aria-labelledby="tab-catalog-tab">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1">システム登録アイテム一覧 (カタログ)</h5>
+                                <p class="text-muted small mb-0">マイアイランドで購入・配置できる全アイテムの一覧です。</p>
+                            </div>
+                        </div>
+
+                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2 style-scrollable-catalog" style="max-height: 380px; overflow-y: auto;">
+                            {% for c_item in catalog_items %}
+                            <div class="col">
+                                <div class="p-2 border rounded bg-light d-flex align-items-center gap-2">
+                                    <span class="fs-3">{{ c_item.icon }}</span>
+                                    <div class="text-truncate">
+                                        <div class="fw-bold text-dark small text-truncate">{{ c_item.name }}</div>
+                                        <div class="d-flex align-items-center gap-1 mt-1">
+                                            {% if c_item.category == 'ocean' %}
+                                                <span class="badge bg-info text-dark extra-small">🌊 海洋 Lv.20</span>
+                                            {% elif c_item.category == 'sky' %}
+                                                <span class="badge bg-primary extra-small">☁️ 上空 Lv.50</span>
+                                            {% else %}
+                                                <span class="badge bg-success extra-small">🌱 陸地</span>
+                                            {% endif %}
+                                            <span class="badge bg-warning text-dark extra-small">🪙 {{ c_item.price }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- 6. 基本的な使い方 & アドバイス -->
+                    <div class="tab-pane fade" id="tab-guide" role="tabpanel" aria-labelledby="tab-guide-tab">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-sliders me-2"></i> 基本操作 & プレイのアドバイス</h5>
+
+                        <div class="accordion" id="guideAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingOne">
+                                    <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                        🎮 3Dカメラの操作方法
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#guideAccordion">
+                                    <div class="accordion-body small text-secondary">
+                                        <ul>
+                                            <li><strong>回転 (Orbit):</strong> マウス左ドラッグ（またはスワイプ）で島を全方位360度見回せます。</li>
+                                            <li><strong>ズーム (Zoom):</strong> マウスホイールスクロール（またはピンチイン/アウト）で拡大・縮小ができます。</li>
+                                            <li><strong>移動 (Pan):</strong> マウス右ドラッグでカメラの位置を平行移動できます。</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingTwo">
+                                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                        🏡 アイテムの配置・レイアウト調整
+                                    </button>
+                                </h2>
+                                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#guideAccordion">
+                                    <div class="accordion-body small text-secondary">
+                                        <ul>
+                                            <li>画面右下の「所持品 / ショップ」ボタンをクリックするとインベントリパネルが開きます。</li>
+                                            <li><strong>配置・片付け:</strong> アイテムカードの「配置」/「しまう」ボタンで島に飾るかしまうかを切替えられます。</li>
+                                            <li><strong>位置・向きの変更:</strong> 「配置中」タブで各アイテムの X/Z 座標および Y軸回転角度を調整し、「位置変更を保存」を押すことで好みのレイアウトにカスタマイズ可能です。</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingThree">
+                                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                        🐾 動物・生き物のうろつき機能
+                                    </button>
+                                </h2>
+                                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#guideAccordion">
+                                    <div class="accordion-body small text-secondary">
+                                        <p class="mb-0">
+                                            配置されたシバイヌ、三毛猫、ウサギ、ペンギン、カピバラ、イルカ、ウミガメなどの生き物は、島の地形標高にあわせて自然に島内を歩き回ったり泳いだりします！生き生きとした島の様子をお楽しみください。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary btn-sm px-4 fw-bold" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
