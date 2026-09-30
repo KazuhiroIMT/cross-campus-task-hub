@@ -967,9 +967,59 @@ class IslandItem(models.Model):
         'aurora_generator': '🌌',
     }
 
+    ITEM_PRICES = {
+        # 陸地アイテム
+        'tree': 30,
+        'palm_tree': 40,
+        'broadleaf_tree': 40,
+        'cherry_tree': 50,
+        'flower': 20,
+        'flower_bed': 30,
+        'sunflower_cluster': 35,
+        'garden_light': 50,
+        'bonfire': 60,
+        'fountain': 100,
+        'small_pond': 80,
+        'rock': 25,
+        'wooden_bench': 40,
+        'hammock': 60,
+        'beach_parasol_set': 80,
+        'wood_deck': 70,
+        'cafe_table_set': 90,
+        'watchtower': 120,
+        'cottage': 150,
+        'house': 180,
+        'shop': 200,
+        'castle': 300,
+        'animal': 100,
+        'shiba_inu': 100,
+        'calico_cat': 100,
+        'white_rabbit': 80,
+        'capybara': 120,
+        'penguin': 120,
+        'seagull': 90,
+        'parakeet': 90,
+        # 海洋アイテム
+        'yacht': 200,
+        'rowboat': 150,
+        'overwater_cottage': 250,
+        'swim_ring': 100,
+        'sea_turtle': 180,
+        'dolphin_spot': 220,
+        'lighthouse_islet': 300,
+        # 上空アイテム
+        'hot_air_balloon': 350,
+        'floating_island': 500,
+        'rainbow_arch': 400,
+        'meteor_spot': 450,
+        'airship': 480,
+        'aurora_generator': 500,
+    }
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='island_items', verbose_name="ユーザー")
     item_type = models.CharField("アイテム種類", max_length=50, choices=ITEM_TYPE_CHOICES)
     name = models.CharField("アイテム名", max_length=100)
+    price = models.IntegerField("購入価格（コイン）", default=50)
     position_x = models.FloatField("配置位置X", default=0.0)
     position_y = models.FloatField("配置位置Y", default=0.0)
     position_z = models.FloatField("配置位置Z", default=0.0)
@@ -981,6 +1031,10 @@ class IslandItem(models.Model):
         verbose_name = "島アイテム"
         verbose_name_plural = "島アイテム一覧"
         ordering = ['-obtained_at']
+
+    @classmethod
+    def get_default_price(cls, item_type):
+        return cls.ITEM_PRICES.get(item_type, 50)
 
     def __str__(self):
         return f"{self.user.username} - {self.name} ({self.get_item_type_display()})"

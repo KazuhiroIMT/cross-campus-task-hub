@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Q, Case, When, Value, IntegerField
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
@@ -1035,6 +1036,71 @@ def graduate_companion(request):
 import random
 
 @login_required
+def buy_island_item(request):
+    """コイン消費による島アイテム購入処理（安全なコインチェック・減算）"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid HTTP method'}, status=405)
+
+    item_type = request.POST.get('item_type') or json.loads(request.body or '{}').get('item_type')
+    valid_choices = dict(IslandItem.ITEM_TYPE_CHOICES)
+
+    if not item_type or item_type not in valid_choices:
+        msg = "無効なアイテムタイプです。"
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({'status': 'error', 'message': msg}, status=400)
+        messages.error(request, msg)
+        return redirect('my_island')
+
+    price = IslandItem.get_default_price(item_type)
+
+    with transaction.atomic():
+        profile = IslandProfile.objects.select_for_update().get(user=request.user)
+        if profile.coins < price:
+            msg = f"コイン残高が不足しています。（必要: 🪙 {price} コイン, 所持: 🪙 {profile.coins} コイン）"
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                return JsonResponse({'status': 'error', 'message': msg}, status=400)
+            messages.error(request, msg)
+            return redirect('my_island')
+
+        profile.coins -= price
+        profile.save(update_fields=['coins'])
+
+        raw_name = valid_choices[item_type].split(' ')[0]
+        item_name = raw_name.strip()
+        new_item = IslandItem.objects.create(
+            user=request.user,
+            item_type=item_type,
+            name=item_name,
+            price=price,
+            is_placed=False,
+            position_x=0.0,
+            position_y=0.0,
+            position_z=0.0
+        )
+
+    success_msg = f"🛍️ 「{item_name}」を 🪙 {price} コインで購入しました！"
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        return JsonResponse({
+            'status': 'success',
+            'message': success_msg,
+            'coins': profile.coins,
+            'item': {
+                'id': new_item.id,
+                'item_type': new_item.item_type,
+                'name': new_item.name,
+                'price': new_item.price,
+                'icon': new_item.icon,
+                'is_placed': new_item.is_placed,
+                'area_category': new_item.area_category,
+                'required_level': new_item.required_island_level,
+            }
+        })
+
+    messages.success(request, success_msg)
+    return redirect('my_island')
+
+
+@login_required
 def my_island(request):
     """マイアイランド管理画面"""
     profile, _ = IslandProfile.objects.get_or_create(user=request.user)
@@ -1058,10 +1124,30 @@ def my_island(request):
     items = IslandItem.objects.filter(user=request.user)
     placed_items = items.filter(is_placed=True)
 
+    catalog_items = []
+    for code, full_name in IslandItem.ITEM_TYPE_CHOICES:
+        price = IslandItem.get_default_price(code)
+        icon = IslandItem.ITEM_ICONS.get(code, '🎁')
+        dummy_item = IslandItem(item_type=code)
+        area_cat = dummy_item.area_category
+        req_lvl = dummy_item.required_island_level
+        clean_name = full_name.split(' ')[0].strip()
+
+        catalog_items.append({
+            'code': code,
+            'name': clean_name,
+            'full_name': full_name,
+            'price': price,
+            'icon': icon,
+            'category': area_cat,
+            'required_level': req_lvl,
+        })
+
     context = {
         'island_profile': profile,
         'items': items,
         'placed_items': placed_items,
+        'catalog_items': catalog_items,
     }
     return render(request, 'core/island.html', context)
 
@@ -1179,6 +1265,7 @@ def api_get_island_data(request):
             'id': item.id,
             'name': item.name,
             'item_type': item.item_type,
+            'price': item.price,
             'icon': item.icon,
             'position_x': item.position_x,
             'position_y': item.position_y,

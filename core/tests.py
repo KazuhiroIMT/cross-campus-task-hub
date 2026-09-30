@@ -805,11 +805,11 @@ class DepartmentBossTests(TestCase):
         self.assertEqual(recess_battle.image_path, 'core/images/bosses/recess.png')
         self.assertEqual(recess_battle.last_defeated_date, today)
 
-        # 画面アクセスでも「本日の討伐完了（休憩中）」が表示される
+        # 画面アクセスでも「ボス討伐完了！（休憩中）」が表示される
         self.client.login(username='sales_user', password='password123')
         res_today = self.client.get(f'/department/{self.group1.id}/boss/')
         self.assertEqual(res_today.status_code, 200)
-        self.assertContains(res_today, '本日の討伐完了！（休憩中）')
+        self.assertContains(res_today, 'ボス討伐完了！（休憩中）')
 
         # 日付を翌日に偽装して ensure_active_department_boss を呼び出す
         # recess レコードの last_defeated_date を過去日に変更
@@ -1275,3 +1275,69 @@ class NewFeatureRequirementsTests(TestCase):
         self.assertEqual(battle.current_hp, 0)
         self.assertEqual(battle.status, 'defeated')
         self.assertIsNotNone(battle.defeated_at)
+
+    def test_buy_island_item_success_and_insufficient_coins(self):
+        """コイン消費による島アイテム購入機能（成功時のコイン減算・未配置アイテム生成＆不足時の拒否）"""
+        self.client.login(username='staff_user', password='password123')
+        profile = IslandProfile.objects.get(user=self.user)
+        profile.coins = 100
+        profile.save()
+
+        # 1. 正常購入（樹木 🌲 30コイン）
+        res_buy = self.client.post(
+            '/island/buy/',
+            data='{"item_type": "tree"}',
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(res_buy.status_code, 200)
+        data = res_buy.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertEqual(data['coins'], 70)  # 100 - 30
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.coins, 70)
+
+        bought_item = IslandItem.objects.filter(user=self.user, item_type='tree').first()
+        self.assertIsNotNone(bought_item)
+        self.assertFalse(bought_item.is_placed)
+        self.assertEqual(bought_item.price, 30)
+
+        # 2. 残高不足時の購入試行（お城 🏰 300コイン > 残り70コイン）
+        res_fail = self.client.post(
+            '/island/buy/',
+            data='{"item_type": "castle"}',
+            content_type='application/json',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(res_fail.status_code, 400)
+        fail_data = res_fail.json()
+        self.assertEqual(fail_data['status'], 'error')
+        self.assertIn('コイン残高が不足しています', fail_data['message'])
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.coins, 70)  # コインは減らない
+        self.assertFalse(IslandItem.objects.filter(user=self.user, item_type='castle').exists())
+
+    def test_api_get_island_data_includes_price_and_coins(self):
+        """APIレスポンスにコイン残高およびアイテムの価格フィールドが含まれることを検証"""
+        self.client.login(username='staff_user', password='password123')
+        profile = IslandProfile.objects.get(user=self.user)
+        profile.coins = 150
+        profile.save()
+
+        IslandItem.objects.create(
+            user=self.user,
+            item_type='flower',
+            name='お花',
+            price=20,
+            is_placed=False
+        )
+
+        res = self.client.get('/api/island/data/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+
+        self.assertEqual(data['island']['coins'], 150)
+        self.assertEqual(len(data['items']), 1)
+        self.assertEqual(data['items'][0]['price'], 20)

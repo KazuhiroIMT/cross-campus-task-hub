@@ -7,6 +7,7 @@ urlpatterns = [
     path('department/<int:dept_id>/boss/damage/', views.api_department_boss_damage, name='api_department_boss_damage'),
     path('department/<int:dept_id>/set-title/', views.set_department_title, name='set_department_title'),
     path('island/', views.my_island, name='my_island'),
+    path('island/buy/', views.buy_island_item, name='buy_island_item'),
     path('island/gacha/', views.gacha_page, name='gacha_page'),
     path('api/island/data/', views.api_get_island_data, name='api_get_island_data'),
     path('api/island/save/', views.api_save_placed_items, name='api_save_placed_items'),
