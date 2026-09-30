@@ -1,0 +1,11 @@
+Watching for file changes with StatReloader
+[30/Sep/2026 14:18:56] "HEAD /login/ HTTP/1.1" 200 0
+[30/Sep/2026 14:19:34] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 14:19:34] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 14:20:43] "GET /login/ HTTP/1.1" 200 1520
+[30/Sep/2026 14:20:43] "GET /static/core/css/dashboard.css HTTP/1.1" 200 26064
+[30/Sep/2026 14:20:46] "POST /login/ HTTP/1.1" 302 0
+[30/Sep/2026 14:20:46] "GET / HTTP/1.1" 200 71480
+[30/Sep/2026 14:20:46] "GET /static/core/css/bosses.css HTTP/1.1" 200 3447
+[30/Sep/2026 14:20:47] "GET /island/ HTTP/1.1" 200 519932
+[30/Sep/2026 14:20:48] "GET /api/island/data/ HTTP/1.1" 200 5535
