@@ -590,14 +590,14 @@ document.addEventListener("DOMContentLoaded", function() {
             return 0.1 + beachProgress * 0.8;
         }
 
-        // Inner grass terrain: smooth, gentle rolling hills without steep cone/hill
-        const innerRatio = (maxR - sandWidth - dist) / (maxR - sandWidth);
-        const gentleHillNoise = Math.sin(x * 0.25 + z * 0.2) * 0.35
-                              + Math.cos(x * 0.18 - z * 0.3) * 0.3
-                              + Math.sin(Math.sqrt(x * x + z * z) * 0.3) * 0.25;
+        // Inner grass terrain: continuous, organic plateau with soft radial slope and smooth micro-variations
+        const innerRatio = Math.min(1.0, Math.max(0.0, (maxR - sandWidth - dist) / (maxR - sandWidth)));
+        const gentleHillNoise = Math.sin(x * 0.2 + z * 0.15) * 0.25
+                              + Math.cos(x * 0.15 - z * 0.2) * 0.2
+                              + Math.sin(angle * 3) * 0.15;
 
-        // Base plateau elevation around y = 0.9 ~ 1.8
-        const baseHeight = 0.9 + innerRatio * 0.8 + gentleHillNoise;
+        // Base plateau elevation smooth blending around y = 0.9 ~ 1.4
+        const baseHeight = 0.9 + innerRatio * 0.5 + gentleHillNoise;
         return Math.max(0.8, baseHeight);
     }
 
@@ -864,11 +864,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (dist > coastR - 0.4) {
                     vColor.copy(beachWetColor);
                 } else if (dist > coastR - sandWidth) {
-                    const ratio = (coastR - dist) / sandWidth;
-                    vColor.copy(sandColor).lerp(grassLightColor, ratio * 0.6);
+                    const ratio = Math.min(1.0, Math.max(0.0, (coastR - dist) / sandWidth));
+                    vColor.copy(sandColor).lerp(grassLightColor, ratio);
                 } else {
-                    const noiseVal = (Math.sin(x * 0.4) + Math.cos(z * 0.4)) * 0.5;
-                    vColor.copy(grassLightColor).lerp(grassDarkColor, 0.3 + noiseVal * 0.3);
+                    // Continuous organic radial and noise blending across the central grass zone
+                    const innerDistRatio = Math.min(1.0, Math.max(0.0, dist / (coastR - sandWidth)));
+                    const noiseVal = (Math.sin(x * 0.3) * Math.cos(z * 0.3) + 1.0) * 0.5;
+                    vColor.copy(grassLightColor).lerp(grassDarkColor, 0.2 + 0.3 * noiseVal + 0.1 * (1.0 - innerDistRatio));
                 }
 
                 colors.push(vColor.r, vColor.g, vColor.b);
@@ -2206,30 +2208,31 @@ document.addEventListener("DOMContentLoaded", function() {
         return CREATURE_TYPES.includes(type);
     }
 
-    function isValidPlacementArea(x, z, areaCategory, level) {
+    function isValidPlacementArea(x, z, areaCategory, level = ISLAND_LEVEL) {
         const dist = Math.sqrt(x * x + z * z);
         const angle = Math.atan2(z, x);
         const coastR = organicCoastlineRadius(angle, level);
 
         if (areaCategory === 'land') {
-            return dist <= (coastR - 0.2);
+            // Allow land placement up to the coastline edge (beach-water boundary)
+            return dist <= (coastR - 0.1);
         } else if (areaCategory === 'ocean') {
-            const maxOceanR = baseIslandRadius * 3.5;
-            return dist > (coastR + 0.3) && dist <= maxOceanR;
+            const maxOceanR = (baseIslandRadius + (level >= 4 ? 4.0 : 2.0)) * 3.5;
+            return dist > (coastR + 0.2) && dist <= maxOceanR;
         } else if (areaCategory === 'sky') {
-            const maxSkyR = baseIslandRadius * 3.0;
+            const maxSkyR = (baseIslandRadius + (level >= 4 ? 4.0 : 2.0)) * 3.0;
             return dist <= maxSkyR;
         }
         return true;
     }
 
-    function getValidPositionForCategory(areaCategory, level) {
+    function getValidPositionForCategory(areaCategory, level = ISLAND_LEVEL) {
         const angle = Math.random() * Math.PI * 2;
         const coastR = organicCoastlineRadius(angle, level);
         let x = 0, z = 0, y = 0;
 
         if (areaCategory === 'land') {
-            const r = Math.random() * Math.max(1, coastR - 2.5);
+            const r = Math.random() * Math.max(1, coastR - 2.0);
             x = Math.cos(angle) * r;
             z = Math.sin(angle) * r;
             y = getTerrainHeight(x, z, level);
@@ -2274,7 +2277,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
 
                 // Relative ground height calculation taking island Y scale into account
-                let baseY = getTerrainHeight(posX, posZ, 1);
+                let baseY = getTerrainHeight(posX, posZ, ISLAND_LEVEL);
                 let worldY = baseY * islandScaleY;
 
                 if (areaCat === 'sky') {
@@ -2848,7 +2851,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         const baseX = pt.x / islandScaleX;
                         const baseZ = pt.z / islandScaleZ;
 
-                        if (!isValidPlacementArea(baseX, baseZ, areaCat, 1)) {
+                        if (!isValidPlacementArea(baseX, baseZ, areaCat, ISLAND_LEVEL)) {
                             if (areaCat === 'land') showWarningToast("⚠️ 陸地用のアイテムは島（地面）の上にしか配置できません");
                             else if (areaCat === 'ocean') showWarningToast("⚠️ 海洋アイテムは海（水面）の中にしか配置できません");
                             else if (areaCat === 'sky') showWarningToast("⚠️ 上空アイテムは空中エリアにしか配置できません");
@@ -2858,7 +2861,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         item.is_placed = true;
                         item.position_x = baseX;
                         item.position_z = baseZ;
-                        item.position_y = areaCat === 'sky' ? 12.0 : getTerrainHeight(baseX, baseZ, 1);
+                        item.position_y = areaCat === 'sky' ? 12.0 : getTerrainHeight(baseX, baseZ, ISLAND_LEVEL);
 
                         renderPlacedItems();
                         populateItemTray();
@@ -2933,8 +2936,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 const areaCat = getItemAreaCategory(itemType);
                 const baseX = pt.x / islandScaleX;
                 const baseZ = pt.z / islandScaleZ;
-                const isValid = isValidPlacementArea(baseX, baseZ, areaCat, 1);
-                const baseHeight = getTerrainHeight(baseX, baseZ, 1);
+                const isValid = isValidPlacementArea(baseX, baseZ, areaCat, ISLAND_LEVEL);
+                const baseHeight = getTerrainHeight(baseX, baseZ, ISLAND_LEVEL);
 
                 let targetY = baseHeight * islandScaleY;
                 if (areaCat === 'sky') {
@@ -2968,17 +2971,17 @@ document.addEventListener("DOMContentLoaded", function() {
             const areaCat = getItemAreaCategory(itemType);
             const baseX = activeSelectedObject.position.x / islandScaleX;
             const baseZ = activeSelectedObject.position.z / islandScaleZ;
-            const isValid = isValidPlacementArea(baseX, baseZ, areaCat, 1);
+            const isValid = isValidPlacementArea(baseX, baseZ, areaCat, ISLAND_LEVEL);
 
             if (!isValid) {
                 if (areaCat === 'land') showWarningToast("⚠️ 陸地用のアイテムは島（地面）の上にしか配置できません");
                 else if (areaCat === 'ocean') showWarningToast("⚠️ 海洋アイテムは海（水面）の中にしか配置できません");
                 else if (areaCat === 'sky') showWarningToast("⚠️ 上空アイテムは空中エリアにしか配置できません");
 
-                if (dragOriginalPos && isValidPlacementArea(dragOriginalPos.x / islandScaleX, dragOriginalPos.z / islandScaleZ, areaCat, 1)) {
+                if (dragOriginalPos && isValidPlacementArea(dragOriginalPos.x / islandScaleX, dragOriginalPos.z / islandScaleZ, areaCat, ISLAND_LEVEL)) {
                     activeSelectedObject.position.copy(dragOriginalPos);
                 } else {
-                    const validPos = getValidPositionForCategory(areaCat, 1);
+                    const validPos = getValidPositionForCategory(areaCat, ISLAND_LEVEL);
                     activeSelectedObject.position.set(validPos.x * islandScaleX, validPos.y * islandScaleY, validPos.z * islandScaleZ);
                 }
             }
@@ -3037,7 +3040,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 const targetZ = c.group.position.z * -0.4;
                 const bX = targetX / islandScaleX;
                 const bZ = targetZ / islandScaleZ;
-                const groundY = getTerrainHeight(bX, bZ, 1) * islandScaleY;
+                const groundY = getTerrainHeight(bX, bZ, ISLAND_LEVEL) * islandScaleY;
                 c.targetPos.set(targetX, (c.type === 'seagull' || c.type === 'parakeet') ? groundY + 3.0 : groundY, targetZ);
                 c.state = (c.type === 'seagull' || c.type === 'parakeet') ? 'flying' : 'walking';
             }
@@ -3050,7 +3053,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 const tZ = Math.sin(angle) * randRadius;
                 const bX = tX / islandScaleX;
                 const bZ = tZ / islandScaleZ;
-                const tGroundY = getTerrainHeight(bX, bZ, 1) * islandScaleY;
+                const tGroundY = getTerrainHeight(bX, bZ, ISLAND_LEVEL) * islandScaleY;
 
                 if (c.type === 'shiba_inu' || c.type === 'animal') {
                     if (c.state === 'idle') {
@@ -3095,7 +3098,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             const wZ = (waterItem.position_z + (Math.random() - 0.5) * 2.0) * islandScaleZ;
                             const wbX = wX / islandScaleX;
                             const wbZ = wZ / islandScaleZ;
-                            c.targetPos.set(wX, getTerrainHeight(wbX, wbZ, 1) * islandScaleY, wZ);
+                            c.targetPos.set(wX, getTerrainHeight(wbX, wbZ, ISLAND_LEVEL) * islandScaleY, wZ);
                         } else {
                             c.targetPos.set(tX, tGroundY, tZ);
                         }
@@ -3112,7 +3115,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         const pZ = Math.sin(angle) * coastR;
                         const pbX = pX / islandScaleX;
                         const pbZ = pZ / islandScaleZ;
-                        c.targetPos.set(pX, getTerrainHeight(pbX, pbZ, 1) * islandScaleY, pZ);
+                        c.targetPos.set(pX, getTerrainHeight(pbX, pbZ, ISLAND_LEVEL) * islandScaleY, pZ);
                         c.stateTimer = Math.random() * 6 + 3;
                     } else {
                         c.state = 'idle';
@@ -3138,7 +3141,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (c.state === 'swimming') {
                         // Pick swimming target in ocean ring
                         const oAngle = Math.random() * Math.PI * 2;
-                        const coastR = organicCoastlineRadius(oAngle, 1);
+                        const coastR = organicCoastlineRadius(oAngle, ISLAND_LEVEL);
                         const oceanR = coastR + 1.5 + Math.random() * 3.5;
                         const oX = Math.cos(oAngle) * oceanR * islandScaleX;
                         const oZ = Math.sin(oAngle) * oceanR * islandScaleZ;
@@ -3165,7 +3168,7 @@ document.addEventListener("DOMContentLoaded", function() {
             // 3. Movement Execution & Dynamic Elevation Following
             const curBX = c.group.position.x / islandScaleX;
             const curBZ = c.group.position.z / islandScaleZ;
-            const groundY = getTerrainHeight(curBX, curBZ, 1) * islandScaleY;
+            const groundY = getTerrainHeight(curBX, curBZ, ISLAND_LEVEL) * islandScaleY;
 
             if (c.state === 'swimming') {
                 const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
