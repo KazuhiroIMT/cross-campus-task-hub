@@ -2134,61 +2134,1178 @@ document.addEventListener("DOMContentLoaded", function() {
         return group;
     }
 
+    // === High-Detail Procedural 3D Mesh Generators for All Island Items ===
+
+    // --- LAND OBJECTS ---
+    function createLogMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x6e4726, flatShading: true });
+        const log = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.28, 1.8, 8), mat);
+        log.rotation.z = Math.PI / 2;
+        log.position.y = 0.25;
+        log.castShadow = true;
+        group.add(log);
+        return group;
+    }
+
+    function createFallenTreeMesh() {
+        const group = new THREE.Group();
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5c4033, flatShading: true });
+        const leafMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32, flatShading: true });
+        const log = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.35, 2.2, 8), trunkMat);
+        log.rotation.z = Math.PI / 2.2;
+        log.position.set(0, 0.3, 0);
+        log.castShadow = true;
+        group.add(log);
+        const leaves = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 1), leafMat);
+        leaves.position.set(1.1, 0.4, 0.2);
+        group.add(leaves);
+        return group;
+    }
+
+    function createDriftwoodLandMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+        const main = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.4, 6), mat);
+        main.rotation.z = Math.PI / 2.5;
+        main.position.y = 0.2;
+        group.add(main);
+        const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.7, 6), mat);
+        branch.position.set(0.3, 0.4, 0.2);
+        branch.rotation.x = 0.8;
+        group.add(branch);
+        return group;
+    }
+
+    function createAncientTreeMesh() {
+        const group = new THREE.Group();
+        const trunkMat = new THREE.MeshLambertMaterial({ color: 0x4a2c11, flatShading: true });
+        const leafMat = new THREE.MeshLambertMaterial({ color: 0x1b5e20, flatShading: true });
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.9, 2.8, 10), trunkMat);
+        trunk.position.y = 1.4;
+        trunk.castShadow = true;
+        group.add(trunk);
+        const crown = new THREE.Mesh(new THREE.DodecahedronGeometry(2.0, 1), leafMat);
+        crown.position.y = 3.2;
+        crown.castShadow = true;
+        group.add(crown);
+        return group;
+    }
+
+    function createMedicinalHerbMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x4caf50, flatShading: true });
+        for (let i = 0; i < 5; i++) {
+            const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.6, 4), mat);
+            const a = (i / 5) * Math.PI * 2;
+            leaf.position.set(Math.cos(a) * 0.2, 0.3, Math.sin(a) * 0.2);
+            leaf.rotation.z = Math.cos(a) * 0.4;
+            group.add(leaf);
+        }
+        return group;
+    }
+
+    function createWildGrassMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x81c784, flatShading: true });
+        for (let i = 0; i < 7; i++) {
+            const blade = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.8, 3), mat);
+            const a = (i / 7) * Math.PI * 2;
+            blade.position.set(Math.cos(a) * 0.25, 0.4, Math.sin(a) * 0.25);
+            blade.rotation.x = Math.sin(a) * 0.3;
+            group.add(blade);
+        }
+        return group;
+    }
+
+    function createMushroomMesh() {
+        const group = new THREE.Group();
+        const stemMat = new THREE.MeshLambertMaterial({ color: 0xf5f5f5 });
+        const capMat = new THREE.MeshLambertMaterial({ color: 0xe53935 });
+        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.5, 8), stemMat);
+        stem.position.y = 0.25;
+        group.add(stem);
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.3, 8), capMat);
+        cap.position.y = 0.55;
+        group.add(cap);
+        return group;
+    }
+
+    function createBerryBushMesh() {
+        const group = new THREE.Group();
+        const bushMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32, flatShading: true });
+        const berryMat = new THREE.MeshLambertMaterial({ color: 0x8e24aa });
+        const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 1), bushMat);
+        bush.position.y = 0.6;
+        bush.castShadow = true;
+        group.add(bush);
+        for (let i = 0; i < 6; i++) {
+            const berry = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), berryMat);
+            const a = (i / 6) * Math.PI * 2;
+            berry.position.set(Math.cos(a) * 0.55, 0.6 + Math.sin(i) * 0.2, Math.sin(a) * 0.55);
+            group.add(berry);
+        }
+        return group;
+    }
+
+    function createCoconutMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x4e342e });
+        const coco = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), mat);
+        coco.position.y = 0.25;
+        coco.scale.set(1, 1.2, 1);
+        group.add(coco);
+        return group;
+    }
+
+    function createPebbleMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x9e9e9e, flatShading: true });
+        const p1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.25, 0), mat);
+        p1.position.set(0, 0.15, 0);
+        group.add(p1);
+        const p2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), mat);
+        p2.position.set(0.3, 0.1, 0.15);
+        group.add(p2);
+        return group;
+    }
+
+    function createOreMesh(colorHex) {
+        const group = new THREE.Group();
+        const rockMat = new THREE.MeshLambertMaterial({ color: 0x616161, flatShading: true });
+        const oreMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.8, roughness: 0.2, flatShading: true });
+        const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5, 0), rockMat);
+        base.position.y = 0.3;
+        group.add(base);
+        for (let i = 0; i < 4; i++) {
+            const crystal = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 5), oreMat);
+            const a = (i / 4) * Math.PI * 2;
+            crystal.position.set(Math.cos(a) * 0.25, 0.4, Math.sin(a) * 0.25);
+            crystal.rotation.x = Math.cos(a) * 0.5;
+            crystal.rotation.z = Math.sin(a) * 0.5;
+            group.add(crystal);
+        }
+        return group;
+    }
+
+    function createCoalMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x212121, flatShading: true });
+        const coal = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45, 0), mat);
+        coal.position.y = 0.25;
+        group.add(coal);
+        return group;
+    }
+
+    function createAncientTabletMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+        const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.0, 0.15), mat);
+        tablet.position.y = 0.5;
+        tablet.rotation.x = -0.2;
+        group.add(tablet);
+        return group;
+    }
+
+    function createRelicFragmentMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xbcaaa4, flatShading: true });
+        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.15, 0.7, 8), mat);
+        pot.position.y = 0.35;
+        pot.rotation.z = 0.4;
+        group.add(pot);
+        return group;
+    }
+
+    function createTreasureChestMesh() {
+        const group = new THREE.Group();
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+        const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd54f, metalness: 0.8 });
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.5), woodMat);
+        box.position.y = 0.25;
+        box.castShadow = true;
+        group.add(box);
+        const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.8, 8, 1, false, 0, Math.PI), woodMat);
+        lid.rotation.z = Math.PI / 2;
+        lid.position.y = 0.5;
+        group.add(lid);
+        const lock = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.05), goldMat);
+        lock.position.set(0, 0.3, 0.26);
+        group.add(lock);
+        return group;
+    }
+
+    function createCampTentMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xff7043, flatShading: true });
+        const tent = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.4, 4), mat);
+        tent.position.y = 0.7;
+        tent.rotation.y = Math.PI / 4;
+        tent.castShadow = true;
+        group.add(tent);
+        return group;
+    }
+
+    function createCookingPotMesh() {
+        const group = new THREE.Group();
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.4 });
+        const soupMat = new THREE.MeshLambertMaterial({ color: 0xffb74d });
+        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 0.45, 12), metalMat);
+        pot.position.y = 0.3;
+        group.add(pot);
+        const soup = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.05, 12), soupMat);
+        soup.position.y = 0.48;
+        group.add(soup);
+        return group;
+    }
+
+    function createTeleportGateMesh() {
+        const group = new THREE.Group();
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0x7e57c2, metalness: 0.6, flatShading: true });
+        const portalMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.75 });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.15, 8, 24), ringMat);
+        ring.position.y = 1.1;
+        ring.castShadow = true;
+        group.add(ring);
+        const portal = new THREE.Mesh(new THREE.CircleGeometry(0.95, 24), portalMat);
+        portal.position.y = 1.1;
+        group.add(portal);
+        return group;
+    }
+
+    function createSpringWaterMesh() {
+        const group = new THREE.Group();
+        const stoneMat = new THREE.MeshLambertMaterial({ color: 0x78909c, flatShading: true });
+        const waterMat = new THREE.MeshLambertMaterial({ color: 0x29b6f6, transparent: true, opacity: 0.85 });
+        const basin = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.7, 0.3, 10), stoneMat);
+        basin.position.y = 0.15;
+        group.add(basin);
+        const water = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.05, 10), waterMat);
+        water.position.y = 0.28;
+        group.add(water);
+        return group;
+    }
+
+    function createWaterWellMesh() {
+        const group = new THREE.Group();
+        const stoneMat = new THREE.MeshLambertMaterial({ color: 0x616161, flatShading: true });
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+        const roofMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.6, 10, 1, true), stoneMat);
+        base.position.y = 0.3;
+        group.add(base);
+        const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.2, 6), woodMat);
+        post1.position.set(-0.55, 0.9, 0);
+        group.add(post1);
+        const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.2, 6), woodMat);
+        post2.position.set(0.55, 0.9, 0);
+        group.add(post2);
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(0.95, 0.5, 4), roofMat);
+        roof.position.y = 1.6;
+        roof.rotation.y = Math.PI / 4;
+        group.add(roof);
+        return group;
+    }
+
+    function createPoisonSwampMesh() {
+        const group = new THREE.Group();
+        const swampMat = new THREE.MeshLambertMaterial({ color: 0x7b1fa2, transparent: true, opacity: 0.8 });
+        const puddle = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.05, 12), swampMat);
+        puddle.position.y = 0.02;
+        group.add(puddle);
+        return group;
+    }
+
+    function createThornyVineMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x33691e, flatShading: true });
+        const vine = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.08, 6, 16), mat);
+        vine.rotation.x = Math.PI / 2;
+        vine.position.y = 0.1;
+        group.add(vine);
+        return group;
+    }
+
+    function createCactusMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x2e7d32, flatShading: true });
+        const main = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 1.6, 8), mat);
+        main.position.y = 0.8;
+        main.castShadow = true;
+        group.add(main);
+        const arm1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.6, 6), mat);
+        arm1.position.set(0.3, 0.9, 0);
+        arm1.rotation.z = -Math.PI / 3;
+        group.add(arm1);
+        return group;
+    }
+
+    function createAncientRuinsMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x9e9e9e, flatShading: true });
+        for (let i = 0; i < 3; i++) {
+            const col = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 1.5, 8), mat);
+            col.position.set((i - 1) * 0.8, 0.75, 0);
+            col.castShadow = true;
+            group.add(col);
+        }
+        const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.3, 0.4), mat);
+        lintel.position.set(0, 1.6, 0);
+        group.add(lintel);
+        return group;
+    }
+
+    function createStoneShrineMesh() {
+        const group = new THREE.Group();
+        const redMat = new THREE.MeshLambertMaterial({ color: 0xd32f2f });
+        const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8), redMat);
+        p1.position.set(-0.7, 0.8, 0);
+        group.add(p1);
+        const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.6, 8), redMat);
+        p2.position.set(0.7, 0.8, 0);
+        group.add(p2);
+        const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.2, 0.3), redMat);
+        top.position.set(0, 1.6, 0);
+        group.add(top);
+        return group;
+    }
+
+    function createTribalHutMesh() {
+        const group = new THREE.Group();
+        const wallMat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
+        const roofMat = new THREE.MeshLambertMaterial({ color: 0xd7ccc8, flatShading: true });
+        const wall = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.8, 10), wallMat);
+        wall.position.y = 0.4;
+        group.add(wall);
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.1, 0.9, 10), roofMat);
+        roof.position.y = 1.25;
+        roof.castShadow = true;
+        group.add(roof);
+        return group;
+    }
+
+    function createLimestoneCaveMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x616161, flatShading: true });
+        const cave = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), mat);
+        cave.position.y = 0.8;
+        cave.scale.set(1.4, 0.9, 1.2);
+        cave.castShadow = true;
+        group.add(cave);
+        return group;
+    }
+
+    function createStrandedShipMesh() {
+        const group = new THREE.Group();
+        const woodMat = new THREE.MeshLambertMaterial({ color: 0x4e342e, flatShading: true });
+        const hull = new THREE.Mesh(new THREE.ConeGeometry(0.9, 2.8, 5), woodMat);
+        hull.rotation.x = Math.PI / 2.3;
+        hull.rotation.z = 0.3;
+        hull.position.y = 0.5;
+        hull.scale.set(1, 0.5, 1);
+        hull.castShadow = true;
+        group.add(hull);
+        return group;
+    }
+
+    // --- LAND CREATURES ---
+    function createGenericCreatureMesh(bodyColorHex, scale = 1.0) {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: bodyColorHex, flatShading: true });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.5 * scale, 0.4 * scale, 0.8 * scale), mat);
+        body.position.y = 0.3 * scale;
+        body.castShadow = true;
+        group.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.25 * scale, 8, 8), mat);
+        head.position.set(0, 0.45 * scale, 0.45 * scale);
+        group.add(head);
+        return group;
+    }
+
+    function createDeerMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xa1887f, flatShading: true });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.9), mat);
+        body.position.y = 0.6;
+        body.castShadow = true;
+        group.add(body);
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.6, 6), mat);
+        neck.position.set(0, 0.9, 0.35);
+        neck.rotation.x = 0.3;
+        group.add(neck);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.4), mat);
+        head.position.set(0, 1.2, 0.45);
+        group.add(head);
+        return group;
+    }
+
+    function createWildBoarMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x4e342e, flatShading: true });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.9), mat);
+        body.position.y = 0.35;
+        body.castShadow = true;
+        group.add(body);
+        const tuskMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        const t1 = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.25, 4), tuskMat);
+        t1.position.set(-0.2, 0.3, 0.5);
+        t1.rotation.x = -Math.PI / 3;
+        group.add(t1);
+        const t2 = t1.clone();
+        t2.position.x = 0.2;
+        group.add(t2);
+        return group;
+    }
+
+    function createWildHorseMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x6d4c41, flatShading: true });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 1.1), mat);
+        body.position.y = 0.7;
+        body.castShadow = true;
+        group.add(body);
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, 0.7, 6), mat);
+        neck.position.set(0, 1.1, 0.45);
+        neck.rotation.x = 0.4;
+        group.add(neck);
+        return group;
+    }
+
+    function createBearMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x3e2723, flatShading: true });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 1.2), mat);
+        body.position.y = 0.55;
+        body.castShadow = true;
+        group.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 8), mat);
+        head.position.set(0, 0.8, 0.65);
+        group.add(head);
+        return group;
+    }
+
+    function createVolcanoDragonMesh() {
+        const group = new THREE.Group();
+        const bodyMat = new THREE.MeshLambertMaterial({ color: 0xb71c1c, flatShading: true });
+        const wingMat = new THREE.MeshLambertMaterial({ color: 0xd32f2f, side: THREE.DoubleSide, flatShading: true });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.8, 6), bodyMat);
+        body.rotation.x = Math.PI / 2.2;
+        body.position.y = 0.8;
+        body.castShadow = true;
+        group.add(body);
+        const wingL = new THREE.Mesh(new THREE.BufferGeometry(), wingMat);
+        const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.8), wingMat);
+        w1.position.set(0, 1.0, 0);
+        group.add(w1);
+        return group;
+    }
+
+    // --- OCEAN OBJECTS ---
+    function createOceanDriftwoodMesh() {
+        return createDriftwoodLandMesh();
+    }
+
+    function createWoodenCrateMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x8d6e63, flatShading: true });
+        const crate = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), mat);
+        crate.position.y = 0.35;
+        crate.castShadow = true;
+        group.add(crate);
+        return group;
+    }
+
+    function createDriftingBarrelMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x6d4c41 });
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.8, 10), mat);
+        barrel.position.y = 0.4;
+        barrel.castShadow = true;
+        group.add(barrel);
+        return group;
+    }
+
+    function createRescueContainerMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x0288d1, flatShading: true });
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.6), mat);
+        box.position.y = 0.3;
+        group.add(box);
+        return group;
+    }
+
+    function createMessageBottleMesh() {
+        const group = new THREE.Group();
+        const glassMat = new THREE.MeshLambertMaterial({ color: 0x80deea, transparent: true, opacity: 0.7 });
+        const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.5, 8), glassMat);
+        bottle.position.y = 0.25;
+        bottle.rotation.z = Math.PI / 3;
+        group.add(bottle);
+        return group;
+    }
+
+    function createKelpMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x1b5e20, flatShading: true, side: THREE.DoubleSide });
+        for (let i = 0; i < 4; i++) {
+            const strand = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 1.6), mat);
+            strand.position.set((i - 1.5) * 0.15, 0.8, 0);
+            strand.rotation.y = i * 0.4;
+            group.add(strand);
+        }
+        return group;
+    }
+
+    function createPearlMesh() {
+        const group = new THREE.Group();
+        const pearlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.3 });
+        const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), pearlMat);
+        pearl.position.y = 0.3;
+        group.add(pearl);
+        return group;
+    }
+
+    function createGiantClamMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xbcaaa4, flatShading: true });
+        const shell = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8, 0, Math.PI), mat);
+        shell.rotation.x = -Math.PI / 2;
+        shell.position.y = 0.2;
+        group.add(shell);
+        return group;
+    }
+
+    function createScallopMesh() {
+        return createGiantClamMesh();
+    }
+
+    function createScrapPartsMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0x78909c, metalness: 0.8, roughness: 0.3 });
+        const gear = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.15, 8), mat);
+        gear.position.y = 0.1;
+        group.add(gear);
+        return group;
+    }
+
+    function createFishShoalMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x29b6f6 });
+        for (let i = 0; i < 6; i++) {
+            const f = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 5), mat);
+            f.rotation.x = Math.PI / 2;
+            const a = (i / 6) * Math.PI * 2;
+            f.position.set(Math.cos(a) * 0.5, 0.3 + (i % 2) * 0.15, Math.sin(a) * 0.5);
+            group.add(f);
+        }
+        return group;
+    }
+
+    function createCoralReefMesh() {
+        const group = new THREE.Group();
+        const mat1 = new THREE.MeshLambertMaterial({ color: 0xff4081, flatShading: true });
+        const mat2 = new THREE.MeshLambertMaterial({ color: 0x7c4dff, flatShading: true });
+        for (let i = 0; i < 5; i++) {
+            const branch = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.8, 5), i % 2 === 0 ? mat1 : mat2);
+            const a = (i / 5) * Math.PI * 2;
+            branch.position.set(Math.cos(a) * 0.3, 0.4, Math.sin(a) * 0.3);
+            branch.rotation.x = Math.cos(a) * 0.3;
+            group.add(branch);
+        }
+        return group;
+    }
+
+    function createSeabedOilFieldMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0x37474f, metalness: 0.7 });
+        const rig = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 1.2), mat);
+        rig.position.y = 0.9;
+        rig.castShadow = true;
+        group.add(rig);
+        return group;
+    }
+
+    function createSunkenShipMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x3e2723, flatShading: true });
+        const hull = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.4, 5), mat);
+        hull.rotation.x = Math.PI / 2.2;
+        hull.rotation.z = 0.5;
+        hull.position.y = 0.2;
+        group.add(hull);
+        return group;
+    }
+
+    function createNavigationBuoyMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xff3d00, flatShading: true });
+        const buoy = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.0, 8), mat);
+        buoy.position.y = 0.5;
+        group.add(buoy);
+        const light = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+        light.position.y = 1.1;
+        group.add(light);
+        return group;
+    }
+
+    function createOceanWatchtowerMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.2, 6), mat);
+        tower.position.y = 1.1;
+        tower.castShadow = true;
+        group.add(tower);
+        return group;
+    }
+
+    function createSeaSupplyStationMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x0288d1, flatShading: true });
+        const station = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 1.4), mat);
+        station.position.y = 0.4;
+        group.add(station);
+        return group;
+    }
+
+    function createWaterTowerOceanMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0x78909c, metalness: 0.5 });
+        const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.2, 10), mat);
+        tank.position.y = 1.4;
+        group.add(tank);
+        return group;
+    }
+
+    function createWhirlpoolMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.75, side: THREE.DoubleSide });
+        const pool = new THREE.Mesh(new THREE.RingGeometry(0.2, 1.2, 16), mat);
+        pool.rotation.x = -Math.PI / 2;
+        pool.position.y = 0.05;
+        group.add(pool);
+        return group;
+    }
+
+    function createDriftIceMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xe0f7fa, flatShading: true });
+        const ice = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 0.2, 7), mat);
+        ice.position.y = 0.1;
+        group.add(ice);
+        return group;
+    }
+
+    function createIcebergMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xb2ebf2, flatShading: true });
+        const berg = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.8, 6), mat);
+        berg.position.y = 0.8;
+        berg.castShadow = true;
+        group.add(berg);
+        return group;
+    }
+
+    // --- OCEAN CREATURES ---
+    function createGenericFishMesh(colorHex, scale = 1.0) {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: colorHex, flatShading: true });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.3 * scale, 1.0 * scale, 6), mat);
+        body.rotation.x = Math.PI / 2;
+        body.position.y = 0.2 * scale;
+        body.castShadow = true;
+        group.add(body);
+        const tail = new THREE.Mesh(new THREE.ConeGeometry(0.2 * scale, 0.4 * scale, 4), mat);
+        tail.position.set(0, 0.2 * scale, -0.6 * scale);
+        tail.rotation.x = -Math.PI / 2;
+        group.add(tail);
+        return group;
+    }
+
+    function createCrabMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xe53935 });
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), mat);
+        body.scale.set(1.2, 0.5, 1);
+        body.position.y = 0.2;
+        group.add(body);
+        return group;
+    }
+
+    function createOctopusMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xd81b60 });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), mat);
+        head.position.y = 0.45;
+        group.add(head);
+        return group;
+    }
+
+    function createSquidMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xff80ab, flatShading: true });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.9, 6), mat);
+        body.rotation.x = Math.PI / 2;
+        body.position.y = 0.25;
+        group.add(body);
+        return group;
+    }
+
+    function createHumpbackWhaleMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x1a237e, flatShading: true });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.7, 2.4, 8), mat);
+        body.rotation.x = Math.PI / 2;
+        body.position.y = 0.4;
+        body.castShadow = true;
+        group.add(body);
+        return group;
+    }
+
+    function createBlueWhaleMesh() {
+        return createHumpbackWhaleMesh();
+    }
+
+    function createMantaRayMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x37474f, side: THREE.DoubleSide, flatShading: true });
+        const wing = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.2), mat);
+        wing.rotation.x = -Math.PI / 2;
+        wing.position.y = 0.2;
+        group.add(wing);
+        return group;
+    }
+
+    function createJellyfishMesh(colorHex) {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: colorHex, transparent: true, opacity: 0.8 });
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+        cap.position.y = 0.4;
+        group.add(cap);
+        return group;
+    }
+
+    function createSharkMesh(colorHex) {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: colorHex, flatShading: true });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.6, 6), mat);
+        body.rotation.x = Math.PI / 2;
+        body.position.y = 0.3;
+        body.castShadow = true;
+        group.add(body);
+        const fin = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.5, 4), mat);
+        fin.position.set(0, 0.6, 0);
+        fin.rotation.x = -0.4;
+        group.add(fin);
+        return group;
+    }
+
+    function createOrcaMesh() {
+        return createSharkMesh(0x212121);
+    }
+
+    function createKrakenMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x880e4f, flatShading: true });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.8, 10, 10), mat);
+        head.position.y = 0.8;
+        group.add(head);
+        return group;
+    }
+
+    function createLeviathanMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x004d40, flatShading: true });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2.5, 8), mat);
+        body.rotation.x = Math.PI / 2.2;
+        body.position.y = 0.5;
+        group.add(body);
+        return group;
+    }
+
+    // --- SKY OBJECTS ---
+    function createCrystalMesh(colorHex) {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.1, metalness: 0.8, flatShading: true });
+        const cry = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), mat);
+        cry.position.y = 10.0;
+        cry.castShadow = true;
+        group.add(cry);
+        return group;
+    }
+
+    function createEtherOrbMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0xaa00ff, transparent: true, opacity: 0.85 });
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), mat);
+        orb.position.y = 10.0;
+        group.add(orb);
+        return group;
+    }
+
+    function createStarFragmentMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0xffea00, metalness: 0.9, roughness: 0.1, flatShading: true });
+        const star = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5, 1), mat);
+        star.position.y = 10.0;
+        group.add(star);
+        return group;
+    }
+
+    function createMeteorFragmentMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x3e2723, flatShading: true });
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 0), mat);
+        rock.position.y = 10.0;
+        group.add(rock);
+        return group;
+    }
+
+    function createFloatingSporeMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0xb2ff59, transparent: true, opacity: 0.7 });
+        const spore = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), mat);
+        spore.position.y = 10.0;
+        group.add(spore);
+        return group;
+    }
+
+    function createParachuteContainerMesh() {
+        const group = new THREE.Group();
+        const chuteMat = new THREE.MeshLambertMaterial({ color: 0xffeb3b, side: THREE.DoubleSide });
+        const boxMat = new THREE.MeshLambertMaterial({ color: 0x795548 });
+        const chute = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), chuteMat);
+        chute.position.y = 11.2;
+        group.add(chute);
+        const box = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), boxMat);
+        box.position.y = 9.8;
+        group.add(box);
+        return group;
+    }
+
+    function createObservationPodMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, metalness: 0.8 });
+        const pod = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 10), mat);
+        pod.position.y = 10.0;
+        group.add(pod);
+        return group;
+    }
+
+    function createFeatherMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        const feather = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.9), mat);
+        feather.position.y = 10.0;
+        feather.rotation.z = 0.4;
+        group.add(feather);
+        return group;
+    }
+
+    function createUpdraftMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0xe0f7fa, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+        const wind = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.3, 3.0, 12, 1, true), mat);
+        wind.position.y = 10.0;
+        group.add(wind);
+        return group;
+    }
+
+    function createAccelerationRingMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0x00e676, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.08, 8, 20), mat);
+        ring.position.y = 10.0;
+        group.add(ring);
+        return group;
+    }
+
+    function createAerialMooringBuoyMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xff1744 });
+        const buoy = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 10), mat);
+        buoy.position.y = 10.0;
+        group.add(buoy);
+        return group;
+    }
+
+    function createSkyLighthouseMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0xfff59d, flatShading: true });
+        const house = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 1.8, 8), mat);
+        house.position.y = 10.0;
+        group.add(house);
+        return group;
+    }
+
+    function createRadioTowerMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0xd32f2f, metalness: 0.6 });
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.4, 2.5, 4), mat);
+        tower.position.y = 10.0;
+        group.add(tower);
+        return group;
+    }
+
+    function createThundercloudMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x455a64, flatShading: true });
+        const cloud = new THREE.Mesh(new THREE.DodecahedronGeometry(0.9, 1), mat);
+        cloud.position.y = 10.5;
+        group.add(cloud);
+        return group;
+    }
+
+    function createFloatingMineMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: 0x212121, metalness: 0.8 });
+        const mine = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), mat);
+        mine.position.y = 10.0;
+        group.add(mine);
+        return group;
+    }
+
+    function createFloatingWaterOrbMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshBasicMaterial({ color: 0x29b6f6, transparent: true, opacity: 0.75 });
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 12), mat);
+        orb.position.y = 10.0;
+        group.add(orb);
+        return group;
+    }
+
+    function createSkyPirateFortMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x3e2723, flatShading: true });
+        const fort = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.0, 1.6), mat);
+        fort.position.y = 10.0;
+        fort.castShadow = true;
+        group.add(fort);
+        return group;
+    }
+
+    // --- SKY CREATURES ---
+    function createGenericBirdMesh(colorHex, scale = 1.0) {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: colorHex, flatShading: true, side: THREE.DoubleSide });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.2 * scale, 0.7 * scale, 5), mat);
+        body.rotation.x = Math.PI / 2;
+        body.position.y = 10.0;
+        group.add(body);
+        const wings = new THREE.Mesh(new THREE.PlaneGeometry(1.2 * scale, 0.4 * scale), mat);
+        wings.rotation.x = -Math.PI / 2;
+        wings.position.y = 10.0;
+        group.add(wings);
+        return group;
+    }
+
+    function createWyvernMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x2e7d32, flatShading: true });
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.4, 6), mat);
+        body.rotation.x = Math.PI / 2;
+        body.position.y = 10.5;
+        body.castShadow = true;
+        group.add(body);
+        const wing = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.8), mat);
+        wing.rotation.x = -Math.PI / 2;
+        wing.position.y = 10.5;
+        group.add(wing);
+        return group;
+    }
+
+    function createGryphonMesh() {
+        return createWyvernMesh();
+    }
+
+    function createHeavenlyDragonMesh() {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshLambertMaterial({ color: 0x00e5ff, flatShading: true });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 2.2, 8), mat);
+        body.rotation.x = Math.PI / 2.2;
+        body.position.y = 11.0;
+        group.add(body);
+        return group;
+    }
+
+
     function build3DMeshForItemType(type) {
         switch (type) {
+            // 陸地オブジェクト
             case 'tree': return createTreeMesh();
+            case 'log': return createLogMesh();
+            case 'fallen_tree': return createFallenTreeMesh();
+            case 'driftwood_land': return createDriftwoodLandMesh();
             case 'palm_tree': return createPalmTreeMesh();
+            case 'ancient_tree': return createAncientTreeMesh();
             case 'broadleaf_tree': return createBroadleafTreeMesh();
             case 'cherry_tree': return createCherryTreeMesh();
             case 'flower': return createFlowerMesh();
             case 'flower_bed': return createFlowerBedMesh();
             case 'sunflower_cluster': return createSunflowerClusterMesh();
             case 'garden_light': return createGardenLightMesh();
+            case 'medicinal_herb': return createMedicinalHerbMesh();
+            case 'wild_grass': return createWildGrassMesh();
+            case 'mushroom': return createMushroomMesh();
+            case 'berry_bush': return createBerryBushMesh();
+            case 'coconut': return createCoconutMesh();
+            case 'pebble': return createPebbleMesh();
+            case 'iron_ore': return createOreMesh(0x90a4ae);
+            case 'copper_ore': return createOreMesh(0xbcaaa4);
+            case 'gold_ore': return createOreMesh(0xffd54f);
+            case 'coal': return createCoalMesh();
+            case 'ancient_tablet': return createAncientTabletMesh();
+            case 'relic_fragment': return createRelicFragmentMesh();
+            case 'treasure_chest': return createTreasureChestMesh();
             case 'bonfire': return createBonfireMesh();
+            case 'camp_tent': return createCampTentMesh();
+            case 'cooking_pot': return createCookingPotMesh();
+            case 'watchtower': return createWatchtowerMesh();
+            case 'teleport_gate': return createTeleportGateMesh();
+            case 'spring_water': return createSpringWaterMesh();
+            case 'water_well': return createWaterWellMesh();
             case 'fountain': return createFountainMesh();
             case 'small_pond': return createSmallPondMesh();
+            case 'poison_swamp': return createPoisonSwampMesh();
+            case 'thorny_vine': return createThornyVineMesh();
+            case 'cactus': return createCactusMesh();
             case 'rock': return createRockMesh();
+            case 'ancient_ruins': return createAncientRuinsMesh();
+            case 'stone_shrine': return createStoneShrineMesh();
+            case 'tribal_hut': return createTribalHutMesh();
+            case 'limestone_cave': return createLimestoneCaveMesh();
+            case 'stranded_ship': return createStrandedShipMesh();
             case 'wooden_bench': return createWoodenBenchMesh();
             case 'hammock': return createHammockMesh();
             case 'beach_parasol_set': return createBeachParasolSetMesh();
             case 'wood_deck': return createWoodDeckMesh();
             case 'cafe_table_set': return createCafeTableSetMesh();
-            case 'watchtower': return createWatchtowerMesh();
             case 'cottage': return createCottageMesh();
-            case 'house': return createHouseMesh();
+            case 'house': return createCottageMesh();
             case 'shop': return createShopMesh();
             case 'castle': return createCastleMesh();
+
+            // 陸上生物
             case 'animal': return createShibaInuMesh();
             case 'shiba_inu': return createShibaInuMesh();
             case 'calico_cat': return createCalicoCatMesh();
-            case 'white_rabbit': return createWhiteRabbitMesh();
+            case 'rabbit': case 'white_rabbit': return createWhiteRabbitMesh();
+            case 'squirrel': return createGenericCreatureMesh(0x8d6e63, 0.7);
             case 'capybara': return createCapybaraMesh();
-            case 'penguin': return createPenguinMesh();
-            case 'seagull': return createSeagullMesh();
-            case 'parakeet': return createParakeetMesh();
+            case 'deer': return createDeerMesh();
+            case 'wild_boar': return createWildBoarMesh();
+            case 'goat': return createGenericCreatureMesh(0xeeeeee, 0.9);
+            case 'armadillo': return createGenericCreatureMesh(0xa1887f, 0.6);
+            case 'land_turtle': return createSeaTurtleMesh();
+            case 'beetle': return createGenericCreatureMesh(0x3e2723, 0.4);
+            case 'firefly': return createGenericCreatureMesh(0xc0ca33, 0.3);
+            case 'wild_horse': return createWildHorseMesh();
+            case 'ostrich': return createGenericCreatureMesh(0x424242, 1.2);
+            case 'llama': return createGenericCreatureMesh(0xf5f5f5, 1.0);
+            case 'buffalo': return createGenericCreatureMesh(0x3e2723, 1.3);
+            case 'hound': return createShibaInuMesh();
+            case 'poison_snake': return createGenericCreatureMesh(0x2e7d32, 0.6);
+            case 'scorpion': return createGenericCreatureMesh(0x8d6e63, 0.5);
+            case 'monkey': return createGenericCreatureMesh(0x795548, 0.8);
+            case 'wolf': return createGenericCreatureMesh(0x78909c, 1.0);
+            case 'bear': return createBearMesh();
+            case 'jaguar': return createGenericCreatureMesh(0xffb74d, 1.1);
+            case 'goblin': return createGenericCreatureMesh(0x558b2f, 0.8);
+            case 'lizardman': return createGenericCreatureMesh(0x33691e, 1.1);
+            case 'vulture': return createGenericBirdMesh(0x424242, 1.0);
+            case 'golem': return createGenericCreatureMesh(0x616161, 1.6);
+            case 'forest_lord': return createBearMesh();
+            case 'volcano_dragon': return createVolcanoDragonMesh();
 
-            // 海洋アイテム
-            case 'yacht': return createYachtMesh();
-            case 'rowboat': return createRowboatMesh();
+            // 海洋オブジェクト
+            case 'ocean_driftwood': return createOceanDriftwoodMesh();
+            case 'wooden_crate': return createWoodenCrateMesh();
+            case 'drifting_barrel': return createDriftingBarrelMesh();
+            case 'rescue_container': return createRescueContainerMesh();
+            case 'message_bottle': return createMessageBottleMesh();
+            case 'kelp': case 'giant_kelp': case 'sea_grass': return createKelpMesh();
+            case 'pearl': return createPearlMesh();
+            case 'giant_clam': case 'scallop': return createGiantClamMesh();
+            case 'scrap_parts': return createScrapPartsMesh();
+            case 'fish_shoal': return createFishShoalMesh();
+            case 'coral_reef': return createCoralReefMesh();
+            case 'seabed_oil_field': return createSeabedOilFieldMesh();
+            case 'sunken_ship': return createSunkenShipMesh();
+            case 'navigation_buoy': return createNavigationBuoyMesh();
+            case 'lighthouse': case 'lighthouse_islet': return createLighthouseIsletMesh();
+            case 'watch_tower_ocean': return createOceanWatchtowerMesh();
+            case 'sea_supply_station': return createSeaSupplyStationMesh();
+            case 'water_tower_ocean': return createWaterTowerOceanMesh();
+            case 'current_rip': return createWhirlpoolMesh();
+            case 'sunken_rock': return createRockMesh();
+            case 'whirlpool': return createWhirlpoolMesh();
+            case 'drift_ice': return createDriftIceMesh();
+            case 'iceberg': return createIcebergMesh();
+            case 'rowboat': case 'drifting_raft': return createRowboatMesh();
+            case 'yacht': case 'merchant_ship': return createYachtMesh();
+            case 'ghost_ship': return createSunkenShipMesh();
             case 'overwater_cottage': return createOverwaterCottageMesh();
             case 'swim_ring': return createSwimRingMesh();
+
+            // 海洋生物
+            case 'tuna': case 'bonito': case 'mackerel': case 'piranha': return createGenericFishMesh(0x0288d1, 1.0);
+            case 'crab': return createCrabMesh();
+            case 'shrimp': return createGenericFishMesh(0xff7043, 0.6);
+            case 'octopus': return createOctopusMesh();
+            case 'squid': return createSquidMesh();
+            case 'pearl_oyster': case 'barnacle': return createGiantClamMesh();
             case 'sea_turtle': return createSeaTurtleMesh();
             case 'dolphin': return createDolphinMesh();
             case 'dolphin_spot': return createDolphinSpotMesh();
-            case 'lighthouse_islet': return createLighthouseIsletMesh();
-            case 'drifting_raft': return createRowboatMesh();
-            case 'merchant_ship': return createYachtMesh();
-            case 'ghost_ship': return createYachtMesh();
-            case 'lighthouse': return createLighthouseIsletMesh();
+            case 'humpback_whale': case 'blue_whale': case 'island_whale': return createHumpbackWhaleMesh();
+            case 'manta_ray': case 'electric_ray': return createMantaRayMesh();
+            case 'luminescent_jellyfish': case 'man_of_war': return createJellyfishMesh(0x80deea);
+            case 'electric_eel': return createGenericFishMesh(0x37474f, 1.2);
+            case 'great_white_shark': case 'hammerhead_shark': return createSharkMesh(0x78909c);
+            case 'orca': return createOrcaMesh();
+            case 'giant_squid': return createSquidMesh();
+            case 'kraken': return createKrakenMesh();
+            case 'leviathan': return createLeviathanMesh();
 
-            // 上空アイテム
-            case 'hot_air_balloon': return createHotAirBalloonMesh();
+            // 空中オブジェクト
+            case 'wind_crystal': return createCrystalMesh(0x00e5ff);
+            case 'ether_orb': return createEtherOrbMesh();
+            case 'star_fragment': return createStarFragmentMesh();
+            case 'meteor_fragment': return createMeteorFragmentMesh();
+            case 'floating_spore': return createFloatingSporeMesh();
+            case 'parachute_container': return createParachuteContainerMesh();
+            case 'observation_pod': return createObservationPodMesh();
+            case 'feather': return createFeatherMesh();
+            case 'updraft': case 'jet_stream': case 'turbulent_air': return createUpdraftMesh();
+            case 'acceleration_ring': return createAccelerationRingMesh();
+            case 'aerial_mooring_buoy': return createAerialMooringBuoyMesh();
+            case 'hot_air_balloon': case 'refueling_balloon': return createHotAirBalloonMesh();
+            case 'sky_lighthouse': return createSkyLighthouseMesh();
+            case 'radio_tower': return createRadioTowerMesh();
+            case 'thundercloud': return createThundercloudMesh();
+            case 'floating_mine': return createFloatingMineMesh();
             case 'floating_island': return createFloatingIslandMesh();
+            case 'airship': case 'airship_wreckage': return createAirshipMesh();
+            case 'floating_water_orb': return createFloatingWaterOrbMesh();
+            case 'sky_pirate_fort': return createSkyPirateFortMesh();
             case 'rainbow_arch': return createRainbowArchMesh();
             case 'meteor_spot': return createMeteorSpotMesh();
-            case 'airship': return createAirshipMesh();
             case 'aurora_generator': return createAuroraGeneratorMesh();
-            case 'refueling_balloon': return createHotAirBalloonMesh();
+
+            // 空中生物
+            case 'seagull': case 'goose': case 'guiding_bird': case 'pirate_crow': return createGenericBirdMesh(0xffffff, 1.0);
+            case 'parakeet': case 'glowing_hummingbird': return createGenericBirdMesh(0x00e676, 0.7);
+            case 'skyfish': case 'skyray': return createGenericFishMesh(0x00e5ff, 0.8);
+            case 'floating_snail': case 'cloud_leech': return createGenericCreatureMesh(0xbcaaa4, 0.6);
+            case 'floating_whale': return createHumpbackWhaleMesh();
+            case 'sky_jellyfish': return createJellyfishMesh(0x80deea);
+            case 'electric_bat': return createGenericBirdMesh(0x37474f, 0.6);
+            case 'acid_insect': return createGenericBirdMesh(0x76ff03, 0.4);
+            case 'diving_hawk': case 'roc_bird': return createGenericBirdMesh(0x5d4037, 1.3);
+            case 'wyvern': return createWyvernMesh();
+            case 'gryphon': return createGryphonMesh();
+            case 'harpy': return createGenericBirdMesh(0xe1bee7, 1.1);
+            case 'heavenly_dragon': return createHeavenlyDragonMesh();
+            case 'giant_beast_island': return createFloatingIslandMesh();
 
             default: return createGenericMesh(type, getItemAreaCategory(type));
         }
