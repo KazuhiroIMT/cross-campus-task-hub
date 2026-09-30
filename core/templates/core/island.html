@@ -2176,6 +2176,10 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'dolphin': return createDolphinMesh();
             case 'dolphin_spot': return createDolphinSpotMesh();
             case 'lighthouse_islet': return createLighthouseIsletMesh();
+            case 'drifting_raft': return createRowboatMesh();
+            case 'merchant_ship': return createYachtMesh();
+            case 'ghost_ship': return createYachtMesh();
+            case 'lighthouse': return createLighthouseIsletMesh();
 
             // 上空アイテム
             case 'hot_air_balloon': return createHotAirBalloonMesh();
@@ -2184,8 +2188,9 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'meteor_spot': return createMeteorSpotMesh();
             case 'airship': return createAirshipMesh();
             case 'aurora_generator': return createAuroraGeneratorMesh();
+            case 'refueling_balloon': return createHotAirBalloonMesh();
 
-            default: return createTreeMesh();
+            default: return createGenericMesh(type, getItemAreaCategory(type));
         }
     }
 
@@ -2202,10 +2207,63 @@ document.addEventListener("DOMContentLoaded", function() {
             .catch(err => console.error("Error loading island data:", err));
     }
 
-    const CREATURE_TYPES = ['animal', 'shiba_inu', 'calico_cat', 'white_rabbit', 'capybara', 'penguin', 'seagull', 'parakeet', 'sea_turtle', 'dolphin'];
+    const OCEAN_ITEM_TYPES = [
+        'ocean_driftwood', 'wooden_crate', 'drifting_barrel', 'rescue_container', 'message_bottle',
+        'kelp', 'giant_kelp', 'sea_grass', 'pearl', 'giant_clam', 'scallop', 'scrap_parts',
+        'fish_shoal', 'coral_reef', 'seabed_oil_field', 'sunken_ship', 'navigation_buoy',
+        'lighthouse', 'watch_tower_ocean', 'sea_supply_station', 'water_tower_ocean',
+        'current_rip', 'sunken_rock', 'whirlpool', 'drift_ice', 'iceberg', 'drifting_raft',
+        'merchant_ship', 'ghost_ship',
+        'tuna', 'bonito', 'mackerel', 'crab', 'shrimp', 'octopus', 'squid', 'pearl_oyster',
+        'sea_turtle', 'dolphin', 'humpback_whale', 'blue_whale', 'manta_ray',
+        'luminescent_jellyfish', 'electric_eel', 'electric_ray', 'man_of_war', 'piranha',
+        'barnacle', 'great_white_shark', 'hammerhead_shark', 'orca', 'giant_squid',
+        'kraken', 'leviathan', 'island_whale'
+    ];
+
+    const SKY_ITEM_TYPES = [
+        'wind_crystal', 'ether_orb', 'star_fragment', 'meteor_fragment', 'floating_spore',
+        'parachute_container', 'observation_pod', 'feather', 'updraft', 'jet_stream',
+        'acceleration_ring', 'aerial_mooring_buoy', 'refueling_balloon', 'sky_lighthouse',
+        'radio_tower', 'turbulent_air', 'thundercloud', 'floating_mine', 'floating_island',
+        'airship_wreckage', 'floating_water_orb', 'sky_pirate_fort',
+        'seagull', 'goose', 'skyfish', 'glowing_hummingbird', 'floating_snail', 'skyray',
+        'guiding_bird', 'floating_whale', 'sky_jellyfish', 'electric_bat', 'acid_insect',
+        'diving_hawk', 'cloud_leech', 'wyvern', 'gryphon', 'harpy', 'pirate_crow',
+        'roc_bird', 'heavenly_dragon', 'giant_beast_island'
+    ];
+
+    const LAND_CREATURE_TYPES = [
+        'rabbit', 'squirrel', 'deer', 'wild_boar', 'goat', 'armadillo', 'land_turtle', 'beetle',
+        'firefly', 'wild_horse', 'ostrich', 'llama', 'buffalo', 'hound', 'poison_snake', 'scorpion',
+        'monkey', 'wolf', 'bear', 'jaguar', 'goblin', 'lizardman', 'vulture', 'golem', 'forest_lord',
+        'volcano_dragon', 'shiba_inu', 'calico_cat', 'white_rabbit', 'capybara', 'penguin', 'animal'
+    ];
+
+    const OCEAN_CREATURE_TYPES = [
+        'tuna', 'bonito', 'mackerel', 'crab', 'shrimp', 'octopus', 'squid', 'pearl_oyster',
+        'sea_turtle', 'dolphin', 'humpback_whale', 'blue_whale', 'manta_ray', 'luminescent_jellyfish',
+        'electric_eel', 'electric_ray', 'man_of_war', 'piranha', 'barnacle', 'great_white_shark',
+        'hammerhead_shark', 'orca', 'giant_squid', 'kraken', 'leviathan', 'island_whale'
+    ];
+
+    const SKY_CREATURE_TYPES = [
+        'seagull', 'goose', 'skyfish', 'glowing_hummingbird', 'floating_snail', 'skyray',
+        'guiding_bird', 'floating_whale', 'sky_jellyfish', 'electric_bat', 'acid_insect',
+        'diving_hawk', 'cloud_leech', 'wyvern', 'gryphon', 'harpy', 'pirate_crow',
+        'roc_bird', 'heavenly_dragon', 'giant_beast_island', 'parakeet'
+    ];
 
     function isCreatureType(type) {
-        return CREATURE_TYPES.includes(type);
+        return LAND_CREATURE_TYPES.includes(type) || OCEAN_CREATURE_TYPES.includes(type) || SKY_CREATURE_TYPES.includes(type);
+    }
+
+    function isOceanCreature(type) {
+        return OCEAN_CREATURE_TYPES.includes(type);
+    }
+
+    function isSkyCreature(type) {
+        return SKY_CREATURE_TYPES.includes(type);
     }
 
     function isValidPlacementArea(x, z, areaCategory, level = ISLAND_LEVEL) {
@@ -2214,7 +2272,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const coastR = organicCoastlineRadius(angle, level);
 
         if (areaCategory === 'land') {
-            // Allow land placement up to the coastline edge (beach-water boundary)
             return dist <= (coastR - 0.1);
         } else if (areaCategory === 'ocean') {
             const maxOceanR = (baseIslandRadius + (level >= 4 ? 4.0 : 2.0)) * 3.5;
@@ -2240,7 +2297,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const r = coastR + 2.0 + Math.random() * 3.0;
             x = Math.cos(angle) * r;
             z = Math.sin(angle) * r;
-            y = getTerrainHeight(x, z, level);
+            y = 0.0;
         } else if (areaCategory === 'sky') {
             const r = Math.random() * (coastR * 0.8);
             x = Math.cos(angle) * r;
@@ -2276,25 +2333,25 @@ document.addEventListener("DOMContentLoaded", function() {
                     item.position_z = posZ;
                 }
 
-                // Relative ground height calculation taking island Y scale into account
-                let baseY = getTerrainHeight(posX, posZ, ISLAND_LEVEL);
-                let worldY = baseY * islandScaleY;
-
+                let worldY = 0;
                 if (areaCat === 'sky') {
                     worldY = 12.0 * islandScaleY;
                 } else if (areaCat === 'ocean') {
-                    // Sea level snap: snap ocean items to water surface (Y=0) instead of underwater terrain
-                    let floatOffset = 0.05;
-                    if (item.item_type === 'overwater_cottage' || item.item_type === 'lighthouse_islet') {
-                        floatOffset = 0.0;
-                    } else if (item.item_type === 'sea_turtle' || item.item_type === 'dolphin') {
-                        floatOffset = -0.05;
+                    // Sea level snap: snap ocean floating items strictly to water surface (Y=0)
+                    if (['kelp', 'giant_kelp', 'sea_grass', 'coral_reef', 'seabed_oil_field', 'sunken_ship', 'sunken_rock', 'giant_clam'].includes(item.item_type)) {
+                        worldY = -0.4 * islandScaleY; // submerged seabed objects
+                    } else if (isOceanCreature(item.item_type)) {
+                        worldY = -0.2 * islandScaleY; // swimming underwater
+                    } else {
+                        worldY = 0.0; // Sea surface floating items (ships, rafts, buoys, crates, etc.)
                     }
-                    worldY = floatOffset * islandScaleY;
+                } else {
+                    let baseY = getTerrainHeight(posX, posZ, ISLAND_LEVEL);
+                    worldY = baseY * islandScaleY;
                 }
 
-                if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
-                    worldY = Math.max(worldY + 2.0, 4.5 * islandScaleY); // flying above terrain
+                if (isSkyCreature(item.item_type)) {
+                    worldY = Math.max(worldY, 11.0 * islandScaleY);
                 }
 
                 let worldX = posX * islandScaleX;
@@ -2320,20 +2377,15 @@ document.addEventListener("DOMContentLoaded", function() {
                     let speed = 0.025;
                     let initialState = 'idle';
 
-                    if (item.item_type === 'shiba_inu' || item.item_type === 'animal') speed = 0.04;
-                    else if (item.item_type === 'calico_cat') speed = 0.02;
-                    else if (item.item_type === 'white_rabbit') speed = 0.035;
-                    else if (item.item_type === 'capybara') speed = 0.015;
-                    else if (item.item_type === 'penguin') speed = 0.022;
-                    else if (item.item_type === 'sea_turtle') {
-                        speed = 0.02;
+                    if (isOceanCreature(item.item_type)) {
+                        speed = 0.035;
                         initialState = 'swimming';
-                    } else if (item.item_type === 'dolphin') {
-                        speed = 0.048;
-                        initialState = 'swimming';
-                    } else if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
-                        speed = 0.055;
+                    } else if (isSkyCreature(item.item_type)) {
+                        speed = 0.05;
                         initialState = 'flying';
+                    } else {
+                        speed = 0.03;
+                        initialState = 'walking';
                     }
 
                     creaturesList.push({
@@ -2354,10 +2406,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // エリア解放・アイテムエリア区分ヘルパー
     function getItemAreaCategory(type) {
-        const oceanTypes = ['yacht', 'rowboat', 'overwater_cottage', 'swim_ring', 'sea_turtle', 'dolphin', 'dolphin_spot', 'lighthouse_islet'];
-        const skyTypes = ['hot_air_balloon', 'floating_island', 'rainbow_arch', 'meteor_spot', 'airship', 'aurora_generator'];
-        if (oceanTypes.includes(type)) return 'ocean';
-        if (skyTypes.includes(type)) return 'sky';
+        if (OCEAN_ITEM_TYPES.includes(type)) return 'ocean';
+        if (SKY_ITEM_TYPES.includes(type)) return 'sky';
         return 'land';
     }
 
@@ -2766,9 +2816,14 @@ document.addEventListener("DOMContentLoaded", function() {
         islandData.items.forEach(item => {
             const group = placedObjectsMap.get(item.id);
             if (group) {
-                // Convert world scale coordinates back to base island relative coordinates
+                const areaCat = getItemAreaCategory(item.item_type);
                 const baseX = parseFloat((group.position.x / islandScaleX).toFixed(2));
-                const baseY = parseFloat((group.position.y / islandScaleY).toFixed(2));
+                let baseY = parseFloat((group.position.y / islandScaleY).toFixed(2));
+                if (areaCat === 'ocean') {
+                    baseY = ['kelp', 'giant_kelp', 'sea_grass', 'coral_reef', 'seabed_oil_field', 'sunken_ship', 'sunken_rock', 'giant_clam'].includes(item.item_type) ? -0.4 : (isOceanCreature(item.item_type) ? -0.2 : 0.0);
+                } else if (areaCat === 'sky') {
+                    baseY = 12.0;
+                }
                 const baseZ = parseFloat((group.position.z / islandScaleZ).toFixed(2));
                 payload.push({
                     id: item.id,
@@ -2804,7 +2859,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 btnSavePositions.innerHTML = `<i class="bi bi-check-all"></i> 保存完了！`;
                 setTimeout(() => {
                     btnSavePositions.innerHTML = `<i class="bi bi-check-lg"></i> 位置を保存`;
-                    // 保存成功後、自動的に編集モードを終了し鑑賞モードへ復帰
                     if (isEditMode) {
                         btnToggleEdit.click();
                     }
@@ -2827,7 +2881,6 @@ document.addEventListener("DOMContentLoaded", function() {
         raycaster.setFromCamera(mouse, camera);
 
         if (isEditMode) {
-            // トレイから選択中のアイテムを即座に初期配置
             if (selectedTrayItem) {
                 const item = islandData.items.find(i => i.id === selectedTrayItem);
                 if (item) {
@@ -2861,7 +2914,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         item.is_placed = true;
                         item.position_x = baseX;
                         item.position_z = baseZ;
-                        item.position_y = areaCat === 'sky' ? 12.0 : getTerrainHeight(baseX, baseZ, ISLAND_LEVEL);
+                        item.position_y = areaCat === 'sky' ? 12.0 : (areaCat === 'ocean' ? 0.0 : getTerrainHeight(baseX, baseZ, ISLAND_LEVEL));
 
                         renderPlacedItems();
                         populateItemTray();
@@ -2875,7 +2928,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 return;
             }
 
-            // 配置済みオブジェクトの選択 & ドラッグ移動開始
             const intersects = raycaster.intersectObjects(Array.from(placedObjectsMap.values()), true);
             if (intersects.length > 0) {
                 let topGroup = intersects[0].object;
@@ -2886,12 +2938,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 selectPlacedObject(topGroup);
                 isDraggingObject = true;
                 dragOriginalPos = topGroup.position.clone();
-                controls.enabled = false; // ドラッグ中はカメラ移動を停止
+                controls.enabled = false;
             } else {
                 deselectActiveObject();
             }
         } else {
-            // 鑑賞モード: リアクション演出
             const intersects = raycaster.intersectObjects(Array.from(placedObjectsMap.values()), true);
             if (intersects.length > 0) {
                 let topGroup = intersects[0].object;
@@ -2943,10 +2994,13 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (areaCat === 'sky') {
                     targetY = 12.0 * islandScaleY;
                 } else if (areaCat === 'ocean') {
-                    let floatOffset = 0.05;
-                    if (itemType === 'overwater_cottage' || itemType === 'lighthouse_islet') floatOffset = 0.0;
-                    else if (itemType === 'sea_turtle' || itemType === 'dolphin') floatOffset = -0.05;
-                    targetY = floatOffset * islandScaleY;
+                    if (['kelp', 'giant_kelp', 'sea_grass', 'coral_reef', 'seabed_oil_field', 'sunken_ship', 'sunken_rock', 'giant_clam'].includes(itemType)) {
+                        targetY = -0.4 * islandScaleY;
+                    } else if (isOceanCreature(itemType)) {
+                        targetY = -0.2 * islandScaleY;
+                    } else {
+                        targetY = 0.0; // Sea surface floating items
+                    }
                 }
 
                 placementIndicator.position.set(pt.x, targetY + 0.1, pt.z);
@@ -3022,6 +3076,39 @@ document.addEventListener("DOMContentLoaded", function() {
         setTimeout(() => heart.remove(), 1200);
     }
 
+    // Generic mesh generators for non-custom item models
+    function createGenericMesh(type, areaCat) {
+        const group = new THREE.Group();
+        let mainMat = new THREE.MeshLambertMaterial({ color: 0x8e24aa, flatShading: true });
+
+        if (areaCat === 'ocean') {
+            mainMat = new THREE.MeshLambertMaterial({ color: 0x0288d1, flatShading: true });
+        } else if (areaCat === 'sky') {
+            mainMat = new THREE.MeshLambertMaterial({ color: 0x00bcd4, flatShading: true });
+        } else {
+            mainMat = new THREE.MeshLambertMaterial({ color: 0x4caf50, flatShading: true });
+        }
+
+        if (isCreatureType(type)) {
+            // Low poly creature body + head
+            const body = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.2, 6), mainMat);
+            body.rotation.x = Math.PI / 2;
+            body.position.y = 0.2;
+            group.add(body);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 6, 6), mainMat);
+            head.position.set(0, 0.2, 0.6);
+            group.add(head);
+        } else {
+            // Low poly object box/crystal/structure
+            const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.6, 1), mainMat);
+            base.position.y = 0.4;
+            base.castShadow = true;
+            group.add(base);
+        }
+        return group;
+    }
+
     // --- 9. Autonomous Creature Wander AI & Render Loop ---
     const clock = new THREE.Clock();
 
@@ -3032,232 +3119,147 @@ document.addEventListener("DOMContentLoaded", function() {
         creaturesList.forEach(c => {
             c.stateTimer -= delta;
 
-            // 1. Boundary check (prevent falling into ocean)
+            const areaCat = getItemAreaCategory(c.type);
+
+            // 1. Boundary check according to category
             const currentDist = Math.sqrt(c.group.position.x * c.group.position.x + c.group.position.z * c.group.position.z);
-            if (currentDist > maxBoundRadius) {
-                // Force target towards inner island
+            if (areaCat === 'land' && currentDist > maxBoundRadius) {
                 const targetX = c.group.position.x * -0.4;
                 const targetZ = c.group.position.z * -0.4;
                 const bX = targetX / islandScaleX;
                 const bZ = targetZ / islandScaleZ;
                 const groundY = getTerrainHeight(bX, bZ, ISLAND_LEVEL) * islandScaleY;
-                c.targetPos.set(targetX, (c.type === 'seagull' || c.type === 'parakeet') ? groundY + 3.0 : groundY, targetZ);
-                c.state = (c.type === 'seagull' || c.type === 'parakeet') ? 'flying' : 'walking';
+                c.targetPos.set(targetX, groundY, targetZ);
+                c.state = 'walking';
+            } else if (areaCat === 'ocean' && currentDist <= maxBoundRadius * 0.9) {
+                // Ocean creature pushed back into sea
+                const angle = Math.atan2(c.group.position.z, c.group.position.x);
+                const coastR = organicCoastlineRadius(angle, ISLAND_LEVEL);
+                const oceanR = (coastR + 2.5) * islandScaleX;
+                c.targetPos.set(Math.cos(angle) * oceanR, -0.2 * islandScaleY, Math.sin(angle) * oceanR);
+                c.state = 'swimming';
             }
 
             // 2. State Machine & Transitions
             if (c.stateTimer <= 0) {
-                const randRadius = Math.random() * (maxBoundRadius * 0.85);
                 const angle = Math.random() * Math.PI * 2;
-                const tX = Math.cos(angle) * randRadius;
-                const tZ = Math.sin(angle) * randRadius;
-                const bX = tX / islandScaleX;
-                const bZ = tZ / islandScaleZ;
-                const tGroundY = getTerrainHeight(bX, bZ, ISLAND_LEVEL) * islandScaleY;
+                const coastR = organicCoastlineRadius(angle, ISLAND_LEVEL);
 
-                if (c.type === 'shiba_inu' || c.type === 'animal') {
-                    if (c.state === 'idle') {
-                        const isRun = Math.random() < 0.35;
-                        c.state = isRun ? 'running' : 'walking';
-                        c.speed = (isRun ? 0.065 : 0.038) * islandScaleX;
-                        c.targetPos.set(tX, tGroundY, tZ);
-                        c.stateTimer = Math.random() * 5 + 3;
-                    } else {
-                        c.state = 'idle';
-                        c.stateTimer = Math.random() * 4 + 2;
-                    }
-                } else if (c.type === 'calico_cat') {
-                    if (c.state === 'idle' || c.state === 'sleeping') {
-                        if (Math.random() < 0.3) {
-                            c.state = 'sleeping';
-                            c.stateTimer = Math.random() * 7 + 4;
+                if (isOceanCreature(c.type)) {
+                    if (c.state === 'swimming' || c.state === 'idle') {
+                        if (Math.random() < 0.25 && ['dolphin', 'humpback_whale', 'blue_whale', 'orca', 'sea_turtle'].includes(c.type)) {
+                            c.state = 'surfacing';
+                            c.jumpPhase = 0;
+                            c.stateTimer = Math.random() * 4 + 3;
                         } else {
-                            c.state = 'walking';
-                            c.targetPos.set(tX, tGroundY, tZ);
-                            c.stateTimer = Math.random() * 6 + 3;
-                        }
-                    } else {
-                        c.state = 'idle';
-                        c.stateTimer = Math.random() * 4 + 2;
-                    }
-                } else if (c.type === 'white_rabbit') {
-                    if (c.state === 'idle') {
-                        c.state = 'hopping';
-                        c.targetPos.set(tX, tGroundY, tZ);
-                        c.stateTimer = Math.random() * 4 + 3;
-                    } else {
-                        c.state = 'idle';
-                        c.stateTimer = Math.random() * 3 + 2;
-                    }
-                } else if (c.type === 'capybara') {
-                    if (c.state === 'idle') {
-                        c.state = 'walking';
-                        let waterItem = islandData && islandData.items ? islandData.items.find(i => i.is_placed && (i.item_type === 'small_pond' || i.item_type === 'fountain')) : null;
-                        if (waterItem && Math.random() < 0.65) {
-                            const wX = (waterItem.position_x + (Math.random() - 0.5) * 2.0) * islandScaleX;
-                            const wZ = (waterItem.position_z + (Math.random() - 0.5) * 2.0) * islandScaleZ;
-                            const wbX = wX / islandScaleX;
-                            const wbZ = wZ / islandScaleZ;
-                            c.targetPos.set(wX, getTerrainHeight(wbX, wbZ, ISLAND_LEVEL) * islandScaleY, wZ);
-                        } else {
-                            c.targetPos.set(tX, tGroundY, tZ);
-                        }
-                        c.stateTimer = Math.random() * 7 + 4;
-                    } else {
-                        c.state = 'idle';
-                        c.stateTimer = Math.random() * 5 + 3;
-                    }
-                } else if (c.type === 'penguin') {
-                    if (c.state === 'idle') {
-                        c.state = 'waddling';
-                        const coastR = maxBoundRadius * (0.8 + Math.random() * 0.15);
-                        const pX = Math.cos(angle) * coastR;
-                        const pZ = Math.sin(angle) * coastR;
-                        const pbX = pX / islandScaleX;
-                        const pbZ = pZ / islandScaleZ;
-                        c.targetPos.set(pX, getTerrainHeight(pbX, pbZ, ISLAND_LEVEL) * islandScaleY, pZ);
-                        c.stateTimer = Math.random() * 6 + 3;
-                    } else {
-                        c.state = 'idle';
-                        c.stateTimer = Math.random() * 4 + 2;
-                    }
-                } else if (c.type === 'seagull' || c.type === 'parakeet') {
-                    if (c.state === 'flying') {
-                        if (Math.random() < 0.4) {
-                            c.state = 'pecking';
-                            c.targetPos.set(tX, tGroundY, tZ);
-                            c.stateTimer = Math.random() * 4 + 2;
-                        } else {
-                            c.state = 'flying';
-                            c.targetPos.set(tX, Math.max(tGroundY + 2.5, 4.5 * islandScaleY) + Math.random() * 1.5, tZ);
+                            c.state = 'swimming';
+                            const oceanR = (coastR + 1.5 + Math.random() * 4.0) * islandScaleX;
+                            const oX = Math.cos(angle) * oceanR;
+                            const oZ = Math.sin(angle) * oceanR;
+                            const oY = -0.2 * islandScaleY;
+                            c.targetPos.set(oX, oY, oZ);
                             c.stateTimer = Math.random() * 6 + 4;
                         }
-                    } else {
+                    }
+                } else if (isSkyCreature(c.type)) {
+                    if (c.state === 'flying' || c.state === 'idle') {
                         c.state = 'flying';
-                        c.targetPos.set(tX, Math.max(tGroundY + 2.5, 4.5 * islandScaleY) + Math.random() * 1.5, tZ);
+                        const skyR = (Math.random() * coastR * 1.2) * islandScaleX;
+                        const sX = Math.cos(angle) * skyR;
+                        const sZ = Math.sin(angle) * skyR;
+                        const sY = (11.0 + Math.random() * 5.0) * islandScaleY;
+                        c.targetPos.set(sX, sY, sZ);
                         c.stateTimer = Math.random() * 6 + 4;
                     }
-                } else if (c.type === 'dolphin' || c.type === 'sea_turtle') {
-                    if (c.state === 'swimming') {
-                        // Pick swimming target in ocean ring
-                        const oAngle = Math.random() * Math.PI * 2;
-                        const coastR = organicCoastlineRadius(oAngle, ISLAND_LEVEL);
-                        const oceanR = coastR + 1.5 + Math.random() * 3.5;
-                        const oX = Math.cos(oAngle) * oceanR * islandScaleX;
-                        const oZ = Math.sin(oAngle) * oceanR * islandScaleZ;
-                        let floatOffset = c.type === 'dolphin' ? 0.0 : -0.05;
-                        c.targetPos.set(oX, floatOffset * islandScaleY, oZ);
-                        c.stateTimer = Math.random() * 6 + 4;
+                } else {
+                    // Land creatures
+                    if (c.state === 'idle') {
+                        const randRadius = Math.random() * (maxBoundRadius * 0.85);
+                        const tX = Math.cos(angle) * randRadius;
+                        const tZ = Math.sin(angle) * randRadius;
+                        const bX = tX / islandScaleX;
+                        const bZ = tZ / islandScaleZ;
+                        const tGroundY = getTerrainHeight(bX, bZ, ISLAND_LEVEL) * islandScaleY;
 
-                        // Dolphin Jump Spot attraction
-                        if (c.type === 'dolphin') {
-                            const spotGroup = Array.from(placedObjectsMap.values()).find(g => g.userData.itemType === 'dolphin_spot');
-                            if (spotGroup && Math.random() < 0.75) {
-                                const spotX = spotGroup.position.x + (Math.random() - 0.5) * 1.5;
-                                const spotZ = spotGroup.position.z + (Math.random() - 0.5) * 1.5;
-                                c.targetPos.set(spotX, floatOffset * islandScaleY, spotZ);
-                            }
-                        }
-                    } else if (c.state === 'idle') {
-                        c.state = 'swimming';
+                        const isRun = Math.random() < 0.3;
+                        c.state = isRun ? 'running' : 'walking';
+                        c.speed = (isRun ? 0.055 : 0.03) * islandScaleX;
+                        c.targetPos.set(tX, tGroundY, tZ);
                         c.stateTimer = Math.random() * 5 + 3;
+                    } else {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 4 + 2;
                     }
                 }
             }
 
-            // 3. Movement Execution & Dynamic Elevation Following
+            // 3. Movement Execution
             const curBX = c.group.position.x / islandScaleX;
             const curBZ = c.group.position.z / islandScaleZ;
             const groundY = getTerrainHeight(curBX, curBZ, ISLAND_LEVEL) * islandScaleY;
 
             if (c.state === 'swimming') {
                 const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
-                dir.y = 0;
                 const dist = dir.length();
 
-                if (dist < 0.6) {
-                    // Trigger Jump Gimmick if arrived near dolphin spot!
-                    const spotGroup = Array.from(placedObjectsMap.values()).find(g => g.userData.itemType === 'dolphin_spot');
-                    if (c.type === 'dolphin' && spotGroup && spotGroup.position.distanceTo(c.group.position) < 5.0) {
-                        c.state = 'jumping';
-                        c.jumpPhase = 0;
-                        const jumpDir = dir.clone().normalize().multiplyScalar(4.5);
-                        if (jumpDir.length() === 0) jumpDir.set(1, 0, 0);
-                        c.jumpTargetPos = c.group.position.clone().add(jumpDir);
-                    } else {
-                        c.state = 'idle';
-                        c.stateTimer = Math.random() * 3 + 2;
-                    }
+                if (dist < 0.8) {
+                    c.state = 'idle';
+                    c.stateTimer = Math.random() * 3 + 2;
+                } else {
+                    dir.normalize();
+                    c.group.position.addScaledVector(dir, c.speed);
+                    c.group.rotation.y = Math.atan2(dir.x, dir.z);
+                    c.group.rotation.x = dir.y * 0.4;
+
+                    c.bouncePhase += delta * 7;
+                    c.group.position.y = c.targetPos.y + Math.sin(c.bouncePhase) * 0.12;
+                    c.group.rotation.z = Math.sin(c.bouncePhase * 0.8) * 0.12;
+                }
+            } else if (c.state === 'surfacing') {
+                c.bouncePhase += delta * 4;
+                c.group.position.y = Math.sin(c.bouncePhase) * 0.6; // Breaching above surface
+                c.group.rotation.x = -Math.cos(c.bouncePhase) * 0.3;
+            } else if (c.state === 'flying') {
+                const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
+                const dist = dir.length();
+
+                if (dist < 0.8) {
+                    c.stateTimer = 0;
                 } else {
                     dir.normalize();
                     c.group.position.addScaledVector(dir, c.speed);
                     c.group.rotation.y = Math.atan2(dir.x, dir.z);
 
-                    c.bouncePhase += delta * 8;
-                    c.group.position.y = c.basePosY + Math.sin(c.bouncePhase) * 0.08;
-                    c.group.rotation.z = Math.sin(c.bouncePhase * 0.8) * 0.1;
-                    c.group.rotation.x = 0;
+                    c.bouncePhase += delta * 10;
+                    c.group.position.y = c.targetPos.y + Math.sin(c.bouncePhase * 0.5) * 0.3;
+                    c.group.rotation.z = Math.sin(c.bouncePhase * 0.4) * 0.2;
                 }
-            } else if (c.state === 'jumping') {
-                c.jumpPhase += delta * 3.2;
-                const jumpProgress = c.jumpPhase / Math.PI;
-
-                if (jumpProgress >= 1.0) {
-                    c.state = 'swimming';
-                    c.group.rotation.x = 0;
-                    c.group.position.y = c.basePosY;
-                    c.stateTimer = Math.random() * 4 + 2;
-                } else {
-                    const jumpDir = new THREE.Vector3().subVectors(c.jumpTargetPos, c.group.position);
-                    jumpDir.y = 0;
-                    jumpDir.normalize();
-                    c.group.position.addScaledVector(jumpDir, c.speed * 1.5);
-
-                    const jumpHeight = 3.2;
-                    c.group.position.y = c.basePosY + Math.sin(c.jumpPhase) * jumpHeight;
-                    // Pitch rotation in jump trajectory
-                    c.group.rotation.x = -Math.cos(c.jumpPhase) * 0.75;
-                }
-            } else if (c.state === 'walking' || c.state === 'running' || c.state === 'hopping' || c.state === 'waddling' || c.state === 'flying' || c.state === 'pecking') {
+            } else if (c.state === 'walking' || c.state === 'running') {
                 const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
-                if (c.state !== 'flying') dir.y = 0;
+                dir.y = 0;
                 const dist = dir.length();
 
                 if (dist < 0.25) {
-                    if (c.state !== 'flying') {
-                        c.state = 'idle';
-                        c.stateTimer = Math.random() * 3 + 2;
-                    }
+                    c.state = 'idle';
+                    c.stateTimer = Math.random() * 3 + 2;
                 } else {
                     dir.normalize();
                     c.group.position.addScaledVector(dir, c.speed);
                     c.group.rotation.y = Math.atan2(dir.x, dir.z);
 
                     c.bouncePhase += delta * 12;
-
-                    if (c.state === 'hopping') {
-                        c.group.position.y = groundY + Math.abs(Math.sin(c.bouncePhase * 1.2)) * 0.45;
-                    } else if (c.state === 'waddling') {
-                        c.group.position.y = groundY + Math.abs(Math.sin(c.bouncePhase)) * 0.1;
-                        c.group.rotation.z = Math.sin(c.bouncePhase) * 0.18;
-                    } else if (c.state === 'flying') {
-                        c.group.position.y = c.targetPos.y + Math.sin(c.bouncePhase * 0.8) * 0.2;
-                        c.group.rotation.z = Math.sin(c.bouncePhase * 0.5) * 0.15;
-                    } else {
-                        c.group.position.y = groundY + Math.abs(Math.sin(c.bouncePhase)) * (c.state === 'running' ? 0.25 : 0.12);
-                        c.group.rotation.z = 0;
-                    }
+                    c.group.position.y = groundY + Math.abs(Math.sin(c.bouncePhase)) * (c.state === 'running' ? 0.25 : 0.12);
+                    c.group.rotation.z = 0;
                 }
             } else if (c.state === 'idle') {
                 c.group.rotation.z = 0;
-                c.group.position.y = (c.type === 'seagull' || c.type === 'parakeet') ? c.targetPos.y : ((c.type === 'dolphin' || c.type === 'sea_turtle') ? c.basePosY : groundY);
-                if (c.type === 'shiba_inu' || c.type === 'animal') {
-                    c.actionPhase += delta * 15;
-                    c.group.rotation.y += Math.sin(c.actionPhase) * 0.01;
+                if (isOceanCreature(c.type)) {
+                    c.group.position.y = -0.2 * islandScaleY;
+                } else if (isSkyCreature(c.type)) {
+                    c.group.position.y = 12.0 * islandScaleY;
+                } else {
+                    c.group.position.y = groundY;
                 }
-            } else if (c.state === 'sleeping') {
-                c.group.position.y = groundY - 0.1;
-                c.group.rotation.z = 0.2;
             }
         });
     }

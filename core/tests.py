@@ -394,8 +394,8 @@ class MyIslandTests(TestCase):
 
         item1 = IslandItem.objects.create(
             user=user1,
-            item_type='tree',
-            name='ユーザー1の木',
+            item_type='ancient_tree',
+            name='ユーザー1の大樹',
             is_placed=True
         )
 
@@ -434,8 +434,8 @@ class MyIslandTests(TestCase):
 
         ocean_item = IslandItem.objects.create(
             user=self.user,
-            item_type='yacht',
-            name='豪華なリゾートヨット',
+            item_type='merchant_ship',
+            name='行商人船',
             is_placed=False
         )
 
@@ -1283,10 +1283,10 @@ class NewFeatureRequirementsTests(TestCase):
         profile.coins = 100
         profile.save()
 
-        # 1. 正常購入（樹木 🌲 30コイン）
+        # 1. 正常購入（丸太 🪵 30コイン）
         res_buy = self.client.post(
             '/island/buy/',
-            data='{"item_type": "tree"}',
+            data='{"item_type": "log"}',
             content_type='application/json',
             HTTP_X_REQUESTED_WITH='XMLHttpRequest'
         )
@@ -1298,15 +1298,15 @@ class NewFeatureRequirementsTests(TestCase):
         profile.refresh_from_db()
         self.assertEqual(profile.coins, 70)
 
-        bought_item = IslandItem.objects.filter(user=self.user, item_type='tree').first()
+        bought_item = IslandItem.objects.filter(user=self.user, item_type='log').first()
         self.assertIsNotNone(bought_item)
         self.assertFalse(bought_item.is_placed)
         self.assertEqual(bought_item.price, 30)
 
-        # 2. 残高不足時の購入試行（お城 🏰 300コイン > 残り70コイン）
+        # 2. 残高不足時の購入試行（座礁船 🛳️ 300コイン > 残り70コイン）
         res_fail = self.client.post(
             '/island/buy/',
-            data='{"item_type": "castle"}',
+            data='{"item_type": "stranded_ship"}',
             content_type='application/json',
             HTTP_X_REQUESTED_WITH='XMLHttpRequest'
         )
@@ -1317,7 +1317,7 @@ class NewFeatureRequirementsTests(TestCase):
 
         profile.refresh_from_db()
         self.assertEqual(profile.coins, 70)  # コインは減らない
-        self.assertFalse(IslandItem.objects.filter(user=self.user, item_type='castle').exists())
+        self.assertFalse(IslandItem.objects.filter(user=self.user, item_type='stranded_ship').exists())
 
     def test_api_get_island_data_includes_price_and_coins(self):
         """APIレスポンスにコイン残高およびアイテムの価格フィールドが含まれることを検証"""
@@ -1328,8 +1328,8 @@ class NewFeatureRequirementsTests(TestCase):
 
         IslandItem.objects.create(
             user=self.user,
-            item_type='flower',
-            name='お花',
+            item_type='medicinal_herb',
+            name='薬草',
             price=20,
             is_placed=False
         )
