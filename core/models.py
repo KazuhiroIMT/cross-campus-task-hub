@@ -1039,43 +1039,49 @@ class IslandItem(models.Model):
     ]
 
     ITEM_ICONS = {
-        # 陸地
-        'log': '🪵', 'fallen_tree': '🪵', 'driftwood_land': '🪵', 'palm_tree': '🌴', 'ancient_tree': '🌳',
+        # 陸地オブジェクト
+        'log': '🪵', 'fallen_tree': '🪓', 'driftwood_land': '🎋', 'palm_tree': '🌴', 'ancient_tree': '🌳',
         'medicinal_herb': '🌿', 'wild_grass': '🌱', 'mushroom': '🍄', 'berry_bush': '🫐', 'coconut': '🥥',
-        'pebble': '🪨', 'iron_ore': '🪨', 'copper_ore': '🪨', 'gold_ore': '🪙', 'coal': '⬛',
+        'pebble': '🪨', 'iron_ore': '⛓️', 'copper_ore': '🥉', 'gold_ore': '🪙', 'coal': '⬛',
         'ancient_tablet': '📜', 'relic_fragment': '🏺', 'treasure_chest': '🧰', 'bonfire': '🔥', 'camp_tent': '⛺',
         'cooking_pot': '🍲', 'watchtower': '🗼', 'teleport_gate': '🌀', 'spring_water': '🚰', 'water_well': '🪣',
-        'poison_swamp': '☣️', 'thorny_vine': '🌿', 'cactus': '🌵', 'ancient_ruins': '🏛️', 'stone_shrine': '⛩️',
-        'tribal_hut': '⛺', 'limestone_cave': '🪨', 'stranded_ship': '🛳️',
+        'poison_swamp': '☣️', 'thorny_vine': '🪢', 'cactus': '🌵', 'ancient_ruins': '🏛️', 'stone_shrine': '⛩️',
+        'tribal_hut': '🛖', 'limestone_cave': '🕳️', 'stranded_ship': '🛳️',
+
+        # 陸上生物
         'rabbit': '🐇', 'squirrel': '🐿️', 'deer': '🦌', 'wild_boar': '🐗', 'goat': '🐐',
         'armadillo': '🦔', 'land_turtle': '🐢', 'beetle': '🪲', 'firefly': '🪰', 'wild_horse': '🐎',
         'ostrich': '🦤', 'llama': '🦙', 'buffalo': '🦬', 'hound': '🐕', 'poison_snake': '🐍',
         'scorpion': '🦂', 'monkey': '🐒', 'wolf': '🐺', 'bear': '🐻', 'jaguar': '🐆',
-        'goblin': '👺', 'lizardman': '🦎', 'vulture': '🦅', 'golem': '🗿', 'forest_lord': '🦣', 'volcano_dragon': '🐉',
+        'goblin': '👺', 'lizardman': '🦎', 'vulture': '🦅', 'golem': '🗿', 'forest_lord': '🦣', 'volcano_dragon': '🌋',
 
-        # 海洋
-        'ocean_driftwood': '🪵', 'wooden_crate': '📦', 'drifting_barrel': '🛢️', 'rescue_container': '🧰', 'message_bottle': '🍾',
-        'kelp': '🌿', 'giant_kelp': '🌿', 'sea_grass': '🌾', 'pearl': '🦪', 'giant_clam': '🐚',
-        'scallop': '🐚', 'scrap_parts': '⚙️', 'fish_shoal': '🐟', 'coral_reef': '🪸', 'seabed_oil_field': '🏗️',
-        'sunken_ship': '⚓', 'navigation_buoy': '🚨', 'lighthouse': '🏮', 'watch_tower_ocean': '🗼', 'sea_supply_station': '⛽',
-        'water_tower_ocean': '🏙️', 'current_rip': '🌊', 'sunken_rock': '🪨', 'whirlpool': '🌀', 'drift_ice': '🧊',
+        # 海洋オブジェクト
+        'ocean_driftwood': '🥢', 'wooden_crate': '📦', 'drifting_barrel': '🛢️', 'rescue_container': '💼', 'message_bottle': '🍾',
+        'kelp': '🥬', 'giant_kelp': '🥗', 'sea_grass': '🌾', 'pearl': '🔮', 'giant_clam': '🐚',
+        'scallop': '🦪', 'scrap_parts': '⚙️', 'fish_shoal': '🐟', 'coral_reef': '🪸', 'seabed_oil_field': '🏗️',
+        'sunken_ship': '⚓', 'navigation_buoy': '🚨', 'lighthouse': '🏮', 'watch_tower_ocean': '📡', 'sea_supply_station': '⛽',
+        'water_tower_ocean': '🏙️', 'current_rip': '🌊', 'sunken_rock': '🪨', 'whirlpool': '🌪️', 'drift_ice': '🧊',
         'iceberg': '🏔️', 'drifting_raft': '🚣', 'merchant_ship': '⛵', 'ghost_ship': '🏴‍☠️',
-        'tuna': '🐟', 'bonito': '🐟', 'mackerel': '🐟', 'crab': '🦀', 'shrimp': '🦐',
-        'octopus': '🐙', 'squid': '🦑', 'pearl_oyster': '🦪', 'sea_turtle': '🐢', 'dolphin': '🐬',
-        'humpback_whale': '🐳', 'blue_whale': '🐋', 'manta_ray': '🐟', 'luminescent_jellyfish': '🪼', 'electric_eel': '🐍',
-        'electric_ray': '🐟', 'man_of_war': '🪼', 'piranha': '🐟', 'barnacle': '🐚', 'great_white_shark': '🦈',
+
+        # 海洋生物
+        'tuna': '🐠', 'bonito': '🐡', 'mackerel': '🎣', 'crab': '🦀', 'shrimp': '🦐',
+        'octopus': '🐙', 'squid': '🦑', 'pearl_oyster': '🥠', 'sea_turtle': '🐢', 'dolphin': '🐬',
+        'humpback_whale': '🐳', 'blue_whale': '🐋', 'manta_ray': '🦈', 'luminescent_jellyfish': '🪼', 'electric_eel': '⚡',
+        'electric_ray': '🌩️', 'man_of_war': '🎆', 'piranha': '🦈', 'barnacle': '🪨', 'great_white_shark': '🦈',
         'hammerhead_shark': '🦈', 'orca': '🐋', 'giant_squid': '🦑', 'kraken': '🐙', 'leviathan': '🐉', 'island_whale': '🐳',
 
-        # 空中
+        # 空中オブジェクト
         'wind_crystal': '💎', 'ether_orb': '🔮', 'star_fragment': '⭐', 'meteor_fragment': '☄️', 'floating_spore': '🫧',
-        'parachute_container': '🪂', 'observation_pod': '🛰️', 'feather': '🪶', 'updraft': '🌪️', 'jet_stream': '💨',
-        'acceleration_ring': '⭕', 'aerial_mooring_buoy': '🎈', 'refueling_balloon': '🎈', 'sky_lighthouse': '🏮', 'radio_tower': '🗼',
-        'turbulent_air': '🌪️', 'thundercloud': '🌩️', 'floating_mine': '💣', 'floating_island': '🏝️', 'airship_wreckage': '🛩️',
+        'parachute_container': '🪂', 'observation_pod': '🛰️', 'feather': '🪶', 'updraft': '🌬️', 'jet_stream': '💨',
+        'acceleration_ring': '⭕', 'aerial_mooring_buoy': '🎈', 'refueling_balloon': '🎨', 'sky_lighthouse': '💡', 'radio_tower': '📻',
+        'turbulent_air': '🌀', 'thundercloud': '🌩️', 'floating_mine': '💣', 'floating_island': '🏝️', 'airship_wreckage': '🛩️',
         'floating_water_orb': '💧', 'sky_pirate_fort': '🏰',
+
+        # 空中生物
         'seagull': '🕊️', 'goose': '🪿', 'skyfish': '🐟', 'glowing_hummingbird': '🐦', 'floating_snail': '🐚',
-        'skyray': '🐟', 'guiding_bird': '🕊️', 'floating_whale': '🐳', 'sky_jellyfish': '🪼', 'electric_bat': '🦇',
+        'skyray': '🐟', 'guiding_bird': '🦅', 'floating_whale': '🐳', 'sky_jellyfish': '🪼', 'electric_bat': '🦇',
         'acid_insect': '🦟', 'diving_hawk': '🦅', 'cloud_leech': '🐛', 'wyvern': '🐉', 'gryphon': '🦅',
-        'harpy': '🧜‍♀️', 'pirate_crow': '🐦‍⬛', 'roc_bird': '🦅', 'heavenly_dragon': '🐉', 'giant_beast_island': '🐢',
+        'harpy': '🧜‍♀️', 'pirate_crow': '🐦‍⬛', 'roc_bird': '🦤', 'heavenly_dragon': '🐉', 'giant_beast_island': '🐢',
     }
 
     ITEM_PRICES = {
