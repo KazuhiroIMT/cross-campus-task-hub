@@ -907,6 +907,7 @@ class IslandItem(models.Model):
         ('overwater_cottage', '水上コテージ 🏚️'),
         ('swim_ring', '浮き輪 🛟'),
         ('sea_turtle', 'ウミガメ 🐢'),
+        ('dolphin', 'イルカ 🐬'),
         ('dolphin_spot', 'イルカのジャンプスポット 🐬'),
         ('lighthouse_islet', '灯台の小島 🏮'),
 
@@ -956,6 +957,7 @@ class IslandItem(models.Model):
         'overwater_cottage': '🏚️',
         'swim_ring': '🛟',
         'sea_turtle': '🐢',
+        'dolphin': '🐬',
         'dolphin_spot': '🐬',
         'lighthouse_islet': '🏮',
 
@@ -1005,6 +1007,7 @@ class IslandItem(models.Model):
         'overwater_cottage': 250,
         'swim_ring': 100,
         'sea_turtle': 180,
+        'dolphin': 180,
         'dolphin_spot': 220,
         'lighthouse_islet': 300,
         # 上空アイテム
@@ -1045,7 +1048,7 @@ class IslandItem(models.Model):
 
     @property
     def area_category(self):
-        ocean_items = {'yacht', 'rowboat', 'overwater_cottage', 'swim_ring', 'sea_turtle', 'dolphin_spot', 'lighthouse_islet'}
+        ocean_items = {'yacht', 'rowboat', 'overwater_cottage', 'swim_ring', 'sea_turtle', 'dolphin', 'dolphin_spot', 'lighthouse_islet'}
         sky_items = {'hot_air_balloon', 'floating_island', 'rainbow_arch', 'meteor_spot', 'airship', 'aurora_generator'}
         if self.item_type in ocean_items:
             return 'ocean'

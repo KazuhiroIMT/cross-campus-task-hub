@@ -1926,6 +1926,55 @@ document.addEventListener("DOMContentLoaded", function() {
         return group;
     }
 
+    function createDolphinMesh() {
+        const group = new THREE.Group();
+        const blueMat = new THREE.MeshPhongMaterial({ color: 0x0288d1, shininess: 80, flatShading: true });
+        const bellyMat = new THREE.MeshPhongMaterial({ color: 0xe0f7fa, shininess: 80, flatShading: true });
+
+        // Body (Sleek tapered shape)
+        const body = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.6, 8), blueMat);
+        body.rotation.x = Math.PI / 2;
+        body.position.y = 0.2;
+        group.add(body);
+
+        // Belly
+        const belly = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.4, 8), bellyMat);
+        belly.rotation.x = Math.PI / 2;
+        belly.position.set(0, 0.15, -0.05);
+        group.add(belly);
+
+        // Head & Beak
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), blueMat);
+        head.position.set(0, 0.2, 0.6);
+        group.add(head);
+
+        const beak = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 6), blueMat);
+        beak.position.set(0, 0.18, 0.82);
+        beak.rotation.x = Math.PI / 2;
+        group.add(beak);
+
+        // Dorsal Fin
+        const dorsal = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), blueMat);
+        dorsal.position.set(0, 0.45, 0.1);
+        dorsal.rotation.x = -0.6;
+        group.add(dorsal);
+
+        // Flippers
+        [[-0.32, 0.15, 0.3], [0.32, 0.15, 0.3]].forEach(p => {
+            const flipper = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.18), blueMat);
+            flipper.position.set(p[0], p[1], p[2]);
+            flipper.rotation.z = p[0] > 0 ? -0.4 : 0.4;
+            group.add(flipper);
+        });
+
+        // Tail Fluke
+        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.04, 0.22), blueMat);
+        tail.position.set(0, 0.2, -0.8);
+        group.add(tail);
+
+        return group;
+    }
+
     function createSeaTurtleMesh() {
         const group = new THREE.Group();
         const shellMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32, flatShading: true });
@@ -1950,15 +1999,24 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function createDolphinSpotMesh() {
         const group = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.18, 10, 16, Math.PI), new THREE.MeshPhongMaterial({ color: 0x0288d1, shininess: 80 }));
-        body.position.y = 0.5;
-        body.rotation.z = -Math.PI / 6;
-        group.add(body);
+        const ringMat = new THREE.MeshPhongMaterial({ color: 0x00bcd4, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.8, 1.4, 24), ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.05;
+        group.add(ring);
 
         const splash = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.08, 8, 16), new THREE.MeshPhongMaterial({ color: 0xb3e5fc, transparent: true, opacity: 0.8 }));
         splash.rotation.x = Math.PI / 2;
-        splash.position.y = 0.05;
+        splash.position.y = 0.08;
         group.add(splash);
+
+        // Animated leaping dolphin mini model on the spot
+        const jumper = createDolphinMesh();
+        jumper.scale.setScalar(0.85);
+        jumper.name = "spotLeaper";
+        jumper.position.set(0, 0.2, 0);
+        group.add(jumper);
+
         return group;
     }
 
@@ -2113,6 +2171,7 @@ document.addEventListener("DOMContentLoaded", function() {
             case 'overwater_cottage': return createOverwaterCottageMesh();
             case 'swim_ring': return createSwimRingMesh();
             case 'sea_turtle': return createSeaTurtleMesh();
+            case 'dolphin': return createDolphinMesh();
             case 'dolphin_spot': return createDolphinSpotMesh();
             case 'lighthouse_islet': return createLighthouseIsletMesh();
 
@@ -2141,7 +2200,7 @@ document.addEventListener("DOMContentLoaded", function() {
             .catch(err => console.error("Error loading island data:", err));
     }
 
-    const CREATURE_TYPES = ['animal', 'shiba_inu', 'calico_cat', 'white_rabbit', 'capybara', 'penguin', 'seagull', 'parakeet'];
+    const CREATURE_TYPES = ['animal', 'shiba_inu', 'calico_cat', 'white_rabbit', 'capybara', 'penguin', 'seagull', 'parakeet', 'sea_turtle', 'dolphin'];
 
     function isCreatureType(type) {
         return CREATURE_TYPES.includes(type);
@@ -2216,7 +2275,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 // Relative ground height calculation taking island Y scale into account
                 let baseY = getTerrainHeight(posX, posZ, 1);
-                let worldY = areaCat === 'sky' ? 12.0 * islandScaleY : baseY * islandScaleY;
+                let worldY = baseY * islandScaleY;
+
+                if (areaCat === 'sky') {
+                    worldY = 12.0 * islandScaleY;
+                } else if (areaCat === 'ocean') {
+                    // Sea level snap: snap ocean items to water surface (Y=0) instead of underwater terrain
+                    let floatOffset = 0.05;
+                    if (item.item_type === 'overwater_cottage' || item.item_type === 'lighthouse_islet') {
+                        floatOffset = 0.0;
+                    } else if (item.item_type === 'sea_turtle' || item.item_type === 'dolphin') {
+                        floatOffset = -0.05;
+                    }
+                    worldY = floatOffset * islandScaleY;
+                }
+
                 if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
                     worldY = Math.max(worldY + 2.0, 4.5 * islandScaleY); // flying above terrain
                 }
@@ -2233,7 +2306,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     itemId: item.id,
                     itemType: item.item_type,
                     itemName: item.name,
-                    isCreature: isCreature
+                    isCreature: isCreature,
+                    baseWorldY: worldY
                 };
 
                 scene.add(group);
@@ -2248,7 +2322,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     else if (item.item_type === 'white_rabbit') speed = 0.035;
                     else if (item.item_type === 'capybara') speed = 0.015;
                     else if (item.item_type === 'penguin') speed = 0.022;
-                    else if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
+                    else if (item.item_type === 'sea_turtle') {
+                        speed = 0.02;
+                        initialState = 'swimming';
+                    } else if (item.item_type === 'dolphin') {
+                        speed = 0.048;
+                        initialState = 'swimming';
+                    } else if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
                         speed = 0.055;
                         initialState = 'flying';
                     }
@@ -2271,7 +2351,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // エリア解放・アイテムエリア区分ヘルパー
     function getItemAreaCategory(type) {
-        const oceanTypes = ['yacht', 'rowboat', 'overwater_cottage', 'swim_ring', 'sea_turtle', 'dolphin_spot', 'lighthouse_islet'];
+        const oceanTypes = ['yacht', 'rowboat', 'overwater_cottage', 'swim_ring', 'sea_turtle', 'dolphin', 'dolphin_spot', 'lighthouse_islet'];
         const skyTypes = ['hot_air_balloon', 'floating_island', 'rainbow_arch', 'meteor_spot', 'airship', 'aurora_generator'];
         if (oceanTypes.includes(type)) return 'ocean';
         if (skyTypes.includes(type)) return 'sky';
@@ -2855,7 +2935,16 @@ document.addEventListener("DOMContentLoaded", function() {
                 const baseZ = pt.z / islandScaleZ;
                 const isValid = isValidPlacementArea(baseX, baseZ, areaCat, 1);
                 const baseHeight = getTerrainHeight(baseX, baseZ, 1);
-                const targetY = areaCat === 'sky' ? 12.0 * islandScaleY : baseHeight * islandScaleY;
+
+                let targetY = baseHeight * islandScaleY;
+                if (areaCat === 'sky') {
+                    targetY = 12.0 * islandScaleY;
+                } else if (areaCat === 'ocean') {
+                    let floatOffset = 0.05;
+                    if (itemType === 'overwater_cottage' || itemType === 'lighthouse_islet') floatOffset = 0.0;
+                    else if (itemType === 'sea_turtle' || itemType === 'dolphin') floatOffset = -0.05;
+                    targetY = floatOffset * islandScaleY;
+                }
 
                 placementIndicator.position.set(pt.x, targetY + 0.1, pt.z);
                 placementIndicator.material.color.setHex(isValid ? 0x22c55e : 0xef4444);
@@ -3045,6 +3134,31 @@ document.addEventListener("DOMContentLoaded", function() {
                         c.targetPos.set(tX, Math.max(tGroundY + 2.5, 4.5 * islandScaleY) + Math.random() * 1.5, tZ);
                         c.stateTimer = Math.random() * 6 + 4;
                     }
+                } else if (c.type === 'dolphin' || c.type === 'sea_turtle') {
+                    if (c.state === 'swimming') {
+                        // Pick swimming target in ocean ring
+                        const oAngle = Math.random() * Math.PI * 2;
+                        const coastR = organicCoastlineRadius(oAngle, 1);
+                        const oceanR = coastR + 1.5 + Math.random() * 3.5;
+                        const oX = Math.cos(oAngle) * oceanR * islandScaleX;
+                        const oZ = Math.sin(oAngle) * oceanR * islandScaleZ;
+                        let floatOffset = c.type === 'dolphin' ? 0.0 : -0.05;
+                        c.targetPos.set(oX, floatOffset * islandScaleY, oZ);
+                        c.stateTimer = Math.random() * 6 + 4;
+
+                        // Dolphin Jump Spot attraction
+                        if (c.type === 'dolphin') {
+                            const spotGroup = Array.from(placedObjectsMap.values()).find(g => g.userData.itemType === 'dolphin_spot');
+                            if (spotGroup && Math.random() < 0.75) {
+                                const spotX = spotGroup.position.x + (Math.random() - 0.5) * 1.5;
+                                const spotZ = spotGroup.position.z + (Math.random() - 0.5) * 1.5;
+                                c.targetPos.set(spotX, floatOffset * islandScaleY, spotZ);
+                            }
+                        }
+                    } else if (c.state === 'idle') {
+                        c.state = 'swimming';
+                        c.stateTimer = Math.random() * 5 + 3;
+                    }
                 }
             }
 
@@ -3053,7 +3167,55 @@ document.addEventListener("DOMContentLoaded", function() {
             const curBZ = c.group.position.z / islandScaleZ;
             const groundY = getTerrainHeight(curBX, curBZ, 1) * islandScaleY;
 
-            if (c.state === 'walking' || c.state === 'running' || c.state === 'hopping' || c.state === 'waddling' || c.state === 'flying' || c.state === 'pecking') {
+            if (c.state === 'swimming') {
+                const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
+                dir.y = 0;
+                const dist = dir.length();
+
+                if (dist < 0.6) {
+                    // Trigger Jump Gimmick if arrived near dolphin spot!
+                    const spotGroup = Array.from(placedObjectsMap.values()).find(g => g.userData.itemType === 'dolphin_spot');
+                    if (c.type === 'dolphin' && spotGroup && spotGroup.position.distanceTo(c.group.position) < 5.0) {
+                        c.state = 'jumping';
+                        c.jumpPhase = 0;
+                        const jumpDir = dir.clone().normalize().multiplyScalar(4.5);
+                        if (jumpDir.length() === 0) jumpDir.set(1, 0, 0);
+                        c.jumpTargetPos = c.group.position.clone().add(jumpDir);
+                    } else {
+                        c.state = 'idle';
+                        c.stateTimer = Math.random() * 3 + 2;
+                    }
+                } else {
+                    dir.normalize();
+                    c.group.position.addScaledVector(dir, c.speed);
+                    c.group.rotation.y = Math.atan2(dir.x, dir.z);
+
+                    c.bouncePhase += delta * 8;
+                    c.group.position.y = c.basePosY + Math.sin(c.bouncePhase) * 0.08;
+                    c.group.rotation.z = Math.sin(c.bouncePhase * 0.8) * 0.1;
+                    c.group.rotation.x = 0;
+                }
+            } else if (c.state === 'jumping') {
+                c.jumpPhase += delta * 3.2;
+                const jumpProgress = c.jumpPhase / Math.PI;
+
+                if (jumpProgress >= 1.0) {
+                    c.state = 'swimming';
+                    c.group.rotation.x = 0;
+                    c.group.position.y = c.basePosY;
+                    c.stateTimer = Math.random() * 4 + 2;
+                } else {
+                    const jumpDir = new THREE.Vector3().subVectors(c.jumpTargetPos, c.group.position);
+                    jumpDir.y = 0;
+                    jumpDir.normalize();
+                    c.group.position.addScaledVector(jumpDir, c.speed * 1.5);
+
+                    const jumpHeight = 3.2;
+                    c.group.position.y = c.basePosY + Math.sin(c.jumpPhase) * jumpHeight;
+                    // Pitch rotation in jump trajectory
+                    c.group.rotation.x = -Math.cos(c.jumpPhase) * 0.75;
+                }
+            } else if (c.state === 'walking' || c.state === 'running' || c.state === 'hopping' || c.state === 'waddling' || c.state === 'flying' || c.state === 'pecking') {
                 const dir = new THREE.Vector3().subVectors(c.targetPos, c.group.position);
                 if (c.state !== 'flying') dir.y = 0;
                 const dist = dir.length();
@@ -3085,7 +3247,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             } else if (c.state === 'idle') {
                 c.group.rotation.z = 0;
-                c.group.position.y = (c.type === 'seagull' || c.type === 'parakeet') ? c.targetPos.y : groundY;
+                c.group.position.y = (c.type === 'seagull' || c.type === 'parakeet') ? c.targetPos.y : ((c.type === 'dolphin' || c.type === 'sea_turtle') ? c.basePosY : groundY);
                 if (c.type === 'shiba_inu' || c.type === 'animal') {
                     c.actionPhase += delta * 15;
                     c.group.rotation.y += Math.sin(c.actionPhase) * 0.01;
@@ -3112,6 +3274,29 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         oceanGeo.computeVertexNormals();
         posAttr.needsUpdate = true;
+
+        // Ocean item floating wave motion for placed inanimate items
+        placedObjectsMap.forEach((group, itemId) => {
+            const itemType = group.userData.itemType;
+            if (getItemAreaCategory(itemType) === 'ocean' && !group.userData.isCreature) {
+                const floatBaseY = group.userData.baseWorldY !== undefined ? group.userData.baseWorldY : group.position.y;
+                group.position.y = floatBaseY + Math.sin(time * 2.0 + itemId) * 0.06;
+                group.rotation.z = Math.sin(time * 1.5 + itemId) * 0.03;
+            }
+            if (itemType === 'dolphin_spot') {
+                const leaper = group.getObjectByName("spotLeaper");
+                if (leaper) {
+                    const jumpTime = (time * 1.8) % (Math.PI * 2);
+                    if (jumpTime < Math.PI) {
+                        leaper.position.y = 0.2 + Math.sin(jumpTime) * 2.5;
+                        leaper.rotation.x = -Math.cos(jumpTime) * 0.8;
+                        leaper.visible = true;
+                    } else {
+                        leaper.visible = false;
+                    }
+                }
+            }
+        });
 
         // Animate Clouds Drifting Slow
         cloudsList.forEach(c => {
