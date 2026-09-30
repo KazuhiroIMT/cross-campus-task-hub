@@ -216,6 +216,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let selectedTrayItem = null;
     let activeSelectedObject = null; // Currently selected placed object in edit mode
     let currentCollectionFilter = "all";
+    let dragOriginalPos = null;
 
     // --- 0. Island Level & Configuration ---
     const ISLAND_LEVEL = parseInt("{{ island_profile.level|default:1 }}", 10) || 1;
@@ -473,6 +474,14 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     updateTimeOfDayEnvironment();
+
+    // --- Placement Guide Indicator ---
+    const indicatorGeo = new THREE.RingGeometry(0.7, 1.0, 32);
+    const indicatorMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+    const placementIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
+    placementIndicator.rotation.x = -Math.PI / 2;
+    placementIndicator.visible = false;
+    scene.add(placementIndicator);
 
     // --- 3. Ocean Water Surface Plane ---
     const oceanSpan = baseIslandRadius * 8;
@@ -1814,6 +1823,47 @@ document.addEventListener("DOMContentLoaded", function() {
         return CREATURE_TYPES.includes(type);
     }
 
+    function isValidPlacementArea(x, z, areaCategory, level) {
+        const dist = Math.sqrt(x * x + z * z);
+        const angle = Math.atan2(z, x);
+        const coastR = organicCoastlineRadius(angle, level);
+
+        if (areaCategory === 'land') {
+            return dist <= (coastR - 0.2);
+        } else if (areaCategory === 'ocean') {
+            const maxOceanR = baseIslandRadius * 3.5;
+            return dist > (coastR + 0.3) && dist <= maxOceanR;
+        } else if (areaCategory === 'sky') {
+            const maxSkyR = baseIslandRadius * 3.0;
+            return dist <= maxSkyR;
+        }
+        return true;
+    }
+
+    function getValidPositionForCategory(areaCategory, level) {
+        const angle = Math.random() * Math.PI * 2;
+        const coastR = organicCoastlineRadius(angle, level);
+        let x = 0, z = 0, y = 0;
+
+        if (areaCategory === 'land') {
+            const r = Math.random() * Math.max(1, coastR - 2.5);
+            x = Math.cos(angle) * r;
+            z = Math.sin(angle) * r;
+            y = getTerrainHeight(x, z, level);
+        } else if (areaCategory === 'ocean') {
+            const r = coastR + 2.0 + Math.random() * 3.0;
+            x = Math.cos(angle) * r;
+            z = Math.sin(angle) * r;
+            y = getTerrainHeight(x, z, level);
+        } else if (areaCategory === 'sky') {
+            const r = Math.random() * (coastR * 0.8);
+            x = Math.cos(angle) * r;
+            z = Math.sin(angle) * r;
+            y = 12.0;
+        }
+        return new THREE.Vector3(x, y, z);
+    }
+
     function renderPlacedItems() {
         // Clear existing placed objects
         placedObjectsMap.forEach(obj => scene.remove(obj));
@@ -1828,11 +1878,19 @@ document.addEventListener("DOMContentLoaded", function() {
                 const mesh = build3DMeshForItemType(item.item_type);
                 group.add(mesh);
 
-                const maxR = getPlacementMaxRadius(ISLAND_LEVEL);
-                const posX = item.position_x !== undefined && item.position_x !== null ? item.position_x : (Math.random() * (maxR * 1.2) - maxR * 0.6);
-                const posZ = item.position_z !== undefined && item.position_z !== null ? item.position_z : (Math.random() * (maxR * 1.2) - maxR * 0.6);
+                const areaCat = getItemAreaCategory(item.item_type);
+                let posX = item.position_x;
+                let posZ = item.position_z;
 
-                let initialY = getTerrainHeight(posX, posZ, ISLAND_LEVEL);
+                if (posX === undefined || posX === null || posZ === undefined || posZ === null || !isValidPlacementArea(posX, posZ, areaCat, ISLAND_LEVEL)) {
+                    const validPos = getValidPositionForCategory(areaCat, ISLAND_LEVEL);
+                    posX = validPos.x;
+                    posZ = validPos.z;
+                    item.position_x = posX;
+                    item.position_z = posZ;
+                }
+
+                let initialY = areaCat === 'sky' ? 12.0 : getTerrainHeight(posX, posZ, ISLAND_LEVEL);
                 if (item.item_type === 'seagull' || item.item_type === 'parakeet') {
                     initialY = Math.max(initialY + 2.0, 4.5); // flying above terrain
                 }
@@ -2048,12 +2106,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
 
                     item.is_placed = true;
-                    const maxR = getPlacementMaxRadius(ISLAND_LEVEL);
-                    if (!item.position_x && !item.position_z) {
-                        item.position_x = (Math.random() - 0.5) * (maxR * 0.8);
-                        item.position_z = (Math.random() - 0.5) * (maxR * 0.8);
-                    }
-                    item.position_y = areaCat === 'sky' ? 12.0 : getTerrainHeight(item.position_x, item.position_z, ISLAND_LEVEL);
+                    const validPos = getValidPositionForCategory(areaCat, ISLAND_LEVEL);
+                    item.position_x = validPos.x;
+                    item.position_z = validPos.z;
+                    item.position_y = validPos.y;
 
                     renderPlacedItems();
                     populateItemTray();
@@ -2285,6 +2341,13 @@ document.addEventListener("DOMContentLoaded", function() {
                         const pt = intersects[0].point;
                         const areaCat = getItemAreaCategory(item.item_type);
 
+                        if (!isValidPlacementArea(pt.x, pt.z, areaCat, ISLAND_LEVEL)) {
+                            if (areaCat === 'land') showWarningToast("⚠️ 陸地用のアイテムは島（地面）の上にしか配置できません");
+                            else if (areaCat === 'ocean') showWarningToast("⚠️ 海洋アイテムは海（水面）の中にしか配置できません");
+                            else if (areaCat === 'sky') showWarningToast("⚠️ 上空アイテムは空中エリアにしか配置できません");
+                            return;
+                        }
+
                         item.is_placed = true;
                         item.position_x = pt.x;
                         item.position_z = pt.z;
@@ -2312,6 +2375,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 selectPlacedObject(topGroup);
                 isDraggingObject = true;
+                dragOriginalPos = topGroup.position.clone();
                 controls.enabled = false; // ドラッグ中はカメラ移動を停止
             } else {
                 deselectActiveObject();
@@ -2333,7 +2397,10 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     canvas.addEventListener("pointermove", (e) => {
-        if (!isEditMode || !isDraggingObject || !activeSelectedObject) return;
+        if (!isEditMode) {
+            placementIndicator.visible = false;
+            return;
+        }
 
         const rect = canvas.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -2345,19 +2412,55 @@ document.addEventListener("DOMContentLoaded", function() {
         const intersectsOcean = raycaster.intersectObject(oceanMesh);
         const intersects = intersectsTerrain.length > 0 ? intersectsTerrain : intersectsOcean;
 
-        if (intersects.length > 0) {
+        if (intersects.length > 0 && (isDraggingObject || selectedTrayItem)) {
             const pt = intersects[0].point;
-            const itemType = activeSelectedObject.userData.itemType;
-            const areaCat = getItemAreaCategory(itemType);
+            let itemType = null;
+            if (isDraggingObject && activeSelectedObject) {
+                itemType = activeSelectedObject.userData.itemType;
+            } else if (selectedTrayItem) {
+                const item = islandData.items.find(i => i.id === selectedTrayItem);
+                if (item) itemType = item.item_type;
+            }
 
-            activeSelectedObject.position.x = pt.x;
-            activeSelectedObject.position.z = pt.z;
-            activeSelectedObject.position.y = areaCat === 'sky' ? 12.0 : getTerrainHeight(pt.x, pt.z, ISLAND_LEVEL);
+            if (itemType) {
+                const areaCat = getItemAreaCategory(itemType);
+                const isValid = isValidPlacementArea(pt.x, pt.z, areaCat, ISLAND_LEVEL);
+                const targetY = areaCat === 'sky' ? 12.0 : getTerrainHeight(pt.x, pt.z, ISLAND_LEVEL);
+
+                placementIndicator.position.set(pt.x, targetY + 0.1, pt.z);
+                placementIndicator.material.color.setHex(isValid ? 0x22c55e : 0xef4444);
+                placementIndicator.visible = true;
+
+                if (isDraggingObject && activeSelectedObject) {
+                    activeSelectedObject.position.set(pt.x, targetY, pt.z);
+                }
+            } else {
+                placementIndicator.visible = false;
+            }
+        } else {
+            placementIndicator.visible = false;
         }
     });
 
     window.addEventListener("pointerup", () => {
-        if (isDraggingObject) {
+        placementIndicator.visible = false;
+        if (isDraggingObject && activeSelectedObject) {
+            const itemType = activeSelectedObject.userData.itemType;
+            const areaCat = getItemAreaCategory(itemType);
+            const isValid = isValidPlacementArea(activeSelectedObject.position.x, activeSelectedObject.position.z, areaCat, ISLAND_LEVEL);
+
+            if (!isValid) {
+                if (areaCat === 'land') showWarningToast("⚠️ 陸地用のアイテムは島（地面）の上にしか配置できません");
+                else if (areaCat === 'ocean') showWarningToast("⚠️ 海洋アイテムは海（水面）の中にしか配置できません");
+                else if (areaCat === 'sky') showWarningToast("⚠️ 上空アイテムは空中エリアにしか配置できません");
+
+                if (dragOriginalPos && isValidPlacementArea(dragOriginalPos.x, dragOriginalPos.z, areaCat, ISLAND_LEVEL)) {
+                    activeSelectedObject.position.copy(dragOriginalPos);
+                } else {
+                    const validPos = getValidPositionForCategory(areaCat, ISLAND_LEVEL);
+                    activeSelectedObject.position.copy(validPos);
+                }
+            }
             isDraggingObject = false;
             controls.enabled = true; // カメラ移動の再開
         }
